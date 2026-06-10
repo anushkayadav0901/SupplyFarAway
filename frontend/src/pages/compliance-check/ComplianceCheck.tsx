@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Tooltip } from "@mui/material";
 import { InfoOutlined } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import ComplianceResponse from "./ComplianceResponse";
 import ComplianceResponseSkeleton from "../../components/Skeleton/ComplianceResponseSkeleton";
 import {
@@ -367,7 +368,7 @@ const ComplianceForm: React.FC = () => {
           <select
             value={(value as string) || ""}
             onChange={(e) => handleInputChange(section, field, e.target.value)}
-            className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
+            className={`w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
               mandatory && !value ? "border-red-500" : "border-neutral-300"
             } ${responseReceived ? "bg-neutral-200 cursor-not-allowed" : ""}`}
             required={mandatory}
@@ -398,7 +399,7 @@ const ComplianceForm: React.FC = () => {
           <select
             value={(value as string) || ""}
             onChange={(e) => handleInputChange(section, field, e.target.value)}
-            className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
+            className={`w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
               mandatory && !value ? "border-red-500" : "border-neutral-300"
             } ${responseReceived ? "bg-neutral-200 cursor-not-allowed" : ""}`}
             required={mandatory}
@@ -422,7 +423,7 @@ const ComplianceForm: React.FC = () => {
             type="number"
             value={(value as string) || ""}
             onChange={(e) => handleInputChange(section, field, e.target.value)}
-            className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
+            className={`w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
               mandatory && !value ? "border-red-500" : "border-neutral-300"
             } ${responseReceived ? "bg-neutral-200 cursor-not-allowed" : ""}`}
             placeholder={placeholder}
@@ -438,7 +439,7 @@ const ComplianceForm: React.FC = () => {
           <textarea
             value={(value as string) || ""}
             onChange={(e) => handleInputChange(section, field, e.target.value)}
-            className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
+            className={`w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
               mandatory && !value ? "border-red-500" : "border-neutral-300"
             } ${responseReceived ? "bg-neutral-200 cursor-not-allowed" : ""}`}
             placeholder={placeholder}
@@ -451,7 +452,7 @@ const ComplianceForm: React.FC = () => {
             type="text"
             value={(value as string) || ""}
             onChange={(e) => handleInputChange(section, field, e.target.value)}
-            className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
+            className={`w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
               mandatory && !value ? "border-red-500" : "border-neutral-300"
             } ${responseReceived ? "bg-neutral-200 cursor-not-allowed" : ""}`}
             placeholder={placeholder}
@@ -469,7 +470,7 @@ const ComplianceForm: React.FC = () => {
               onChange={(e) =>
                 handleInputChange(section, field, e.target.value, "currency")
               }
-              className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
+              className={`w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
                 mandatory && !valObj?.currency
                   ? "border-red-500"
                   : "border-neutral-300"
@@ -492,7 +493,7 @@ const ComplianceForm: React.FC = () => {
               onChange={(e) =>
                 handleInputChange(section, field, e.target.value, "amount")
               }
-              className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
+              className={`w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
                 mandatory && !valObj?.amount
                   ? "border-red-500"
                   : "border-neutral-300"
@@ -584,7 +585,7 @@ const ComplianceForm: React.FC = () => {
             <button
               key={tab}
               onClick={() => !responseReceived && setActiveTab(tab)}
-              className={`flex-shrink-0 px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm font-medium transition-colors duration-200 ${
+              className={`flex-shrink-0 px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 ${
                 activeTab === tab
                   ? "border-b-2 border-primary-500 text-primary-500"
                   : responseReceived
@@ -633,9 +634,9 @@ const ComplianceForm: React.FC = () => {
           <button
             onClick={handlePrevTab}
             disabled={tabOrder.indexOf(activeTab) === 0 || responseReceived}
-            className={`py-2 sm:py-3 px-4 sm:px-6 text-base sm:text-lg font-medium rounded-lg transition-colors duration-200 w-full sm:w-auto ${
+            className={`py-2 sm:py-3 px-4 sm:px-6 text-base sm:text-lg font-medium rounded-xl transition-colors duration-150 w-full sm:w-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-secondary-500 focus-visible:ring-offset-1 ${
               tabOrder.indexOf(activeTab) === 0 || responseReceived
-                ? "bg-neutral-400 cursor-not-allowed"
+                ? "bg-neutral-400 text-white cursor-not-allowed opacity-60"
                 : "bg-secondary-500 text-white hover:bg-secondary-600"
             }`}
           >
@@ -647,9 +648,9 @@ const ComplianceForm: React.FC = () => {
               disabled={
                 !areCurrentTabMandatoryFieldsFilled() || responseReceived
               }
-              className={`py-2 sm:py-3 px-4 sm:px-6 text-base sm:text-lg font-medium rounded-lg transition-colors duration-200 w-full sm:w-auto ${
+              className={`py-2 sm:py-3 px-4 sm:px-6 text-base sm:text-lg font-medium rounded-xl transition-colors duration-150 w-full sm:w-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 ${
                 !areCurrentTabMandatoryFieldsFilled() || responseReceived
-                  ? "bg-neutral-400 cursor-not-allowed"
+                  ? "bg-neutral-400 text-white cursor-not-allowed opacity-60"
                   : "bg-primary-500 text-white hover:bg-primary-600"
               }`}
             >
@@ -659,12 +660,24 @@ const ComplianceForm: React.FC = () => {
             <button
               onClick={handleSubmit}
               disabled={isButtonDisabled}
-              className={`py-2 sm:py-3 px-4 sm:px-6 text-base sm:text-lg font-medium rounded-lg transition-colors duration-200 w-full sm:w-auto ${
+              className={`py-2 sm:py-3 px-4 sm:px-6 text-base sm:text-lg font-medium rounded-xl transition-colors duration-150 w-full sm:w-auto min-w-[220px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 inline-flex items-center justify-center gap-2 ${
                 isButtonDisabled
-                  ? "bg-neutral-400 cursor-not-allowed"
+                  ? "bg-neutral-400 text-white cursor-not-allowed opacity-60"
                   : "bg-primary-500 text-white hover:bg-primary-600"
               }`}
             >
+              {loading && (
+                <svg
+                  className="w-4 h-4 animate-spin flex-shrink-0"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              )}
               {loading
                 ? "Checking Compliance..."
                 : responseReceived
@@ -674,12 +687,33 @@ const ComplianceForm: React.FC = () => {
           )}
         </div>
       </div>
-      {loading && <ComplianceResponseSkeleton />}
-      {response && !loading && (
-        <ComplianceResponse
-          response={response as { complianceResponse?: Record<string, unknown>; [key: string]: unknown }}
-        />
-      )}
+      <div className="min-h-[400px]">
+        <AnimatePresence mode="wait">
+          {loading ? (
+            <motion.div
+              key="skeleton"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              <ComplianceResponseSkeleton />
+            </motion.div>
+          ) : response ? (
+            <motion.div
+              key="response"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              <ComplianceResponse
+                response={response as { complianceResponse?: Record<string, unknown>; [key: string]: unknown }}
+              />
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+      </div>
     </div>
   );
 };

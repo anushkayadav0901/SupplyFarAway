@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   FaUserCircle,
   FaSignOutAlt,
@@ -195,7 +195,7 @@ const Profile: React.FC = () => {
     enabled: !!localStorage.getItem("token"),
   });
 
-  const { data: draftsData, isLoading: draftsLoading } = trpc.inventory.getDrafts.useQuery(
+  const { data: draftsData, isLoading: draftsLoading, isError: draftsError } = trpc.inventory.getDrafts.useQuery(
     {},
     {
       retry: false,
@@ -363,22 +363,62 @@ const Profile: React.FC = () => {
   };
 
   const containerVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.2, ease: "easeOut" } },
+    exit: { opacity: 0, transition: { duration: 0.15, ease: "easeIn" } },
   };
 
   return (
     <div className="min-h-screen bg-neutral-100 p-4 sm:p-6">
       <Header title="Profile" />
-      {loading ? (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-        </div>
-      ) : (
+      <AnimatePresence mode="wait">
+        {loading ? (
+          <motion.div
+            key="profile-loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+          >
+            {/* Skeleton: user info card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-8 animate-pulse">
+              <div className="flex flex-col sm:flex-row items-center gap-6">
+                <div className="w-24 h-24 bg-gray-200 rounded-full flex-shrink-0" />
+                <div className="flex-1 space-y-3 w-full">
+                  <div className="h-7 bg-gray-200 rounded w-48" />
+                  <div className="h-5 bg-gray-200 rounded w-64" />
+                  <div className="h-6 bg-gray-200 rounded-full w-32" />
+                </div>
+              </div>
+            </div>
+            {/* Skeleton: nav buttons */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-14 bg-gray-200 rounded-xl animate-pulse" />
+              ))}
+            </div>
+            {/* Skeleton: table */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-8 animate-pulse">
+              <div className="h-6 bg-gray-200 rounded w-36 mb-4" />
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="h-16 bg-gray-100 rounded-xl" />
+                ))}
+              </div>
+              <div className="h-10 bg-gray-100 rounded-xl mb-6" />
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-12 bg-gray-50 rounded mb-2" />
+              ))}
+            </div>
+          </motion.div>
+        ) : (
         <motion.div
+          key="profile-content"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
+          exit="exit"
           className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
         >
           {/* User Info Section */}
@@ -390,6 +430,8 @@ const Profile: React.FC = () => {
                     <img
                       src={user.profilePhoto}
                       alt="Profile"
+                      width={96}
+                      height={96}
                       className="w-24 h-24 rounded-full object-cover shadow-lg"
                       onError={(e) => {
                         (e.currentTarget as HTMLImageElement).src = "/placeholder-image.jpg";
@@ -411,7 +453,9 @@ const Profile: React.FC = () => {
                   {status && (
                     <div className="group relative inline-flex items-center gap-2">
                       <span
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                        aria-describedby="eco-badge-tooltip"
+                        tabIndex={0}
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-green-600 ${
                           badge.tier === "Eco Champion"
                             ? "bg-gradient-to-r from-emerald-500 to-emerald-700 text-white"
                             : badge.tier === "Green Advocate"
@@ -424,8 +468,10 @@ const Profile: React.FC = () => {
                         <FaLeaf className="mr-1" /> {badge.tier}
                       </span>
                       <div
+                        id="eco-badge-tooltip"
+                        role="tooltip"
                         className="
-                          absolute hidden group-hover:block
+                          absolute hidden group-hover:block group-focus-within:block
                           sm:left-full sm:top-0 sm:ml-2
                           left-0 -top-24
                           w-64 bg-green-800 text-white text-sm rounded-lg p-4 shadow-lg z-10
@@ -493,6 +539,11 @@ const Profile: React.FC = () => {
             <h2 className="text-xl font-semibold text-gray-800 mb-4">
               Drafts Overview
             </h2>
+            {draftsError && (
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-center gap-2">
+                <span>Failed to load drafts. Please refresh the page.</span>
+              </div>
+            )}
             {/* Summary Counts */}
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
               <div className="p-4 bg-gray-50 rounded-xl">
@@ -600,9 +651,17 @@ const Profile: React.FC = () => {
                     <TableRow>
                       <TableCell
                         colSpan={4}
-                        className="text-center text-gray-500"
+                        className="text-center text-gray-500 py-8"
                       >
-                        No drafts found matching your filters.
+                        <div className="flex flex-col items-center gap-3">
+                          <p>No drafts found matching your filters.</p>
+                          <button
+                            onClick={() => navigate("/inventory-management")}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                          >
+                            Go to Inventory
+                          </button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -615,7 +674,8 @@ const Profile: React.FC = () => {
             </TableContainer>
           </div>
         </motion.div>
-      )}
+        )}
+      </AnimatePresence>
 
       <Toast type={toastProps.type} message={toastProps.message} />
     </div>

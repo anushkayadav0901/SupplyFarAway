@@ -145,15 +145,15 @@ const ProductAnalysis: React.FC = () => {
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.2 } },
+    visible: { opacity: 1, transition: { staggerChildren: 0.06 } },
   };
 
   const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
+    hidden: { y: 12, opacity: 0 },
     visible: {
       y: 0,
       opacity: 1,
-      transition: { type: "spring" as const, stiffness: 100 },
+      transition: { duration: 0.2, ease: "easeOut" as const },
     },
   };
 
@@ -167,7 +167,7 @@ const ProductAnalysis: React.FC = () => {
         <div className="w-full max-w-4xl">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
             {/* Card Header */}
-            <div className="bg-indigo-600 p-8">
+            <div className="bg-blue-600 p-8">
               <div className="flex items-center space-x-4">
                 <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
                   <svg
@@ -205,8 +205,8 @@ const ProductAnalysis: React.FC = () => {
                     relative border-2 border-dashed rounded-2xl p-12 text-center transition-colors duration-150
                     ${
                       isDragging
-                        ? "border-indigo-400 bg-indigo-50 shadow-sm"
-                        : "border-gray-300 bg-gray-50 hover:border-indigo-300 hover:bg-indigo-50"
+                        ? "border-blue-400 bg-blue-50 shadow-sm"
+                        : "border-gray-300 bg-gray-50 hover:border-blue-300 hover:bg-blue-50"
                     }
                   `}
                   onDragOver={handleDragOver}
@@ -238,11 +238,15 @@ const ProductAnalysis: React.FC = () => {
                   {selectedImage ? (
                     <div className="relative">
                       <div className="mb-6">
-                        <img
-                          src={URL.createObjectURL(selectedImage)}
-                          alt="Preview"
-                          className="mx-auto max-w-xs rounded-2xl shadow-xl mb-4"
-                        />
+                        <div className="mx-auto w-[320px] aspect-[4/3] relative mb-4">
+                          <img
+                            src={URL.createObjectURL(selectedImage)}
+                            alt="Preview"
+                            width={320}
+                            height={240}
+                            className="w-full h-full object-contain rounded-2xl shadow-xl"
+                          />
+                        </div>
                         <div className="w-16 h-16 bg-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
                           <svg
                             className="w-8 h-8 text-white"
@@ -262,7 +266,7 @@ const ProductAnalysis: React.FC = () => {
                           Image Successfully Uploaded
                         </h3>
                         <p className="text-gray-600">
-                          <span className="font-medium text-indigo-600">
+                          <span className="font-medium text-blue-600">
                             {selectedImage.name}
                           </span>
                         </p>
@@ -282,7 +286,7 @@ const ProductAnalysis: React.FC = () => {
 
                         <button
                           onClick={() => void handleAnalyze()}
-                          className="group relative px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                          className="group relative px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 min-w-[180px]"
                           disabled={isLoading}
                         >
                           <span className="relative flex items-center justify-center space-x-2">
@@ -309,7 +313,7 @@ const ProductAnalysis: React.FC = () => {
                   ) : (
                     <div className="relative">
                       <div className="mb-6">
-                        <div className="w-20 h-20 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                        <div className="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
                           <FaImage className="text-white text-2xl" />
                         </div>
                         <h3 className="text-2xl font-bold text-gray-800 mb-3">
@@ -334,7 +338,7 @@ const ProductAnalysis: React.FC = () => {
 
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="group relative px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-lg transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                        className="group relative px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-lg transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                         disabled={isLoading}
                       >
                         <span className="relative flex items-center justify-center space-x-3">
@@ -363,8 +367,8 @@ const ProductAnalysis: React.FC = () => {
               {isLoading && (
                 <div className="flex flex-col items-center justify-center py-8 mb-8">
                   <div className="relative">
-                    <div className="w-16 h-16 border-4 border-indigo-200 rounded-full animate-spin">
-                      <div className="absolute top-0 left-0 w-16 h-16 border-4 border-transparent border-t-indigo-500 rounded-full animate-spin"></div>
+                    <div className="w-16 h-16 border-4 border-blue-200 rounded-full animate-spin">
+                      <div className="absolute top-0 left-0 w-16 h-16 border-4 border-transparent border-t-blue-500 rounded-full animate-spin"></div>
                     </div>
                   </div>
                   <p className="text-gray-600 mt-4 font-medium">
@@ -492,7 +496,7 @@ const ProductAnalysis: React.FC = () => {
                         className="bg-blue-50 rounded-2xl p-6 border border-blue-200"
                       >
                         <div className="flex items-center space-x-3 mb-4">
-                          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center">
+                          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
                             <svg
                               className="w-5 h-5 text-white"
                               fill="none"
@@ -579,7 +583,7 @@ const ProductAnalysis: React.FC = () => {
                       >
                         <button
                           onClick={handleSendToCompliance}
-                          className="group relative px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-lg transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                          className="group relative px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-lg transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                         >
                           <span className="relative flex items-center justify-center space-x-3">
                             <Send className="w-5 h-5" />
@@ -620,11 +624,11 @@ const ProductAnalysis: React.FC = () => {
 
               {/* Instructions */}
               {works && (
-                <div className="bg-indigo-50 rounded-2xl p-6 border border-indigo-200 mt-8">
+                <div className="bg-blue-50 rounded-2xl p-6 border border-blue-200 mt-8">
                   <div className="flex items-start space-x-3">
-                    <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center mt-0.5">
+                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mt-0.5">
                       <svg
-                        className="w-4 h-4 text-indigo-600"
+                        className="w-4 h-4 text-blue-600"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"

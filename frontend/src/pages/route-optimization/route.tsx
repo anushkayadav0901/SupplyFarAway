@@ -753,17 +753,18 @@ function RouteMap(): React.ReactElement {
       onError={() => console.error("Google Maps LoadScript error")}
     >
       <div className="flex h-screen bg-slate-100 overflow-hidden relative p-2 sm:p-4">
-        {/* Sidebar */}
+        {/* Sidebar — desktop: absolute overlay that slides in; mobile: fixed overlay */}
         <div
           className={`${
-            showSidebar
-              ? isMobile
+            isMobile
+              ? showSidebar
                 ? "fixed inset-2 z-30 overflow-y-auto"
-                : "w-full sm:w-1/3 lg:w-[30%]"
-              : isMobile
-              ? "hidden"
-              : "w-0"
-          } bg-white border-r border-gray-200 transition-[width] duration-300 shadow-md h-full rounded-2xl`}
+                : "hidden"
+              : "absolute top-2 left-2 bottom-2 z-20 w-[30%]"
+          } bg-white border border-gray-200 shadow-md rounded-2xl
+            ${!isMobile ? (showSidebar ? "translate-x-0 opacity-100" : "-translate-x-[110%] opacity-0 pointer-events-none") : ""}
+            transition-[transform,opacity] duration-200`}
+          style={!isMobile ? { transitionTimingFunction: showSidebar ? "cubic-bezier(0,0,0.2,1)" : "cubic-bezier(0.4,0,1,1)" } : undefined}
         >
           {showSidebar && (
             <div className="h-full flex flex-col">
@@ -909,13 +910,7 @@ function RouteMap(): React.ReactElement {
           )}
         </div>
 
-        <div
-          className={`${
-            showSidebar && !isMobile
-              ? "w-full sm:w-2/3 lg:w-[70%] ml-2 sm:ml-4"
-              : "w-full"
-          } transition-[width,margin] duration-300 relative`}
-        >
+        <div className="w-full relative">
           <div className="h-full bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden relative">
             <button
               className="absolute top-4 sm:top-6 left-4 sm:left-6 z-20 bg-white border border-gray-200 p-2 sm:p-3 rounded-xl shadow-sm hover:bg-gray-50 transition-colors duration-150"

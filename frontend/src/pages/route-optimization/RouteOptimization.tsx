@@ -4,7 +4,6 @@ import {
   TextField,
   Typography,
   CircularProgress,
-  Box,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -12,7 +11,7 @@ import {
   IconButton,
 } from "@mui/material";
 import { FaTimes } from "react-icons/fa";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import MapIcon from "@mui/icons-material/Map";
 import SaveIcon from "@mui/icons-material/Save";
 import Co2Icon from "@mui/icons-material/Co2";
@@ -101,6 +100,7 @@ const RouteOptimization: React.FC = () => {
   const [toastProps, setToastProps] = useState<ToastProps>({ type: "", message: "" });
   const [saveLoading, setSaveLoading] = useState<number | null>(null);
   const [Description, setDescriptionFlag] = useState<boolean>(true);
+  const [chosenRoute, setChosenRoute] = useState<number | null>(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -457,6 +457,7 @@ const RouteOptimization: React.FC = () => {
 
       const response = await chooseRouteMutation.mutateAsync(requestBody);
       setToastProps({ type: "success", message: (response as any).message });
+      setChosenRoute(index);
       setTimeout(() => navigate("/inventory-management"), 2000);
     } catch (error: unknown) {
       console.error("Error choosing route:", error);
@@ -545,7 +546,7 @@ const RouteOptimization: React.FC = () => {
                   required
                   placeholder=" "
                   disabled={showResults}
-                  className="peer w-full px-4 py-4 bg-white border-2 border-gray-300 rounded-xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  className="peer w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
                 <label
                   htmlFor="from"
@@ -565,7 +566,7 @@ const RouteOptimization: React.FC = () => {
                   required
                   placeholder=" "
                   disabled={showResults}
-                  className="peer w-full px-4 py-4 bg-white border-2 border-gray-300 rounded-xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  className="peer w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
                 <label
                   htmlFor="to"
@@ -584,7 +585,7 @@ const RouteOptimization: React.FC = () => {
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder=" "
                   disabled={showResults}
-                  className="peer w-full px-4 py-4 bg-white border-2 border-gray-300 rounded-xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  className="peer w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
                 <label
                   htmlFor="description"
@@ -608,7 +609,7 @@ const RouteOptimization: React.FC = () => {
                   readOnly
                   placeholder=" "
                   disabled={showResults}
-                  className="peer w-full px-4 py-4 bg-white border-2 border-gray-300 rounded-xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150 cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  className="peer w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150 cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
                 <label
                   htmlFor="package"
@@ -702,8 +703,15 @@ const RouteOptimization: React.FC = () => {
           </Dialog>
         </div>
 
+        <AnimatePresence>
         {Description && (
-          <div className="w-full max-w-4xl mt-8 mb-6 sm:mb-8">
+          <motion.div
+            key="route-info-panel"
+            initial={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0, marginTop: 0, marginBottom: 0, overflow: "hidden" }}
+            transition={{ duration: 0.2, ease: "easeIn" }}
+            className="w-full max-w-4xl mt-8 mb-6 sm:mb-8"
+          >
             <div className="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 shadow-sm">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-3 bg-blue-600 rounded-xl">
@@ -830,12 +838,31 @@ const RouteOptimization: React.FC = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
+        </AnimatePresence>
 
-        {loading && <RouteResultsSkeleton />}
+        <AnimatePresence mode="wait">
+        {loading && (
+          <motion.div
+            key="skeleton"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+          >
+            <RouteResultsSkeleton />
+          </motion.div>
+        )}
         {showResults && (
-          <>
+          <motion.div
+            key="results"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="w-full flex flex-col items-center"
+          >
             <div className="flex flex-wrap gap-3 sm:gap-4 mb-4 sm:mb-6 justify-center max-w-3xl w-full">
               {[
                 {
@@ -892,10 +919,10 @@ const RouteOptimization: React.FC = () => {
               {displayedRoutes.map((route, index) => (
                 <motion.div
                   key={index}
-                  initial={{ opacity: 0, x: -50 }}
+                  initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.2 }}
-                  className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                  transition={{ duration: 0.2, delay: index * 0.05, ease: "easeOut" }}
+                  className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-150 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
                 >
                   <div className="flex-1">
                     <Typography
@@ -949,88 +976,88 @@ const RouteOptimization: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex gap-2 p-2 w-full sm:w-auto justify-start sm:justify-end">
+                      {/* Map button */}
                       <Button
                         onClick={() => handleMapClick(route, index)}
                         disabled={mapLoading === index}
+                        aria-label={`View map for route ${index + 1}`}
                         sx={{
-                          minWidth: "40px",
-                          width: "40px",
-                          height: "40px",
+                          minWidth: "44px",
+                          width: "44px",
+                          height: "44px",
                           borderRadius: "50%",
-                          backgroundColor: "#e0f7fa",
-                          "&:hover": { backgroundColor: "#b2ebf2" },
+                          backgroundColor: "#eff6ff",
+                          "&:hover": { backgroundColor: "#dbeafe" },
+                          "&:focus-visible": { outline: "2px solid #3b82f6", outlineOffset: "2px" },
                         }}
                       >
                         {mapLoading === index ? (
-                          <CircularProgress
-                            size={20}
-                            sx={{ color: "#00acc1" }}
-                          />
+                          <CircularProgress size={20} sx={{ color: "#2563eb" }} />
                         ) : (
-                          <MapIcon sx={{ color: "#00acc1" }} />
+                          <MapIcon sx={{ color: "#2563eb" }} />
                         )}
                       </Button>
+                      {/* Carbon footprint button */}
                       <Button
                         onClick={() => handleCarbonClick(route, index)}
                         disabled={carbonLoading === index}
+                        aria-label={`Calculate carbon footprint for route ${index + 1}`}
                         sx={{
-                          minWidth: "40px",
-                          width: "40px",
-                          height: "40px",
+                          minWidth: "44px",
+                          width: "44px",
+                          height: "44px",
                           borderRadius: "50%",
-                          backgroundColor: "#f1f8e9",
-                          "&:hover": { backgroundColor: "#c5e1a5" },
+                          backgroundColor: "#f0fdf4",
+                          "&:hover": { backgroundColor: "#dcfce7" },
+                          "&:focus-visible": { outline: "2px solid #16a34a", outlineOffset: "2px" },
                         }}
                       >
                         {carbonLoading === index ? (
-                          <CircularProgress
-                            size={20}
-                            sx={{ color: "#689f38" }}
-                          />
+                          <CircularProgress size={20} sx={{ color: "#16a34a" }} />
                         ) : (
-                          <Co2Icon sx={{ color: "#689f38" }} />
+                          <Co2Icon sx={{ color: "#16a34a" }} />
                         )}
                       </Button>
+                      {/* Save button */}
                       <Button
                         onClick={() => handleSaveClick(route, index)}
                         disabled={saveLoading === index}
+                        aria-label={`Save route ${index + 1}`}
                         sx={{
-                          minWidth: "40px",
-                          width: "40px",
-                          height: "40px",
+                          minWidth: "44px",
+                          width: "44px",
+                          height: "44px",
                           borderRadius: "50%",
-                          backgroundColor: "#e8f5e9",
-                          "&:hover": { backgroundColor: "#c8e6c9" },
+                          backgroundColor: "#f8fafc",
+                          "&:hover": { backgroundColor: "#f1f5f9" },
+                          "&:focus-visible": { outline: "2px solid #64748b", outlineOffset: "2px" },
                         }}
                       >
                         {saveLoading === index ? (
-                          <CircularProgress
-                            size={20}
-                            sx={{ color: "#388e3c" }}
-                          />
+                          <CircularProgress size={20} sx={{ color: "#475569" }} />
                         ) : (
-                          <SaveIcon sx={{ color: "#388e3c" }} />
+                          <SaveIcon sx={{ color: "#475569" }} />
                         )}
                       </Button>
+                      {/* Choose route button — primary action, blue */}
                       <Button
                         onClick={() => handleChooseRouteClick(route, index)}
-                        disabled={chooseRouteLoading === index}
+                        disabled={chooseRouteLoading === index || chosenRoute === index}
+                        aria-label={chosenRoute === index ? `Route ${index + 1} chosen` : `Choose route ${index + 1}`}
                         sx={{
-                          minWidth: "40px",
-                          width: "40px",
-                          height: "40px",
+                          minWidth: "44px",
+                          width: "44px",
+                          height: "44px",
                           borderRadius: "50%",
-                          backgroundColor: "#e3f2f1",
-                          "&:hover": { backgroundColor: "#b39ddb" },
+                          backgroundColor: chosenRoute === index ? "#dcfce7" : "#eff6ff",
+                          "&:hover": { backgroundColor: chosenRoute === index ? "#bbf7d0" : "#dbeafe" },
+                          "&:focus-visible": { outline: "2px solid #2563eb", outlineOffset: "2px" },
                         }}
                       >
                         {chooseRouteLoading === index ? (
-                          <CircularProgress
-                            size={20}
-                            sx={{ color: "#5e35b1" }}
-                          />
+                          <CircularProgress size={20} sx={{ color: "#2563eb" }} />
                         ) : (
-                          <CheckCircleIcon sx={{ color: "#5e35b1" }} />
+                          <CheckCircleIcon sx={{ color: chosenRoute === index ? "#16a34a" : "#2563eb" }} />
                         )}
                       </Button>
                     </div>
@@ -1038,8 +1065,9 @@ const RouteOptimization: React.FC = () => {
                 </motion.div>
               ))}
             </div>
-          </>
+          </motion.div>
         )}
+        </AnimatePresence>
       </div>
 
       <Dialog
@@ -1050,7 +1078,6 @@ const RouteOptimization: React.FC = () => {
         aria-labelledby="carbon-warning-dialog-title"
         disableEnforceFocus={false}
         disableAutoFocus={false}
-        disablePortal={true}
       >
         <DialogTitle
           id="carbon-warning-dialog-title"

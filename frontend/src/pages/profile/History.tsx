@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   FaShieldAlt,
   FaRoute,
@@ -34,6 +34,7 @@ const History: React.FC = () => {
   const {
     data: complianceData,
     isLoading: complianceLoading,
+    isError: complianceError,
     refetch: refetchCompliance,
   } = trpc.compliance.history.useQuery(undefined, {
     retry: false,
@@ -42,6 +43,7 @@ const History: React.FC = () => {
   const {
     data: routeData,
     isLoading: routeLoading,
+    isError: routeError,
     refetch: refetchRoute,
   } = trpc.logistics.getRouteHistory.useQuery(undefined, {
     retry: false,
@@ -50,6 +52,7 @@ const History: React.FC = () => {
   const {
     data: productAnalysisData,
     isLoading: productLoading,
+    isError: productError,
     refetch: refetchProductAnalysis,
   } = trpc.compliance.productAnalysisHistory.useQuery(undefined, {
     retry: false,
@@ -105,139 +108,191 @@ const History: React.FC = () => {
   };
 
   const containerVariants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      y: 0,
-      transition: { duration: 0.6, staggerChildren: 0.1 },
+      transition: { duration: 0.2, ease: "easeOut" },
     },
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, x: -20 },
-    visible: { opacity: 1, x: 0 },
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.15, ease: "easeOut" } },
   };
+
+  // Tab navigation — rendered always (stable during load)
+  const tabNav = (
+    <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-2">
+      {/* Dropdown for small screens */}
+      <div className="sm:hidden">
+        <FormControl fullWidth>
+          <InputLabel id="tab-select-label">Select Tab</InputLabel>
+          <Select
+            labelId="tab-select-label"
+            value={activeTab}
+            label="Select Tab"
+            onChange={(e) => setActiveTab(e.target.value as string)}
+            sx={{
+              borderRadius: "12px",
+              backgroundColor: "rgba(255, 255, 255, 0.4)",
+              "& .MuiSelect-select": { paddingY: "12px" },
+            }}
+          >
+            <MenuItem value="compliance">
+              <div className="flex items-center gap-2">
+                <FaShieldAlt className="text-blue-500" />
+                Compliance
+              </div>
+            </MenuItem>
+            <MenuItem value="route">
+              <div className="flex items-center gap-2">
+                <FaRoute className="text-emerald-500" />
+                Routes
+              </div>
+            </MenuItem>
+            <MenuItem value="product">
+              <div className="flex items-center gap-2">
+                <FaBox className="text-purple-500" />
+                Product Analysis
+              </div>
+            </MenuItem>
+          </Select>
+        </FormControl>
+      </div>
+      {/* Horizontal tabs for larger screens */}
+      <div className="hidden sm:flex">
+        <button
+          onClick={() => setActiveTab("compliance")}
+          className={`flex-1 flex items-center justify-center gap-3 py-4 px-6 rounded-xl font-medium transition-[colors,box-shadow] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 ${
+            activeTab === "compliance"
+              ? "bg-blue-500 text-white shadow-md"
+              : "text-gray-600 hover:text-blue-500 hover:bg-blue-50"
+          }`}
+        >
+          <FaShieldAlt className="text-lg" />
+          <span className="hidden sm:inline">Compliance History</span>
+          <span className="sm:hidden">Compliance</span>
+        </button>
+        <button
+          onClick={() => setActiveTab("route")}
+          className={`flex-1 flex items-center justify-center gap-3 py-4 px-6 rounded-xl font-medium transition-[colors,box-shadow] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1 ${
+            activeTab === "route"
+              ? "bg-emerald-500 text-white shadow-md"
+              : "text-gray-600 hover:text-emerald-500 hover:bg-emerald-50"
+          }`}
+        >
+          <FaRoute className="text-lg" />
+          <span className="hidden sm:inline">Saved Routes</span>
+          <span className="sm:hidden">Routes</span>
+        </button>
+        <button
+          onClick={() => setActiveTab("product")}
+          className={`flex-1 flex items-center justify-center gap-3 py-4 px-6 rounded-xl font-medium transition-[colors,box-shadow] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-1 ${
+            activeTab === "product"
+              ? "bg-purple-500 text-white shadow-md"
+              : "text-gray-600 hover:text-purple-500 hover:bg-purple-50"
+          }`}
+        >
+          <FaBox className="text-lg" />
+          <span className="hidden sm:inline">Product Analysis</span>
+          <span className="sm:hidden">Products</span>
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-neutral-100 p-4 sm:p-6">
       <Header title="History" />
 
-      {loading ? (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-        </div>
-      ) : (
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
-        >
-          {/* Tab Navigation */}
-          <motion.div variants={itemVariants} className="mb-8">
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-2">
-              {/* Dropdown for small screens */}
-              <div className="sm:hidden">
-                <FormControl fullWidth>
-                  <InputLabel id="tab-select-label">Select Tab</InputLabel>
-                  <Select
-                    labelId="tab-select-label"
-                    value={activeTab}
-                    label="Select Tab"
-                    onChange={(e) => setActiveTab(e.target.value as string)}
-                    sx={{
-                      borderRadius: "12px",
-                      backgroundColor: "rgba(255, 255, 255, 0.4)",
-                      "& .MuiSelect-select": { paddingY: "12px" },
-                    }}
-                  >
-                    <MenuItem value="compliance">
-                      <div className="flex items-center gap-2">
-                        <FaShieldAlt className="text-blue-500" />
-                        Compliance
-                      </div>
-                    </MenuItem>
-                    <MenuItem value="route">
-                      <div className="flex items-center gap-2">
-                        <FaRoute className="text-emerald-500" />
-                        Routes
-                      </div>
-                    </MenuItem>
-                    <MenuItem value="product">
-                      <div className="flex items-center gap-2">
-                        <FaBox className="text-purple-500" />
-                        Product Analysis
-                      </div>
-                    </MenuItem>
-                  </Select>
-                </FormControl>
-              </div>
-              {/* Horizontal tabs for larger screens */}
-              <div className="hidden sm:flex">
-                <button
-                  onClick={() => setActiveTab("compliance")}
-                  className={`flex-1 flex items-center justify-center gap-3 py-4 px-6 rounded-xl font-medium transition-all duration-200 ${
-                    activeTab === "compliance"
-                      ? "bg-blue-500 text-white shadow-md"
-                      : "text-gray-600 hover:text-blue-500 hover:bg-blue-50"
-                  }`}
-                >
-                  <FaShieldAlt className="text-lg" />
-                  <span className="hidden sm:inline">Compliance History</span>
-                  <span className="sm:hidden">Compliance</span>
-                </button>
-                <button
-                  onClick={() => setActiveTab("route")}
-                  className={`flex-1 flex items-center justify-center gap-3 py-4 px-6 rounded-xl font-medium transition-all duration-200 ${
-                    activeTab === "route"
-                      ? "bg-emerald-500 text-white shadow-md"
-                      : "text-gray-600 hover:text-emerald-500 hover:bg-emerald-50"
-                  }`}
-                >
-                  <FaRoute className="text-lg" />
-                  <span className="hidden sm:inline">Saved Routes</span>
-                  <span className="sm:hidden">Routes</span>
-                </button>
-                <button
-                  onClick={() => setActiveTab("product")}
-                  className={`flex-1 flex items-center justify-center gap-3 py-4 px-6 rounded-xl font-medium transition-all duration-200 ${
-                    activeTab === "product"
-                      ? "bg-purple-500 text-white shadow-md"
-                      : "text-gray-600 hover:text-purple-500 hover:bg-purple-50"
-                  }`}
-                >
-                  <FaBox className="text-lg" />
-                  <span className="hidden sm:inline">Product Analysis</span>
-                  <span className="sm:hidden">Products</span>
-                </button>
-              </div>
-            </div>
-          </motion.div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Tab Navigation — always shown for layout stability */}
+        <div className="mb-8">{tabNav}</div>
 
-          {/* Content Section */}
-          <motion.div variants={itemVariants}>
+        {/* Content Section */}
+        <AnimatePresence mode="wait">
+          {loading ? (
+            <motion.div
+              key="history-loading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="space-y-4"
+            >
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="bg-white/80 rounded-2xl border border-gray-200/50 p-6 animate-pulse"
+                >
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 bg-gray-200 rounded-full" />
+                    <div className="space-y-2 flex-1">
+                      <div className="h-5 bg-gray-200 rounded w-40" />
+                      <div className="h-4 bg-gray-100 rounded w-32" />
+                    </div>
+                    <div className="h-8 w-24 bg-gray-200 rounded-full" />
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="h-32 bg-gray-100 rounded-xl" />
+                    <div className="h-32 bg-gray-100 rounded-xl" />
+                  </div>
+                </div>
+              ))}
+            </motion.div>
+          ) : (
+          <motion.div
+            key="history-content"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <AnimatePresence mode="wait">
             {activeTab === "compliance" && (
-              <div className="space-y-6">
+              <motion.div
+                key="tab-compliance"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.1, ease: "easeOut" }}
+                className="space-y-6"
+              >
                 <div className="flex items-center gap-3 mb-6">
                   <FaShieldAlt className="text-2xl text-blue-500" />
                   <h2 className="text-2xl font-bold text-gray-900">
                     Compliance History
                   </h2>
                 </div>
-                {complianceHistory.length === 0 ? (
+                {complianceError ? (
+                  <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center">
+                    <p className="text-red-600 mb-4">Failed to load compliance history.</p>
+                    <button
+                      onClick={() => void refetchCompliance()}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                ) : complianceHistory.length === 0 ? (
                   <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-12 text-center">
                     <FaShieldAlt className="text-4xl text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500 text-lg">
+                    <p className="text-gray-500 text-lg mb-4">
                       No compliance checks yet.
                     </p>
+                    <button
+                      onClick={() => navigate("/compliance-check")}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                    >
+                      Run your first compliance check
+                    </button>
                   </div>
                 ) : (
-                  <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+                  <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2" style={{ scrollbarGutter: "stable" }}>
                     {complianceHistory.map((entry: any, index: number) => (
                       <motion.div
                         key={entry._id}
                         variants={itemVariants}
-                        className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-6 hover:shadow-xl transition-all duration-300"
+                        className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-6 hover:shadow-xl transition-shadow duration-150 ease-out"
                       >
                         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
                           <div className="flex items-center gap-3">
@@ -410,31 +465,54 @@ const History: React.FC = () => {
                     ))}
                   </div>
                 )}
-              </div>
+              </motion.div>
             )}
 
             {activeTab === "route" && (
-              <div className="space-y-6">
+              <motion.div
+                key="tab-route"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.1, ease: "easeOut" }}
+                className="space-y-6"
+              >
                 <div className="flex items-center gap-3 mb-6">
                   <FaRoute className="text-2xl text-emerald-500" />
                   <h2 className="text-2xl font-bold text-gray-900">
                     Saved Routes
                   </h2>
                 </div>
-                {routeHistory.length === 0 ? (
+                {routeError ? (
+                  <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center">
+                    <p className="text-red-600 mb-4">Failed to load route history.</p>
+                    <button
+                      onClick={() => void refetchRoute()}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                ) : routeHistory.length === 0 ? (
                   <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-12 text-center">
                     <FaRoute className="text-4xl text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500 text-lg">
+                    <p className="text-gray-500 text-lg mb-4">
                       No saved routes yet.
                     </p>
+                    <button
+                      onClick={() => navigate("/route-optimization")}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+                    >
+                      Optimize your first route
+                    </button>
                   </div>
                 ) : (
-                  <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+                  <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2" style={{ scrollbarGutter: "stable" }}>
                     {routeHistory.map((entry: any, index: number) => (
                       <motion.div
                         key={entry._id}
                         variants={itemVariants}
-                        className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-6 hover:shadow-xl transition-all duration-300"
+                        className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-6 hover:shadow-xl transition-shadow duration-150 ease-out"
                       >
                         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
                           <div className="flex items-center gap-3">
@@ -550,31 +628,54 @@ const History: React.FC = () => {
                     ))}
                   </div>
                 )}
-              </div>
+              </motion.div>
             )}
 
             {activeTab === "product" && (
-              <div className="space-y-6">
+              <motion.div
+                key="tab-product"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.1, ease: "easeOut" }}
+                className="space-y-6"
+              >
                 <div className="flex items-center gap-3 mb-6">
                   <FaBox className="text-2xl text-purple-500" />
                   <h2 className="text-2xl font-bold text-gray-900">
                     Product Analysis History
                   </h2>
                 </div>
-                {productAnalysisHistory.length === 0 ? (
+                {productError ? (
+                  <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center">
+                    <p className="text-red-600 mb-4">Failed to load product analysis history.</p>
+                    <button
+                      onClick={() => void refetchProductAnalysis()}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                ) : productAnalysisHistory.length === 0 ? (
                   <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-12 text-center">
                     <FaBox className="text-4xl text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500 text-lg">
+                    <p className="text-gray-500 text-lg mb-4">
                       No product analyses yet.
                     </p>
+                    <button
+                      onClick={() => navigate("/product-analysis")}
+                      className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2"
+                    >
+                      Analyse your first product
+                    </button>
                   </div>
                 ) : (
-                  <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+                  <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2" style={{ scrollbarGutter: "stable" }}>
                     {productAnalysisHistory.map((entry: any, index: number) => (
                       <motion.div
                         key={entry._id}
                         variants={itemVariants}
-                        className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-6 hover:shadow-xl transition-all duration-300"
+                        className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-6 hover:shadow-xl transition-shadow duration-150 ease-out"
                       >
                         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
                           <div className="flex items-center gap-3">
@@ -657,6 +758,10 @@ const History: React.FC = () => {
                                 <img
                                   src={entry.imageDetails.signedUrl}
                                   alt="Product"
+                                  width="100%"
+                                  height={192}
+                                  loading="lazy"
+                                  decoding="async"
                                   className="w-full h-full object-contain rounded-lg"
                                   onError={(e) => {
                                     (e.currentTarget as HTMLImageElement).src = "/placeholder-image.jpg";
@@ -723,50 +828,60 @@ const History: React.FC = () => {
                         </div>
                       </motion.div>
                     ))}
-                    {/* Image Popup Modal */}
-                    {selectedImage && (
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
-                        onClick={() => setSelectedImage(null)}
-                      >
-                        <motion.div
-                          initial={{ scale: 0.8, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          exit={{ scale: 0.8, opacity: 0 }}
-                          className="relative bg-white rounded-2xl p-6 max-w-3xl w-full mx-4 shadow-2xl"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => setSelectedImage(null)}
-                            className="absolute top-4 right-4 text-gray-600 hover:text-gray-800"
-                          >
-                            <div className="bg-red-600 rounded-full p-2">
-                              <FaTimes className="text-xl text-white" />
-                            </div>
-                          </motion.button>
-                          <img
-                            src={selectedImage}
-                            alt="Expanded Product"
-                            className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
-                          />
-                          <p className="text-center text-gray-600 mt-4 italic">
-                            Expanded View
-                          </p>
-                        </motion.div>
-                      </motion.div>
-                    )}
                   </div>
                 )}
-              </div>
+              </motion.div>
             )}
+            </AnimatePresence>
           </motion.div>
-        </motion.div>
-      )}
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Image Popup Modal — outside scroll container, uses AnimatePresence for exit animation */}
+      <AnimatePresence>
+        {selectedImage && (
+          <motion.div
+            key="lightbox"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
+            onClick={() => setSelectedImage(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="relative bg-white rounded-2xl p-6 max-w-3xl w-full mx-4 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setSelectedImage(null)}
+                aria-label="Close lightbox"
+                className="absolute top-4 right-4 text-gray-600 hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 rounded-full"
+              >
+                <div className="bg-red-600 rounded-full p-2">
+                  <FaTimes className="text-xl text-white" />
+                </div>
+              </button>
+              {/* min-h prevents modal height jump while image loads */}
+              <div className="min-h-[200px] flex items-center justify-center">
+                <img
+                  src={selectedImage}
+                  alt="Expanded Product"
+                  className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
+                />
+              </div>
+              <p className="text-center text-gray-600 mt-4 italic">
+                Expanded View
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <Toast type={toastProps.type} message={toastProps.message} />
     </div>

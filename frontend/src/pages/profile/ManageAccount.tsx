@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   FaUser,
   FaTrash,
@@ -81,7 +81,7 @@ const ManageAccount: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // tRPC queries and mutations
-  const { data: meData, isLoading: loading, refetch: refetchMe } = trpc.auth.getMe.useQuery(undefined, {
+  const { data: meData, isLoading: loading, isError: meError, refetch: refetchMe } = trpc.auth.getMe.useQuery(undefined, {
     retry: false,
     enabled: !!token,
   });
@@ -314,31 +314,81 @@ const ManageAccount: React.FC = () => {
   };
 
   const containerVariants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      y: 0,
-      transition: { duration: 0.6, staggerChildren: 0.1 },
+      transition: { duration: 0.2, ease: "easeOut", staggerChildren: 0.05 },
     },
+    exit: { opacity: 0, transition: { duration: 0.15, ease: "easeIn" } },
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, x: -20 },
-    visible: { opacity: 1, x: 0 },
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.15, ease: "easeOut" } },
   };
+
+  if (meError) {
+    return (
+      <div className="min-h-screen bg-neutral-100 p-4 sm:p-6">
+        <Header title="Manage Account" />
+        <div className="max-w-4xl mx-auto px-4 py-16 text-center">
+          <p className="text-red-600 text-lg mb-4">Could not load your account. Please refresh.</p>
+          <button
+            onClick={() => void refetchMe()}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-neutral-100 p-4 sm:p-6">
       <Header title="Manage Account" />
-      {loading ? (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-        </div>
-      ) : (
+      <AnimatePresence mode="wait">
+        {loading ? (
+          <motion.div
+            key="manage-loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pulse"
+          >
+            <div className="h-9 bg-gray-200 rounded w-48 mb-8" />
+            {/* Profile completion skeleton */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-8">
+              <div className="h-6 bg-gray-200 rounded w-40 mb-4" />
+              <div className="h-3 bg-gray-200 rounded-full mb-4" />
+              <div className="h-4 bg-gray-100 rounded w-80" />
+            </div>
+            {/* User info skeleton */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-8">
+              <div className="flex items-center gap-6">
+                <div className="w-24 h-24 bg-gray-200 rounded-full flex-shrink-0" />
+                <div className="space-y-2 flex-1">
+                  <div className="h-6 bg-gray-200 rounded w-40" />
+                  <div className="h-4 bg-gray-100 rounded w-56" />
+                </div>
+              </div>
+            </div>
+            {/* Form sections skeleton */}
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-white rounded-2xl border border-gray-200 p-6 mb-8">
+                <div className="h-6 bg-gray-200 rounded w-48 mb-4" />
+                <div className="h-10 bg-gray-100 rounded-xl" />
+              </div>
+            ))}
+          </motion.div>
+        ) : (
         <motion.div
+          key="manage-content"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
+          exit="exit"
           className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
         >
           <h1 className="text-3xl font-bold text-gray-900 mb-8">
@@ -388,6 +438,8 @@ const ManageAccount: React.FC = () => {
                     <img
                       src={localProfilePhoto}
                       alt="Profile"
+                      width={96}
+                      height={96}
                       className="w-24 h-24 rounded-full object-cover shadow-lg"
                       onError={(e) => {
                         (e.currentTarget as HTMLImageElement).src = "/placeholder-image.jpg";
@@ -420,13 +472,18 @@ const ManageAccount: React.FC = () => {
                     ref={fileInputRef}
                     className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                   />
-                  {previewPhoto && (
-                    <img
-                      src={previewPhoto}
-                      alt="Preview"
-                      className="w-16 h-16 rounded-full object-cover"
-                    />
-                  )}
+                  {/* Reserve space so file-input row doesn't shift when preview appears */}
+                  <div className="w-16 h-16 rounded-full flex-shrink-0 overflow-hidden bg-gray-100">
+                    {previewPhoto && (
+                      <img
+                        src={previewPhoto}
+                        alt="Preview"
+                        width={64}
+                        height={64}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </div>
                 </div>
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -447,16 +504,16 @@ const ManageAccount: React.FC = () => {
                 <h2 className="text-xl font-semibold text-gray-900">
                   Update Username
                 </h2>
-                {!isEditingUsername && (
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setIsEditingUsername(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-xl shadow-sm"
-                  >
-                    <FaEdit /> Update
-                  </motion.button>
-                )}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setIsEditingUsername(true)}
+                  style={{ visibility: isEditingUsername ? "hidden" : "visible" }}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-xl shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2"
+                  aria-hidden={isEditingUsername}
+                >
+                  <FaEdit /> Update
+                </motion.button>
               </div>
               <form onSubmit={handleUpdateUsername}>
                 <div className="mb-4">
@@ -505,16 +562,16 @@ const ManageAccount: React.FC = () => {
                 <h2 className="text-xl font-semibold text-gray-900">
                   Profile Information
                 </h2>
-                {!isEditingProfile && (
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setIsEditingProfile(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-xl shadow-sm"
-                  >
-                    <FaEdit /> Update
-                  </motion.button>
-                )}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setIsEditingProfile(true)}
+                  style={{ visibility: isEditingProfile ? "hidden" : "visible" }}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-xl shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2"
+                  aria-hidden={isEditingProfile}
+                >
+                  <FaEdit /> Update
+                </motion.button>
               </div>
               {isEditingProfile ? (
                 <form onSubmit={handleUpdateProfile}>
@@ -725,20 +782,20 @@ const ManageAccount: React.FC = () => {
           {/* Update Password */}
           <motion.div variants={itemVariants} className="mb-8">
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-6">
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-gray-900">
                   Update Password
                 </h2>
-                {!isEditingPassword && (
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setIsEditingPassword(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-xl shadow-sm"
-                  >
-                    <FaEdit /> Update
-                  </motion.button>
-                )}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setIsEditingPassword(true)}
+                  style={{ visibility: isEditingPassword ? "hidden" : "visible" }}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-xl shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2"
+                  aria-hidden={isEditingPassword}
+                >
+                  <FaEdit /> Update
+                </motion.button>
               </div>
               {isEditingPassword ? (
                 <form onSubmit={handleUpdatePassword}>
@@ -828,7 +885,8 @@ const ManageAccount: React.FC = () => {
             </div>
           </motion.div>
         </motion.div>
-      )}
+        )}
+      </AnimatePresence>
 
       <Toast type={toastProps.type} message={toastProps.message} />
     </div>

@@ -403,7 +403,7 @@ const CsvUploadPage: React.FC = () => {
         <div className="w-full max-w-4xl">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
             {/* Card Header */}
-            <div className="bg-indigo-600 p-8">
+            <div className="bg-blue-600 p-8">
               <div className="flex items-center space-x-4">
                 <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
                   <svg
@@ -440,8 +440,8 @@ const CsvUploadPage: React.FC = () => {
                     relative border-2 border-dashed rounded-2xl p-12 text-center transition-colors duration-150
                     ${
                       isDragging
-                        ? "border-indigo-400 bg-indigo-50 shadow-sm"
-                        : "border-gray-300 bg-gray-50 hover:border-indigo-300 hover:bg-indigo-50"
+                        ? "border-blue-400 bg-blue-50 shadow-sm"
+                        : "border-gray-300 bg-gray-50 hover:border-blue-300 hover:bg-blue-50"
                     }
                   `}
                   onDragOver={handleDragOver}
@@ -492,7 +492,7 @@ const CsvUploadPage: React.FC = () => {
                           File Successfully Uploaded
                         </h3>
                         <p className="text-gray-600">
-                          <span className="font-medium text-indigo-600">
+                          <span className="font-medium text-blue-600">
                             {uploadedFile.name}
                           </span>
                         </p>
@@ -524,7 +524,7 @@ const CsvUploadPage: React.FC = () => {
 
                         <button
                           onClick={handleSendToCompliance}
-                          className="group relative px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                          className="group relative px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                           disabled={loading || !formData}
                         >
                           <span className="relative flex items-center justify-center space-x-2">
@@ -549,7 +549,7 @@ const CsvUploadPage: React.FC = () => {
                   ) : (
                     <div className="relative">
                       <div className="mb-6">
-                        <div className="w-20 h-20 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                        <div className="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
                           <svg
                             className="w-10 h-10 text-white"
                             fill="none"
@@ -586,7 +586,7 @@ const CsvUploadPage: React.FC = () => {
 
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="group relative px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-lg transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                        className="group relative px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-lg transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                         disabled={loading}
                       >
                         <span className="relative flex items-center justify-center space-x-3">
@@ -695,8 +695,8 @@ const CsvUploadPage: React.FC = () => {
               {loading && (
                 <div className="flex flex-col items-center justify-center py-8">
                   <div className="relative">
-                    <div className="w-16 h-16 border-4 border-indigo-200 rounded-full animate-spin">
-                      <div className="absolute top-0 left-0 w-16 h-16 border-4 border-transparent border-t-indigo-500 rounded-full animate-spin"></div>
+                    <div className="w-16 h-16 border-4 border-blue-200 rounded-full animate-spin">
+                      <div className="absolute top-0 left-0 w-16 h-16 border-4 border-transparent border-t-blue-500 rounded-full animate-spin"></div>
                     </div>
                   </div>
                   <p className="text-gray-600 mt-4 font-medium">

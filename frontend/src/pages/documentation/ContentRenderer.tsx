@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   FaHome,
   FaChevronRight,
@@ -205,12 +205,14 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
   };
 
   return (
+    <AnimatePresence mode="wait">
     <motion.div
       ref={contentRef}
       key={`${activeCategory}-${activeSection}`}
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15, ease: "easeOut" }}
       className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 xl:p-12 bg-white shadow-lg rounded-l-3xl"
       style={{
         borderTopLeftRadius: "1.5rem",
@@ -353,6 +355,7 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
         </button>
       </div>
     </motion.div>
+    </AnimatePresence>
   );
 };
 

@@ -46,6 +46,7 @@ const FeatureCard = ({
         duration: 0.6,
         type: "spring",
         stiffness: 100,
+        damping: 20,
       }}
       whileHover={{
         scale: 1.02,

@@ -240,12 +240,13 @@ const FeatureCarousel: React.FC<FeatureCarouselProps> = ({ features }) => {
             <motion.button
               key={index}
               onClick={() => goToSlide(index)}
-              className={`h-2 rounded-full transition-colors duration-300 ${
+              aria-label={`Go to slide ${index + 1}`}
+              aria-current={index === currentIndex ? "true" : undefined}
+              className={`h-2 rounded-full transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
                 index === currentIndex
                   ? "w-8 bg-blue-600"
                   : "w-2 bg-gray-300 hover:bg-gray-400"
               }`}
-              whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
             />
           ))}
@@ -260,7 +261,8 @@ const FeatureCarousel: React.FC<FeatureCarouselProps> = ({ features }) => {
                   (currentIndex - 1 + features.length) % features.length
                 )
               }
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow duration-200 hover:bg-gray-50 z-40 focus-visible:ring-2 focus-visible:ring-blue-500"
+              aria-label="Previous slide"
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow duration-200 hover:bg-gray-50 z-40 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
               whileHover={{ scale: 1.02, x: -2 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -281,7 +283,8 @@ const FeatureCarousel: React.FC<FeatureCarouselProps> = ({ features }) => {
 
             <motion.button
               onClick={() => goToSlide((currentIndex + 1) % features.length)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow duration-200 hover:bg-gray-50 z-40 focus-visible:ring-2 focus-visible:ring-blue-500"
+              aria-label="Next slide"
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow duration-200 hover:bg-gray-50 z-40 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
               whileHover={{ scale: 1.02, x: 2 }}
               whileTap={{ scale: 0.95 }}
             >

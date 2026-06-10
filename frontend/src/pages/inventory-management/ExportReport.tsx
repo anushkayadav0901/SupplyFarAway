@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircle,
   XCircle,
@@ -222,7 +223,7 @@ const ComplianceResponse: React.FC<{ response: ComplianceData | undefined; }> = 
               <div className="w-full bg-gray-200 rounded-full h-4 mt-2 shadow-inner">
                 <div
                   style={{ width: `${riskLevel.riskScore}%` }}
-                  className={`h-4 rounded-full transition-all duration-300 ${
+                  className={`h-4 rounded-full transition-[background-color] duration-150 ${
                     riskLevel.riskScore < 30
                       ? "bg-green-600"
                       : riskLevel.riskScore < 60
@@ -522,8 +523,15 @@ function ExportReport(): React.ReactElement {
   const loading = userLoading || draftLoading;
   const error =
     userError || draftError
-      ? `Failed to load data: ${(draftFetchError as any)?.message ?? "Unknown error"}`
+      ? "We could not load this report. The draft may have been deleted, or there may be a connection issue."
       : null;
+
+  // Log raw error for diagnostics
+  useEffect(() => {
+    if ((userError || draftError) && draftFetchError) {
+      console.error("[ExportReport] Failed to load draft:", draftFetchError);
+    }
+  }, [userError, draftError, draftFetchError]);
 
   const user = meData
     ? `${(meData as any).user.firstName} ${(meData as any).user.lastName}`
@@ -587,12 +595,12 @@ function ExportReport(): React.ReactElement {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4 sm:p-6 flex flex-col">
+      <div className="min-h-screen bg-neutral-100 p-4 sm:p-6 flex flex-col">
         <Header title="Export Report" page="export" />
-        <div className="flex h-screen w-screen items-center justify-center bg-gray-50">
+        <div className="flex flex-1 items-center justify-center min-h-[400px]">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600 mx-auto"></div>
-            <p className="mt-4 text-lg text-gray-700 font-semibold tracking-wide animate-pulse">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-lg text-gray-700 font-semibold tracking-wide">
               Generating your report...
             </p>
           </div>
@@ -604,12 +612,12 @@ function ExportReport(): React.ReactElement {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4 sm:p-6 flex flex-col">
+      <div className="min-h-screen bg-neutral-100 p-4 sm:p-6 flex flex-col">
         <Header title="Export Report" page="export" />
         <div className="text-center bg-white p-6 rounded-2xl shadow-xl">
           <p className="text-red-600 mb-4 font-medium">{error}</p>
           <button
-            className="bg-amber-400 py-2 px-6 rounded-full shadow-md hover:bg-amber-500 transition-colors duration-300 text-gray-800 font-semibold"
+            className="bg-blue-600 py-2 px-6 rounded-lg shadow-sm hover:bg-blue-700 transition-colors duration-150 text-white font-semibold focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             onClick={() => window.history.back()}
           >
             Go Back
@@ -621,12 +629,12 @@ function ExportReport(): React.ReactElement {
 
   if (!draft) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4 sm:p-6 flex flex-col">
+      <div className="min-h-screen bg-neutral-100 p-4 sm:p-6 flex flex-col">
         <Header title="Export Report" page="export" />
         <div className="text-center bg-white p-6 rounded-2xl shadow-xl">
           <p className="text-red-600 mb-4 font-medium">Draft not found.</p>
           <button
-            className="bg-amber-400 py-2 px-6 rounded-full shadow-md hover:bg-amber-500 transition-colors duration-300 text-gray-800 font-semibold"
+            className="bg-blue-600 py-2 px-6 rounded-lg shadow-sm hover:bg-blue-700 transition-colors duration-150 text-white font-semibold focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             onClick={() => window.history.back()}
           >
             Go Back
@@ -647,14 +655,14 @@ function ExportReport(): React.ReactElement {
     !draft.formData.IntendedUseDetails
   ) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4 sm:p-6 flex flex-col">
+      <div className="min-h-screen bg-neutral-100 p-4 sm:p-6 flex flex-col">
         <Header title="Export Report" page="export" />
         <div className="text-center bg-white p-6 rounded-2xl shadow-xl">
           <p className="text-red-600 mb-4 font-medium">
             Incomplete draft data. Form data is missing or invalid.
           </p>
           <button
-            className="bg-amber-400 py-2 px-6 rounded-full shadow-md hover:bg-amber-500 transition-colors duration-300 text-gray-800 font-semibold"
+            className="bg-blue-600 py-2 px-6 rounded-lg shadow-sm hover:bg-blue-700 transition-colors duration-150 text-white font-semibold focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             onClick={() => window.history.back()}
           >
             Go Back
@@ -670,7 +678,7 @@ function ExportReport(): React.ReactElement {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 flex flex-col">
+    <div className="min-h-screen bg-neutral-100 p-4 sm:p-6 flex flex-col">
       <Header title="Export Report" page="export" />
 
       <div className="max-w-5xl mx-auto my-8 bg-white shadow-xl rounded-2xl overflow-hidden flex-grow">
@@ -692,12 +700,24 @@ function ExportReport(): React.ReactElement {
           <div className="absolute top-4 right-4">
             <button
               onClick={() => setShowDownloadMenu(!showDownloadMenu)}
-              className="text-white hover:text-gray-200 transition-colors"
+              onKeyDown={(e) => { if (e.key === "Escape") setShowDownloadMenu(false); }}
+              aria-label="Download options"
+              aria-expanded={showDownloadMenu}
+              aria-haspopup="menu"
+              className="text-white hover:text-gray-200 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-indigo-700 rounded"
             >
               <MoreHorizontal className="w-6 h-6" />
             </button>
+            <AnimatePresence>
             {showDownloadMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-10">
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
+                role="menu"
+                className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-10"
+              >
                 <PDFDownloadLink
                   document={
                     <PDFDocument
@@ -708,14 +728,16 @@ function ExportReport(): React.ReactElement {
                     />
                   }
                   fileName={`ExportReport-${draftId}.pdf`}
-                  className="block px-4 py-2 text-gray-800 hover:bg-gray-100 rounded-lg"
+                  role="menuitem"
+                  className="block px-4 py-2 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
                 >
                   {({ loading: pdfLoading }) =>
                     pdfLoading ? "Generating PDF..." : "Download PDF"
                   }
                 </PDFDownloadLink>
-              </div>
+              </motion.div>
             )}
+            </AnimatePresence>
           </div>
         </div>
 
@@ -949,7 +971,7 @@ function ExportReport(): React.ReactElement {
         <div className="p-6 sm:p-8">
           {carbonLoading ? (
             <div className="flex items-center justify-center mt-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600"></div>
               <p className="ml-3 text-gray-600 font-medium">
                 Loading carbon data...
               </p>

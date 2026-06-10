@@ -497,7 +497,7 @@ const Login = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 1.5 }}
-            className="absolute bottom-8 left-70 text-center z-20"
+            className="absolute bottom-8 left-1/4 text-center z-20"
           >
             <p className="text-white/80 text-sm">
               Experience logistics visualization powered by AI
@@ -548,60 +548,14 @@ const Login = () => {
         </div>
       </motion.div>
 
-      {/* Right Side - Login Form or Creative Loading */}
+      {/* Right Side - Login Form */}
       <motion.div
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
         className="w-full lg:w-1/3 flex items-center justify-center p-6"
       >
-        {loading ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
-            className="flex flex-col items-center justify-center min-h-[300px] relative"
-          >
-            {/* Orbital Loading Animation */}
-            <div className="relative w-20 h-20">
-              {[...Array(4)].map((_, i) => (
-                <motion.div
-                  key={i}
-                  className="absolute w-4 h-4 bg-primary-500 rounded-full"
-                  animate={{
-                    rotate: 360,
-                    scale: [1, 1.2, 1],
-                    x: Math.cos((i * Math.PI) / 2) * 30,
-                    y: Math.sin((i * Math.PI) / 2) * 30,
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                    delay: i * 0.2,
-                  }}
-                />
-              ))}
-              <motion.div
-                className="absolute inset-0 border-2 border-primary-400/30 rounded-full"
-                animate={{ rotate: -360 }}
-                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-              />
-            </div>
-            <motion.p
-              animate={{ scale: [1, 1.05, 1] }}
-              transition={{
-                duration: 1.5,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-              className="mt-8 text-lg font-medium text-primary-600"
-            >
-              Connecting...
-            </motion.p>
-          </motion.div>
-        ) : (
-          <div className="w-full max-w-md bg-neutral-50 rounded-custom shadow-custom-medium p-8">
+        <div className="w-full max-w-md bg-neutral-50 rounded-custom shadow-custom-medium p-8">
             <motion.h1
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -631,7 +585,8 @@ const Login = () => {
                   placeholder="Email Address"
                   value={emailAddress}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full p-3 pl-10 border border-neutral-300 rounded-custom text-neutral-700 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  disabled={loading}
+                  className="w-full px-4 py-3 pl-10 border border-neutral-300 rounded-xl text-neutral-700 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-60 disabled:cursor-not-allowed"
                 />
                 <svg
                   className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-neutral-400"
@@ -656,7 +611,8 @@ const Login = () => {
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full p-3 pl-10 border border-neutral-300 rounded-custom text-neutral-700 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  disabled={loading}
+                  className="w-full px-4 py-3 pl-10 border border-neutral-300 rounded-xl text-neutral-700 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-60 disabled:cursor-not-allowed"
                 />
                 <svg
                   className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-neutral-400"
@@ -674,7 +630,8 @@ const Login = () => {
                 </svg>
                 <button
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                 >
                   {showPassword ? (
                     // Eye icon
@@ -719,12 +676,39 @@ const Login = () => {
               </div>
 
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ scale: loading ? 1 : 1.02 }}
+                whileTap={{ scale: loading ? 1 : 0.98 }}
                 onClick={handleLogin}
-                className="w-full bg-primary-500 text-white py-3 rounded-custom font-semibold hover:bg-primary-600 transition-colors"
+                disabled={loading}
+                className="w-full bg-primary-500 text-white py-3 rounded-xl font-semibold hover:bg-primary-600 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-0"
               >
-                Sign In
+                {loading ? (
+                  <>
+                    <svg
+                      className="w-4 h-4 animate-spin"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                      />
+                    </svg>
+                    Signing In...
+                  </>
+                ) : (
+                  "Sign In"
+                )}
               </motion.button>
 
               <div className="relative flex items-center justify-center my-6">
@@ -748,7 +732,6 @@ const Login = () => {
               </div>
             </motion.div>
           </div>
-        )}
       </motion.div>
       <Toast type={toastProps.type} message={toastProps.message} />
     </div>
@@ -756,3 +739,4 @@ const Login = () => {
 };
 
 export default Login;
+

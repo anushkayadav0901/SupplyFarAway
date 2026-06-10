@@ -7,7 +7,15 @@ const ProtectedRoute = () => {
     retry: false,
   });
 
-  if (isLoading) return null;
+  if (isLoading) {
+    return (
+      <div
+        className="min-h-screen bg-[var(--color-neutral-100)] animate-pulse"
+        aria-label="Loading"
+        role="status"
+      />
+    );
+  }
 
   const isAuthenticated = !!data && !isError;
 

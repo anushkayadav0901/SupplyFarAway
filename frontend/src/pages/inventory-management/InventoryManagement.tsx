@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   Tabs,
   Tab,
@@ -92,6 +92,7 @@ interface ToastProps {
 // ---------------------------------------------------------------------------
 
 const InventoryManagement: React.FC = () => {
+  const prefersReducedMotion = useReducedMotion();
   const [activeTab, setActiveTab] = useState<string>("all");
   const [toastProps, setToastProps] = useState<ToastProps>({
     type: "",
@@ -455,7 +456,7 @@ const InventoryManagement: React.FC = () => {
                 "& .MuiTabs-indicator": {
                   height: 3,
                   borderRadius: 2,
-                  background: "linear-gradient(90deg, #3b82f6, #8b5cf6)",
+                  backgroundColor: "#2563eb",
                 },
                 "& .MuiTabs-scrollButtons": {
                   width: { xs: 30, sm: 40 },
@@ -493,9 +494,9 @@ const InventoryManagement: React.FC = () => {
           </Box>
         </Card>
 
-        <div className="space-y-4 sm:space-y-6">
+        <div className="space-y-4 sm:space-y-6" style={{ minHeight: 400 }}>
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-8 mb-8 min-h-screen">
+            <div className="flex flex-col items-center justify-center py-8 mb-8 min-h-[400px]">
               <div className="relative">
                 <div className="w-16 h-16 border-4 border-indigo-200 rounded-full animate-spin">
                   <div className="absolute top-0 left-0 w-16 h-16 border-4 border-transparent border-t-indigo-500 rounded-full animate-spin"></div>
@@ -511,9 +512,8 @@ const InventoryManagement: React.FC = () => {
                 borderRadius: 3,
                 p: { xs: 4, sm: 6 },
                 textAlign: "center",
-                background: "rgba(255, 255, 255, 0.95)",
-                backdropFilter: "blur(10px)",
-                boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
+                background: "#ffffff",
+                boxShadow: "0 1px 4px rgba(0, 0, 0, 0.08)",
               }}
             >
               <Typography
@@ -524,35 +524,67 @@ const InventoryManagement: React.FC = () => {
                   fontSize: { xs: "1.1rem", sm: "1.25rem" },
                 }}
               >
-                No drafts available
+                {activeTab === "non-compliant"
+                  ? "No non-compliant drafts"
+                  : activeTab === "compliant"
+                  ? "No compliant drafts yet"
+                  : activeTab === "ready-for-shipment"
+                  ? "Nothing ready for shipment yet"
+                  : "No drafts available"}
               </Typography>
               <Typography
-                sx={{ color: "#94a3b8", fontSize: { xs: "0.9rem", sm: "1rem" } }}
+                sx={{ color: "#94a3b8", fontSize: { xs: "0.9rem", sm: "1rem" }, mb: 3 }}
               >
                 {activeTab === "yet-to-be-checked"
                   ? "Create your first draft to get started!"
+                  : activeTab === "non-compliant"
+                  ? "Great job — no compliance issues found."
+                  : activeTab === "compliant"
+                  ? "Once a draft passes compliance, it will appear here."
+                  : activeTab === "ready-for-shipment"
+                  ? "Compliant drafts with an optimized route will appear here."
                   : "No drafts match this category."}
               </Typography>
+              {activeTab !== "yet-to-be-checked" && (
+                <Button
+                  variant="outlined"
+                  onClick={() => setActiveTab("yet-to-be-checked")}
+                  sx={{
+                    borderColor: "#2563eb",
+                    color: "#2563eb",
+                    borderRadius: 2,
+                    textTransform: "none",
+                    fontWeight: 600,
+                    px: 3,
+                    py: 1,
+                    "&:hover": { borderColor: "#1d4ed8", color: "#1d4ed8", backgroundColor: "rgba(37,99,235,0.06)" },
+                    "&:focus-visible": { outline: "2px solid #2563eb", outlineOffset: 2 },
+                  }}
+                >
+                  View pending drafts
+                </Button>
+              )}
             </Card>
           ) : (
-            getFilteredDrafts().map((draft, index) => (
+            <AnimatePresence initial={false}>
+            {getFilteredDrafts().map((draft, index) => (
               <motion.div
                 key={draft._id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.1 }}
+                initial={prefersReducedMotion ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={prefersReducedMotion ? {} : { opacity: 0 }}
+                transition={{ duration: 0.15, delay: prefersReducedMotion ? 0 : Math.min(index * 0.05, 0.2) }}
               >
                 <Card
                   sx={{
                     borderRadius: 3,
-                    background: "rgba(255, 255, 255, 0.95)",
-                    backdropFilter: "blur(10px)",
-                    boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
-                    border: "1px solid rgba(255, 255, 255, 0.2)",
-                    transition: "all 0.3s ease",
+                    background: "#ffffff",
+                    boxShadow: "0 1px 4px rgba(0, 0, 0, 0.08)",
+                    border: "1px solid #e2e8f0",
+                    transition: "transform 150ms ease-out, box-shadow 150ms ease-out",
                     "&:hover": {
-                      transform: "translateY(-4px)",
-                      boxShadow: "0 20px 40px rgba(0, 0, 0, 0.15)",
+                      transform: "translateY(-2px)",
+                      boxShadow: "0 4px 16px rgba(0, 0, 0, 0.12)",
                     },
                   }}
                 >
@@ -675,39 +707,34 @@ const InventoryManagement: React.FC = () => {
                       </div>
 
                       <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
-                        <Button
-                          variant="contained"
-                          onClick={() => handleActionClick(draft)}
-                          style={{
-                            display:
-                              draft.statuses?.compliance === "compliant" &&
-                              draft.statuses?.routeOptimization === "done"
-                                ? "none"
-                                : "block",
-                          }}
-                          sx={{
-                            background:
-                              "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)",
-                            borderRadius: 2,
-                            textTransform: "none",
-                            fontWeight: 600,
-                            px: { xs: 2, sm: 3 },
-                            py: 1,
-                            fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                            boxShadow: "0 4px 14px rgba(59, 130, 246, 0.4)",
-                            "&:hover": {
-                              background:
-                                "linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)",
-                              transform: "translateY(-1px)",
-                              boxShadow: "0 6px 20px rgba(59, 130, 246, 0.5)",
-                            },
-                          }}
-                        >
-                          {draft.statuses?.compliance === "compliant" &&
-                          draft.statuses?.routeOptimization === "notDone"
-                            ? "Optimize Route"
-                            : "Check Compliance"}
-                        </Button>
+                        {!(draft.statuses?.compliance === "compliant" &&
+                          draft.statuses?.routeOptimization === "done") && (
+                          <Button
+                            variant="contained"
+                            onClick={() => handleActionClick(draft)}
+                            sx={{
+                              backgroundColor: "#2563eb",
+                              borderRadius: 2,
+                              textTransform: "none",
+                              fontWeight: 600,
+                              px: { xs: 2, sm: 3 },
+                              py: 1,
+                              fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                              boxShadow: "0 2px 8px rgba(37, 99, 235, 0.3)",
+                              transition: "background-color 150ms ease-out, box-shadow 150ms ease-out",
+                              "&:hover": {
+                                backgroundColor: "#1d4ed8",
+                                boxShadow: "0 4px 12px rgba(37, 99, 235, 0.4)",
+                              },
+                              "&:focus-visible": { outline: "2px solid #2563eb", outlineOffset: 2 },
+                            }}
+                          >
+                            {draft.statuses?.compliance === "compliant" &&
+                            draft.statuses?.routeOptimization === "notDone"
+                              ? "Optimize Route"
+                              : "Check Compliance"}
+                          </Button>
+                        )}
 
                         {draft.statuses?.compliance === "compliant" &&
                           draft.statuses?.routeOptimization === "done" && (
@@ -717,22 +744,20 @@ const InventoryManagement: React.FC = () => {
                                 navigate(`/export-report/${draft._id}`)
                               }
                               sx={{
-                                background:
-                                  "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                                backgroundColor: "#059669",
                                 borderRadius: 2,
                                 textTransform: "none",
                                 fontWeight: 600,
                                 px: { xs: 2, sm: 3 },
                                 py: 1,
                                 fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                                boxShadow: "0 4px 14px rgba(16, 185, 129, 0.4)",
+                                boxShadow: "0 2px 8px rgba(5, 150, 105, 0.3)",
+                                transition: "background-color 150ms ease-out, box-shadow 150ms ease-out",
                                 "&:hover": {
-                                  background:
-                                    "linear-gradient(135deg, #059669 0%, #047857 100%)",
-                                  transform: "translateY(-1px)",
-                                  boxShadow:
-                                    "0 6px 20px rgba(16, 185, 129, 0.5)",
+                                  backgroundColor: "#047857",
+                                  boxShadow: "0 4px 12px rgba(5, 150, 105, 0.4)",
                                 },
+                                "&:focus-visible": { outline: "2px solid #059669", outlineOffset: 2 },
                               }}
                             >
                               Export Report
@@ -741,13 +766,18 @@ const InventoryManagement: React.FC = () => {
 
                         <IconButton
                           onClick={() => handleDeleteDraft(draft._id)}
+                          aria-label={`Delete draft ${index + 1}`}
                           sx={{
                             color: "#ef4444",
                             backgroundColor: "rgba(239, 68, 68, 0.1)",
                             borderRadius: 2,
+                            transition: "background-color 150ms ease-out",
                             "&:hover": {
                               backgroundColor: "rgba(239, 68, 68, 0.2)",
-                              transform: "scale(1.05)",
+                            },
+                            "&:focus-visible": {
+                              outline: "2px solid #ef4444",
+                              outlineOffset: 2,
                             },
                           }}
                         >
@@ -758,7 +788,8 @@ const InventoryManagement: React.FC = () => {
                   </CardContent>
                 </Card>
               </motion.div>
-            ))
+            ))}
+            </AnimatePresence>
           )}
         </div>
 
@@ -766,6 +797,7 @@ const InventoryManagement: React.FC = () => {
           <Button
             variant="contained"
             onClick={handleDialogOpen}
+            aria-label="Create new draft"
             sx={{
               position: "fixed",
               bottom: { xs: 16, sm: 24 },
@@ -774,14 +806,18 @@ const InventoryManagement: React.FC = () => {
               width: { xs: 48, sm: 64 },
               height: { xs: 48, sm: 64 },
               minWidth: 0,
-              background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-              boxShadow: "0 8px 32px rgba(245, 158, 11, 0.4)",
+              backgroundColor: "#2563eb",
+              boxShadow: "0 4px 16px rgba(37, 99, 235, 0.35)",
+              transition: "transform 150ms ease-out, box-shadow 150ms ease-out, background-color 150ms ease-out",
               "&:hover": {
-                background: "linear-gradient(135deg, #d97706 0%, #b45309 100%)",
-                transform: "scale(1.1)",
-                boxShadow: "0 12px 40px rgba(245, 158, 11, 0.6)",
+                backgroundColor: "#1d4ed8",
+                transform: "scale(1.04)",
+                boxShadow: "0 6px 20px rgba(37, 99, 235, 0.45)",
               },
-              transition: "all 0.3s ease",
+              "&:focus-visible": {
+                outline: "2px solid #2563eb",
+                outlineOffset: 2,
+              },
             }}
           >
             <Add sx={{ fontSize: { xs: 24, sm: 28 } }} />
@@ -889,7 +925,7 @@ const InventoryManagement: React.FC = () => {
         >
           <DialogTitle
             sx={{
-              background: "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)",
+              backgroundColor: "#2563eb",
               color: "white",
               fontWeight: 700,
               textAlign: "center",
@@ -931,11 +967,9 @@ const InventoryManagement: React.FC = () => {
                     <label className="absolute left-4 -top-2.5 bg-white px-2 py-0.5 rounded text-sm font-medium text-gray-600 transition-colors duration-150">
                       Origin Country
                     </label>
-                    {formErrors.originCountry && (
-                      <Typography color="error" variant="caption">
-                        {formErrors.originCountry}
-                      </Typography>
-                    )}
+                    <Typography color="error" variant="caption" sx={{ minHeight: "1.2em", display: "block" }}>
+                      {formErrors.originCountry || " "}
+                    </Typography>
                   </div>
 
                   <div className="relative w-full">
@@ -960,11 +994,9 @@ const InventoryManagement: React.FC = () => {
                     <label className="absolute left-4 -top-2.5 bg-white px-2 py-0.5 rounded text-sm font-medium text-gray-600 transition-colors duration-150">
                       Destination Country
                     </label>
-                    {formErrors.destinationCountry && (
-                      <Typography color="error" variant="caption">
-                        {formErrors.destinationCountry}
-                      </Typography>
-                    )}
+                    <Typography color="error" variant="caption" sx={{ minHeight: "1.2em", display: "block" }}>
+                      {formErrors.destinationCountry || " "}
+                    </Typography>
                   </div>
 
                   <div className="relative w-full">
@@ -984,11 +1016,9 @@ const InventoryManagement: React.FC = () => {
                     >
                       HS Code
                     </label>
-                    {formErrors.hsCode && (
-                      <Typography color="error" variant="caption">
-                        {formErrors.hsCode}
-                      </Typography>
-                    )}
+                    <Typography color="error" variant="caption" sx={{ minHeight: "1.2em", display: "block" }}>
+                      {formErrors.hsCode || " "}
+                    </Typography>
                   </div>
 
                   <div className="relative w-full">
@@ -1010,11 +1040,9 @@ const InventoryManagement: React.FC = () => {
                     >
                       Weight (kg)
                     </label>
-                    {formErrors.weight && (
-                      <Typography color="error" variant="caption">
-                        {formErrors.weight}
-                      </Typography>
-                    )}
+                    <Typography color="error" variant="caption" sx={{ minHeight: "1.2em", display: "block" }}>
+                      {formErrors.weight || " "}
+                    </Typography>
                   </div>
                 </div>
 
@@ -1035,11 +1063,9 @@ const InventoryManagement: React.FC = () => {
                   >
                     Product Description
                   </label>
-                  {formErrors.productDescription && (
-                    <Typography color="error" variant="caption">
-                      {formErrors.productDescription}
-                    </Typography>
-                  )}
+                  <Typography color="error" variant="caption" sx={{ minHeight: "1.2em", display: "block" }}>
+                    {formErrors.productDescription || " "}
+                  </Typography>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4 mt-4">

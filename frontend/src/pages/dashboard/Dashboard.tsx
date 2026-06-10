@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   FaRoute,
   FaCheckCircle,
@@ -14,7 +14,7 @@ import {
   FaDollarSign,
   FaClock,
 } from "react-icons/fa";
-import { IoMdClose } from "react-icons/io";
+import CloseIcon from "@mui/icons-material/Close";
 import { useInView } from "react-intersection-observer";
 import { useNavigate } from "react-router-dom";
 import FeatureCarousel from "./FeatureCarousel";
@@ -58,6 +58,17 @@ function MovexDashboard() {
       navigate("/");
     }
   }, [navigate, isError]);
+
+  // Close mobile sidebar on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && showSidebar) {
+        setShowSidebar(false);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [showSidebar]);
 
   // Primary CTA button
   const GradientButton: React.FC<GradientButtonProps> = ({ children, onClick }) => (
@@ -205,27 +216,27 @@ function MovexDashboard() {
 
           <div className="flex items-center">
             <div className="hidden md:flex items-center space-x-4">
-              <motion.a
+              <motion.button
                 onClick={handleDocsClick}
                 whileHover={{ scale: 1.02, y: -1 }}
                 whileTap={{ scale: 0.98 }}
-                className="cursor-pointer text-gray-700 hover:text-blue-600 text-base font-medium px-4 py-2.5 rounded-xl hover:bg-gray-100 transition-colors duration-150"
+                className="text-gray-700 hover:text-blue-600 text-base font-medium px-4 py-2.5 rounded-xl hover:bg-gray-100 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
               >
                 Docs
-              </motion.a>
-              <motion.a
+              </motion.button>
+              <motion.button
                 onClick={handleNewsClick}
                 whileHover={{ scale: 1.02, y: -1 }}
                 whileTap={{ scale: 0.98 }}
-                className="cursor-pointer text-gray-700 hover:text-blue-600 text-base font-medium px-4 py-2.5 rounded-xl hover:bg-gray-100 transition-colors duration-150"
+                className="text-gray-700 hover:text-blue-600 text-base font-medium px-4 py-2.5 rounded-xl hover:bg-gray-100 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
               >
                 News
-              </motion.a>
+              </motion.button>
               <motion.a
                 href="#about"
                 whileHover={{ scale: 1.02, y: -1 }}
                 whileTap={{ scale: 0.98 }}
-                className="text-gray-700 hover:text-blue-600 text-base font-medium px-4 py-2.5 rounded-xl hover:bg-gray-100 transition-colors duration-150"
+                className="text-gray-700 hover:text-blue-600 text-base font-medium px-4 py-2.5 rounded-xl hover:bg-gray-100 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
               >
                 About
               </motion.a>
@@ -240,7 +251,7 @@ function MovexDashboard() {
                 onClick={handleProfileClick}
                 whileHover={{ scale: 1.02, y: -1 }}
                 whileTap={{ scale: 0.98 }}
-                className="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium text-sm px-5 py-2.5 rounded-xl flex items-center gap-2.5 transition-colors duration-150 border border-gray-200"
+                className="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium text-sm px-5 py-2.5 rounded-xl flex items-center gap-2.5 transition-colors duration-150 border border-gray-200 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
               >
                 <FaUserCircle size={16} className="text-blue-600" />
                 Profile
@@ -251,7 +262,9 @@ function MovexDashboard() {
               onClick={() => setShowSidebar(!showSidebar)}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="md:hidden w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors duration-150 border border-gray-200"
+              aria-label="Open navigation menu"
+              aria-expanded={showSidebar}
+              className="md:hidden w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors duration-150 border border-gray-200 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             >
               <FaBars size={18} className="text-gray-700" />
             </motion.button>
@@ -259,129 +272,131 @@ function MovexDashboard() {
         </nav>
 
         {/* Mobile Sidebar with old code's colors */}
-        {showSidebar && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="fixed inset-0 bg-black/20 z-40 md:hidden"
-              onClick={() => setShowSidebar(false)}
-            />
-            <motion.div
-              initial={{ x: "-100%", opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: "-100%", opacity: 0 }}
-              transition={{
-                duration: 0.4,
-                type: "spring",
-                stiffness: 300,
-                damping: 30,
-              }}
-              className="fixed top-6 left-4 h-[calc(100vh-3rem)] w-[85vw] max-w-xs sm:w-80 bg-white border border-gray-200 rounded-2xl z-50 p-8 md:hidden shadow-lg"
-            >
-              <div className="flex justify-between items-center mb-10">
-                <motion.h2
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="text-xl font-bold text-gray-900"
-                >
-                  Menu
-                </motion.h2>
-                <motion.button
-                  onClick={() => setShowSidebar(false)}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors duration-150 border border-gray-200"
-                >
-                  <IoMdClose size={20} className="text-gray-900" />
-                </motion.button>
-              </div>
-              <div className="space-y-3">
-                <motion.a
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 }}
-                  whileHover={{ scale: 1.02, x: 4 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="block text-base py-4 px-5 text-gray-900 hover:bg-gray-100 hover:text-gray-700 rounded-xl transition-colors duration-150 font-medium"
-                  onClick={handleDocsClick}
-                >
-                  Docs
-                </motion.a>
-                <motion.a
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 }}
-                  whileHover={{ scale: 1.02, x: 4 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="block text-base py-4 px-5 text-gray-900 hover:bg-gray-100 hover:text-gray-700 rounded-xl transition-colors duration-150 font-medium"
-                  onClick={handleNewsClick}
-                >
-                  News
-                </motion.a>
-                <motion.a
-                  href="#about"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 }}
-                  whileHover={{ scale: 1.02, x: 4 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="block text-base py-4 px-5 text-gray-900 hover:bg-gray-100 hover:text-gray-700 rounded-xl transition-colors duration-150 font-medium"
-                  onClick={() => setShowSidebar(false)}
-                >
-                  About
-                </motion.a>
-                <motion.a
-                  onClick={() => {
-                    handleInventoryClick();
-                    setShowSidebar(false);
-                  }}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 }}
-                  whileHover={{ scale: 1.02, x: 4 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="block text-base py-4 px-5 text-gray-900 hover:bg-gray-100 hover:text-gray-700 rounded-xl transition-colors duration-150 font-medium"
-                >
-                  Inventory
-                </motion.a>
-                <motion.button
-                  onClick={() => {
-                    handleProfileClick();
-                    setShowSidebar(false);
-                  }}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.5 }}
-                  whileHover={{ scale: 1.02, x: 4 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full flex items-center gap-4 text-base py-4 px-5 text-gray-900 hover:bg-gray-100 hover:text-gray-700 rounded-xl transition-colors duration-150 font-medium"
-                >
-                  <FaUserCircle size={18} className="text-gray-600" />
-                  <span>Profile</span>
-                </motion.button>
-              </div>
-            </motion.div>
-          </>
-        )}
+        <AnimatePresence>
+          {showSidebar && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="fixed inset-0 bg-black/20 z-40 md:hidden"
+                onClick={() => setShowSidebar(false)}
+                aria-hidden="true"
+              />
+              <motion.div
+                role="dialog"
+                aria-modal="true"
+                aria-label="Navigation menu"
+                initial={{ x: "-100%", opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: "-100%", opacity: 0 }}
+                transition={{ type: "tween", duration: 0.2, ease: "easeOut" }}
+                className="fixed top-6 left-4 h-[calc(100vh-3rem)] w-[85vw] max-w-xs sm:w-80 bg-white border border-gray-200 rounded-2xl z-50 p-8 md:hidden shadow-lg"
+                onKeyDown={(e) => { if (e.key === "Escape") setShowSidebar(false); }}
+              >
+                <div className="flex justify-between items-center mb-10">
+                  <motion.h2
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.08, duration: 0.2 }}
+                    className="text-xl font-bold text-gray-900"
+                  >
+                    Menu
+                  </motion.h2>
+                  <motion.button
+                    onClick={() => setShowSidebar(false)}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    aria-label="Close navigation menu"
+                    className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors duration-150 border border-gray-200 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                  >
+                    <CloseIcon sx={{ fontSize: 20 }} className="text-gray-900" />
+                  </motion.button>
+                </div>
+                <div className="space-y-3">
+                  <motion.button
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.06, duration: 0.2 }}
+                    whileHover={{ scale: 1.02, x: 4, transition: { duration: 0.1, ease: "easeOut" } }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full text-left text-base py-4 px-5 text-gray-900 hover:bg-gray-100 hover:text-gray-700 rounded-xl transition-colors duration-150 font-medium focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                    onClick={handleDocsClick}
+                  >
+                    Docs
+                  </motion.button>
+                  <motion.button
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.09, duration: 0.2 }}
+                    whileHover={{ scale: 1.02, x: 4, transition: { duration: 0.1, ease: "easeOut" } }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full text-left text-base py-4 px-5 text-gray-900 hover:bg-gray-100 hover:text-gray-700 rounded-xl transition-colors duration-150 font-medium focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                    onClick={handleNewsClick}
+                  >
+                    News
+                  </motion.button>
+                  <motion.a
+                    href="#about"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.12, duration: 0.2 }}
+                    whileHover={{ scale: 1.02, x: 4, transition: { duration: 0.1, ease: "easeOut" } }}
+                    whileTap={{ scale: 0.98 }}
+                    className="block text-base py-4 px-5 text-gray-900 hover:bg-gray-100 hover:text-gray-700 rounded-xl transition-colors duration-150 font-medium focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                    onClick={() => setShowSidebar(false)}
+                  >
+                    About
+                  </motion.a>
+                  <motion.button
+                    onClick={() => {
+                      handleInventoryClick();
+                      setShowSidebar(false);
+                    }}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.15, duration: 0.2 }}
+                    whileHover={{ scale: 1.02, x: 4, transition: { duration: 0.1, ease: "easeOut" } }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full text-left text-base py-4 px-5 text-gray-900 hover:bg-gray-100 hover:text-gray-700 rounded-xl transition-colors duration-150 font-medium focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                  >
+                    Inventory
+                  </motion.button>
+                  <motion.button
+                    onClick={() => {
+                      handleProfileClick();
+                      setShowSidebar(false);
+                    }}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.18, duration: 0.2 }}
+                    whileHover={{ scale: 1.02, x: 4, transition: { duration: 0.1, ease: "easeOut" } }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full flex items-center gap-4 text-base py-4 px-5 text-gray-900 hover:bg-gray-100 hover:text-gray-700 rounded-xl transition-colors duration-150 font-medium focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                  >
+                    <FaUserCircle size={18} className="text-gray-600" />
+                    <span>Profile</span>
+                  </motion.button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
 
         {/* Header Section with Lottie Animation */}
         <section className="relative min-h-screen flex items-center z-10 pt-28 pb-16 px-4 sm:px-8 md:px-12">
           <div className="container mx-auto max-w-7xl relative z-10 flex flex-col lg:flex-row items-center justify-between gap-12">
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
+              initial={{ opacity: 0, scale: 0.97 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 1.5 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
               className="w-full lg:w-1/2 text-center lg:text-left"
             >
               <motion.h2
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.1 }}
-                viewport={{ once: true }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.08, ease: "easeOut" }}
                 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold text-gray-900"
               >
                 Smart
@@ -390,17 +405,17 @@ function MovexDashboard() {
                 </span>
               </motion.h2>
               <motion.p
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8, duration: 1 }}
+                transition={{ delay: 0.1, duration: 0.3, ease: "easeOut" }}
                 className="text-xl md:text-2xl max-w-2xl mx-auto lg:mx-0 mt-6 text-gray-600 leading-relaxed font-medium"
               >
                 Innovating Logistics for the Future
               </motion.p>
               <motion.div
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.2, duration: 0.8 }}
+                transition={{ delay: 0.18, duration: 0.3, ease: "easeOut" }}
                 className="mt-6 flex flex-col sm:flex-row justify-center lg:justify-start gap-6"
               >
                 <GradientButton
@@ -470,10 +485,10 @@ function MovexDashboard() {
             ].map((item, index) => (
               <motion.div
                 key={index}
-                initial={{ opacity: 0, x: index % 2 === 0 ? -50 : 50 }}
+                initial={{ opacity: 0, x: index % 2 === 0 ? -30 : 30 }}
                 animate={solvesVisible ? { opacity: 1, x: 0 } : {}}
-                transition={{ delay: index * 0.2, duration: 0.6 }}
-                className="flex flex-col sm:flex-row items-center justify-between gap-6 bg-white rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow"
+                transition={{ delay: index * 0.06, duration: 0.3, ease: "easeOut" }}
+                className="flex flex-col sm:flex-row items-center justify-between gap-6 bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow duration-150"
               >
                 {/* Problem Side */}
                 <div className="flex-1 flex items-center gap-4">

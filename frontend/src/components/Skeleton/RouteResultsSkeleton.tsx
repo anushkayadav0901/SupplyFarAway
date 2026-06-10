@@ -4,15 +4,15 @@ import { motion } from "framer-motion";
 const RouteResultsSkeleton = () => {
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.2 } },
+    visible: { opacity: 1, transition: { staggerChildren: 0.05 } },
   };
 
   const itemVariants = {
-    hidden: { x: -50, opacity: 0 },
+    hidden: { x: -10, opacity: 0 },
     visible: {
       x: 0,
       opacity: 1,
-      transition: { type: "spring" as const, stiffness: 100 },
+      transition: { duration: 0.15, ease: "easeOut" },
     },
   };
 
@@ -46,6 +46,8 @@ const RouteResultsSkeleton = () => {
               <div className="h-6 w-24 bg-gray-200 rounded animate-pulse" />
               <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse" />
               <div className="h-4 w-2/3 bg-gray-200 rounded animate-pulse" />
+              <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse" />
+              <div className="h-4 w-3/5 bg-gray-200 rounded animate-pulse" />
             </div>
 
             {/* Route Metrics and Buttons Skeleton */}

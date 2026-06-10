@@ -65,7 +65,7 @@ function CarbonFootprint(): React.ReactElement {
     setTimeout(() => setToastProps({ type: "", message: "" }), 3000);
   };
 
-  const { data: rawCarbonData, isLoading: loading, isError, error } = trpc.logistics.getCarbonFootprint.useQuery(
+  const { data: rawCarbonData, isLoading: loading, isError, error, refetch } = trpc.logistics.getCarbonFootprint.useQuery(
     { draftId: draftId ?? "" },
     { enabled: !!draftId }
   );
@@ -73,7 +73,11 @@ function CarbonFootprint(): React.ReactElement {
   const carbonData = rawCarbonData as CarbonData | undefined;
 
   const handleClose = () => {
-    window.close();
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      window.close();
+    }
   };
 
   const chartData = carbonData?.routeAnalysis
@@ -87,8 +91,8 @@ function CarbonFootprint(): React.ReactElement {
             data: carbonData.routeAnalysis.map((leg) =>
               parseFloat(leg.emissions.replace(" kg CO2e", ""))
             ),
-            backgroundColor: "rgba(255, 99, 132, 0.6)",
-            borderColor: "rgba(255, 99, 132, 1)",
+            backgroundColor: "rgba(22, 163, 74, 0.5)",
+            borderColor: "rgba(22, 163, 74, 1)",
             borderWidth: 1,
           },
         ],
@@ -107,100 +111,109 @@ function CarbonFootprint(): React.ReactElement {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-gray-100 p-6 md:p-10">
+    <div className="min-h-screen bg-neutral-100 text-gray-900 p-6 md:p-10">
       <Toast type={toastProps.type} message={toastProps.message} />
-      <div className="absolute top-2 right-2 z-10">
+      <div className="absolute top-4 right-4 z-10">
         <button
           onClick={handleClose}
-          className="bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-full transition-colors"
+          className="bg-white hover:bg-gray-100 text-gray-600 p-2 rounded-full border border-gray-200 shadow-sm transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
           aria-label="Close"
         >
           <FaTimes className="w-4 h-4" />
         </button>
       </div>
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
         className="max-w-6xl mx-auto relative"
       >
-        <div className="text-center mb-12">
+        <div className="text-center mb-8">
           <motion.h1
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.8 }}
-            className="text-4xl md:text-6xl font-bold tracking-tight mb-4 font-inter"
+            transition={{ delay: 0.06, duration: 0.2 }}
+            className="text-3xl md:text-4xl font-bold tracking-tight mb-3 text-gray-900"
           >
-            SupplyChain Carbon{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-teal-300">
-              Footprint
-            </span>
+            Carbon{" "}
+            <span className="text-green-600">Footprint</span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.8 }}
-            className="text-xl text-gray-300 max-w-2xl mx-auto font-light"
+            transition={{ delay: 0.1, duration: 0.2 }}
+            className="text-base text-gray-500 max-w-2xl mx-auto"
           >
             Visualize your route's carbon impact and its effect on Earth.
           </motion.p>
         </div>
 
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.6, duration: 0.5 }}
-          className="bg-gray-800 rounded-3xl p-6 md:p-10 border border-gray-700 shadow-2xl"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.1, duration: 0.2 }}
+          className="bg-white rounded-2xl p-6 md:p-10 border border-gray-200 shadow-sm"
         >
           {loading ? (
             <div className="flex flex-col items-center justify-center h-96">
               <motion.div
-                animate={{ rotate: 360, scale: [1, 1.1, 1] }}
+                animate={{ rotate: 360 }}
                 transition={{
-                  duration: 2,
+                  duration: 1.5,
                   repeat: Infinity,
-                  ease: "easeInOut",
+                  ease: "linear",
                 }}
-                className="w-20 h-20 mb-6"
+                className="w-12 h-12 mb-4"
               >
-                <FaLeaf className="w-full h-full text-green-400" />
+                <FaLeaf className="w-full h-full text-green-500" />
               </motion.div>
-              <p className="text-green-300 text-lg font-medium">
+              <p className="text-gray-600 text-base font-medium">
                 Loading carbon footprint data...
               </p>
             </div>
           ) : isError ? (
             <div className="flex flex-col items-center justify-center h-96 p-6 text-center">
-              <FaLeaf className="text-3xl text-green-400 opacity-70 mb-4" />
-              <h3 className="text-xl font-medium text-gray-300 mb-3">
-                {(error as any)?.message ?? "Failed to load data"}
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
+                <FaLeaf className="text-xl text-red-500" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                Could not load carbon footprint data
               </h3>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleClose}
-                className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700"
-              >
-                Close
-              </motion.button>
+              <p className="text-gray-500 text-sm mb-6 max-w-sm">
+                There was a problem fetching the analysis. Please try again or go back to run a new route.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => refetch()}
+                  className="px-5 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
+                >
+                  Retry
+                </button>
+                <button
+                  onClick={handleClose}
+                  className="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2"
+                >
+                  Go Back
+                </button>
+              </div>
             </div>
           ) : carbonData ? (
             <>
               {/* Summary */}
               <div className="mb-8">
-                <h2 className="text-3xl font-bold mb-4">
+                <h2 className="text-2xl font-bold mb-4 text-gray-800">
                   Carbon Footprint Summary
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-gray-700 p-4 rounded-lg">
-                    <p className="text-gray-400 text-sm">Total Distance</p>
-                    <p className="text-2xl font-bold">
+                  <div className="bg-gray-50 border border-gray-200 p-4 rounded-xl">
+                    <p className="text-gray-500 text-sm mb-1">Total Distance</p>
+                    <p className="text-2xl font-bold text-gray-900">
                       {carbonData.totalDistance}
                     </p>
                   </div>
-                  <div className="bg-gray-700 p-4 rounded-lg">
-                    <p className="text-gray-400 text-sm">Total Emissions</p>
-                    <p className="text-2xl font-bold text-red-400">
+                  <div className="bg-red-50 border border-red-100 p-4 rounded-xl">
+                    <p className="text-gray-500 text-sm mb-1">Total Emissions</p>
+                    <p className="text-2xl font-bold text-red-600">
                       {carbonData.totalEmissions}
                     </p>
                   </div>
@@ -209,22 +222,22 @@ function CarbonFootprint(): React.ReactElement {
 
               {/* Graph */}
               <div className="mb-8">
-                <h3 className="text-2xl font-bold mb-4">Emissions Breakdown</h3>
+                <h3 className="text-xl font-bold mb-4 text-gray-800">Emissions Breakdown</h3>
                 {chartData && <Bar data={chartData} options={chartOptions} />}
               </div>
 
               {/* Route Analysis */}
               <div className="mb-8">
-                <h3 className="text-2xl font-bold mb-4">Route Analysis</h3>
-                <div className="space-y-4">
+                <h3 className="text-xl font-bold mb-4 text-gray-800">Route Analysis</h3>
+                <div className="space-y-3">
                   {carbonData.routeAnalysis.map((leg, index) => (
-                    <div key={index} className="bg-gray-700 p-4 rounded-lg">
-                      <h4 className="text-xl font-semibold text-green-300">
+                    <div key={index} className="bg-gray-50 border border-gray-200 p-4 rounded-xl">
+                      <h4 className="text-base font-semibold text-green-700 mb-1">
                         {leg.leg}: {leg.origin} → {leg.destination}
                       </h4>
-                      <p>Mode: {leg.mode}</p>
-                      <p>Distance: {leg.distance}</p>
-                      <p className="text-red-400">Emissions: {leg.emissions}</p>
+                      <p className="text-sm text-gray-600">Mode: {leg.mode}</p>
+                      <p className="text-sm text-gray-600">Distance: {leg.distance}</p>
+                      <p className="text-sm text-red-600 font-medium">Emissions: {leg.emissions}</p>
                     </div>
                   ))}
                 </div>
@@ -232,9 +245,9 @@ function CarbonFootprint(): React.ReactElement {
 
               {/* Earth Impact */}
               <div className="mb-8">
-                <h3 className="text-2xl font-bold mb-4">Impact on Earth</h3>
-                <div className="bg-gray-700 p-6 rounded-lg text-center">
-                  <svg className="w-32 h-32 mx-auto mb-4" viewBox="0 0 100 100">
+                <h3 className="text-xl font-bold mb-4 text-gray-800">Impact on Earth</h3>
+                <div className="bg-green-50 border border-green-200 p-6 rounded-xl text-center">
+                  <svg className="w-24 h-24 mx-auto mb-4" viewBox="0 0 100 100">
                     <circle cx="50" cy="50" r="40" fill="#1e3a8a" />
                     <path
                       d="M30 50 C40 20, 60 20, 70 50 C60 80, 40 80, 30 50"
@@ -249,13 +262,13 @@ function CarbonFootprint(): React.ReactElement {
                       cy="50"
                       r="45"
                       fill="none"
-                      stroke="rgba(255, 99, 132, 0.5)"
-                      strokeWidth="5"
-                      animate={{ r: [45, 50, 45] }}
-                      transition={{ duration: 2, repeat: Infinity }}
+                      stroke="rgba(220, 38, 38, 0.4)"
+                      strokeWidth="4"
+                      animate={{ r: [45, 49, 45] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                     />
                   </svg>
-                  <p className="text-lg text-gray-300">
+                  <p className="text-base text-gray-700">
                     {carbonData.earthImpact}
                   </p>
                 </div>
@@ -263,11 +276,11 @@ function CarbonFootprint(): React.ReactElement {
 
               {/* Suggestions */}
               <div>
-                <h3 className="text-2xl font-bold mb-4">Suggestions</h3>
-                <ul className="bg-gray-700 p-4 rounded-lg space-y-2">
+                <h3 className="text-xl font-bold mb-4 text-gray-800">Suggestions</h3>
+                <ul className="bg-gray-50 border border-gray-200 p-4 rounded-xl space-y-2">
                   {carbonData.suggestions.map((suggestion, index) => (
-                    <li key={index} className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                    <li key={index} className="flex items-start gap-2 text-sm text-gray-700">
+                      <span className="w-2 h-2 bg-green-500 rounded-full mt-1.5 flex-shrink-0"></span>
                       {suggestion}
                     </li>
                   ))}
@@ -275,9 +288,20 @@ function CarbonFootprint(): React.ReactElement {
               </div>
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center h-96">
-              <FaLeaf className="text-3xl text-green-400 mb-4" />
-              <p>No carbon data available. Please run an analysis.</p>
+            <div className="flex flex-col items-center justify-center h-96 text-center">
+              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
+                <FaLeaf className="text-2xl text-green-500" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">No carbon data available</h3>
+              <p className="text-gray-500 text-sm mb-6 max-w-sm">
+                Run a route analysis first to see the carbon footprint breakdown.
+              </p>
+              <button
+                onClick={() => navigate("/route-optimization")}
+                className="px-5 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
+              >
+                Go to Route Optimization
+              </button>
             </div>
           )}
         </motion.div>

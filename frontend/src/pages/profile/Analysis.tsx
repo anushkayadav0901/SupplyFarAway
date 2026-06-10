@@ -19,7 +19,7 @@ import {
   Globe,
   Inbox,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Header from "../../components/Header";
 import { trpc } from "../../lib/trpc";
 
@@ -42,7 +42,8 @@ const StatCard: React.FC<StatCardProps> = ({ icon: Icon, title, value, subtitle,
 
   return (
     <motion.div
-      whileHover={{ scale: 1.05 }}
+      whileHover={{ scale: 1.02 }}
+      transition={{ duration: 0.15, ease: "easeOut" }}
       className="bg-white rounded-xl shadow-lg p-6 border border-gray-100"
     >
       <div className="flex items-center justify-between">
@@ -68,7 +69,7 @@ const Analysis: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<string>("compliance");
 
-  const { data, isLoading, isError, error } = trpc.inventory.getDraftsByUser.useQuery(
+  const { data, isLoading, isError, error, refetch } = trpc.inventory.getDraftsByUser.useQuery(
     {
       userId: userId ?? "",
       complianceStatus: "done",
@@ -197,8 +198,25 @@ const Analysis: React.FC = () => {
 
   if (isError) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-red-500">{(error as any)?.message ?? "Failed to fetch analysis data."}</p>
+      <div className="min-h-screen bg-gray-50 p-6">
+        <Header title="Analysis" />
+        <div className="max-w-7xl mx-auto mt-8 flex flex-col items-center justify-center gap-4 bg-white rounded-xl shadow-lg p-12 text-center">
+          <AlertTriangle className="w-12 h-12 text-red-400" />
+          <p className="text-red-600 text-lg font-medium">We couldn't load your analytics.</p>
+          <p className="text-gray-500 text-sm">Please check your connection and try again.</p>
+          <button
+            onClick={() => void refetch()}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+          >
+            Retry
+          </button>
+          <button
+            onClick={() => navigate(-1)}
+            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2"
+          >
+            Go Back
+          </button>
+        </div>
       </div>
     );
   }
@@ -211,7 +229,7 @@ const Analysis: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
             className="bg-white mt-8 rounded-xl shadow-lg p-6 flex items-center justify-center flex-col"
           >
             <Inbox className="w-12 h-12 text-gray-400 mb-4" />
@@ -245,7 +263,7 @@ const Analysis: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
             className="bg-white mt-8 rounded-xl shadow-lg p-6 flex flex-col items-center justify-center"
           >
             <Inbox className="w-12 h-12 text-gray-400 mb-4" />
@@ -295,9 +313,9 @@ const Analysis: React.FC = () => {
       ) : (
         <div className="max-w-7xl mx-auto">
           <motion.div
-            initial={{ opacity: 0, y: 1 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, staggerChildren: 0.1 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
             className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
           >
             <StatCard
@@ -366,11 +384,13 @@ const Analysis: React.FC = () => {
           </motion.div>
 
           {/* Tab Content */}
+          <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.1, ease: "easeOut" }}
             className="bg-white rounded-xl shadow-lg p-6 mb-8"
           >
             {activeTab === "compliance" && (
@@ -681,6 +701,7 @@ const Analysis: React.FC = () => {
               </div>
             )}
           </motion.div>
+          </AnimatePresence>
         </div>
       )}
     </div>

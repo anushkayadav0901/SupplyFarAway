@@ -115,7 +115,7 @@ const ComplianceOverview: React.FC = () => {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
         {/* Introduction Section */}
         <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-2xl mb-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-6">
             <svg
               className="w-8 h-8 text-white"
               fill="none"
@@ -148,7 +148,7 @@ const ComplianceOverview: React.FC = () => {
               className="group relative bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-150"
             >
               <div className="bg-gray-50 p-6 text-center">
-                <div className="w-16 h-16 mx-auto bg-indigo-600 rounded-2xl flex items-center justify-center text-white mb-4">
+                <div className="w-16 h-16 mx-auto bg-blue-600 rounded-2xl flex items-center justify-center text-white mb-4">
                   {feature.icon}
                 </div>
                 <h3 className="text-lg font-bold text-gray-800 mb-3">
@@ -156,7 +156,7 @@ const ComplianceOverview: React.FC = () => {
                 </h3>
                 <button
                   onClick={() => navigate(feature.action.path)}
-                  className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                  className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
                   {feature.action.label}
                 </button>
@@ -184,7 +184,7 @@ const ComplianceOverview: React.FC = () => {
               <div className="flex flex-col lg:flex-row">
                 {/* Left Side - Icon and Title */}
                 <div className="bg-gray-50 p-8 lg:w-1/3 flex flex-col justify-center">
-                  <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-white mb-4">
+                  <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white mb-4">
                     {feature.icon}
                   </div>
                   <h3 className="text-2xl font-bold text-gray-800 mb-3">
@@ -224,7 +224,7 @@ const ComplianceOverview: React.FC = () => {
                         key={idx}
                         className="flex items-start space-x-3 p-4 bg-gray-50 rounded-xl group/item hover:bg-gray-100 transition-colors duration-200"
                       >
-                        <div className="w-2 h-2 bg-indigo-600 rounded-full mt-3 flex-shrink-0"></div>
+                        <div className="w-2 h-2 bg-blue-600 rounded-full mt-3 flex-shrink-0"></div>
                         <p className="text-gray-700 text-sm leading-relaxed group-hover/item:text-gray-900 transition-colors duration-200">
                           {useCase}
                         </p>

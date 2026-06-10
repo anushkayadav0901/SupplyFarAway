@@ -98,14 +98,14 @@ const SupplyChainChatbot = React.memo(() => {
           bottom: 32px;
           right: 32px;
           border-radius: 24px;
-          transition: transform 0.2s ease, opacity 0.2s ease;
+          transition: transform 0.2s ease-out, opacity 0.2s ease-out;
         }
 
         df-messenger::part(drawer) {
           border-radius: 24px;
           background: #ffffff;
           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-          transition: transform 0.2s ease, opacity 0.2s ease;
+          transition: transform 0.2s ease-out, opacity 0.2s ease-out;
           transform-origin: bottom right;
           visibility: visible;
           border: 1px solid #e2e8f0;
@@ -120,6 +120,7 @@ const SupplyChainChatbot = React.memo(() => {
           transform: scale(0.95);
           opacity: 0;
           visibility: hidden;
+          transition: transform 0.15s ease-in, opacity 0.15s ease-in;
         }
 
         df-messenger::part(chat-title) {

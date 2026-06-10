@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   FaTimes,
   FaSearch,
@@ -155,7 +155,8 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
           {/* Close Button for Mobile Only */}
           <button
             onClick={onClose}
-            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="Close documentation sidebar"
+            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
           >
             <FaTimes className="text-gray-500" />
           </button>
@@ -235,12 +236,17 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
 
       {/* Navigation Tree */}
       <div className="flex-1 overflow-y-auto p-3 sm:p-4">
-        {Object.entries(navigationStructure).map(([categoryKey, category]) => (
+        {Object.entries(navigationStructure).map(([categoryKey, category]) => {
+          const isExpanded = expandedCategories[categoryKey];
+          const accordionId = `category-${categoryKey}-sections`;
+          return (
           <div key={categoryKey} className="mb-4">
             {/* Category Header */}
             <button
               onClick={() => toggleCategory(categoryKey)}
-              className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors group"
+              aria-expanded={isExpanded}
+              aria-controls={accordionId}
+              className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors duration-150 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
             >
               <div className="flex items-center gap-3">
                 <category.icon className="text-gray-500 text-sm flex-shrink-0" />
@@ -248,7 +254,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
                   {category.title}
                 </h3>
               </div>
-              {expandedCategories[categoryKey] ? (
+              {isExpanded ? (
                 <FaChevronDown className="text-xs text-gray-400 group-hover:text-gray-600" />
               ) : (
                 <FaChevronUp className="text-xs text-gray-400 group-hover:text-gray-600" />
@@ -256,26 +262,23 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
             </button>
 
             {/* Category Sections */}
-            <AnimatePresence>
-              {expandedCategories[categoryKey] && (
+            <AnimatePresence initial={false}>
+              {isExpanded && (
                 <motion.ul
+                  id={accordionId}
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2, ease: "easeInOut" }}
                   className="ml-4 mt-2 space-y-1 overflow-hidden"
                 >
                   {category.sections.map((section) => (
-                    <motion.li
-                      key={section.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.1 }}
-                    >
+                    <li key={section.id}>
                       <button
                         onClick={() =>
                           handleNavigate(categoryKey, section.id)
                         }
-                        className={`w-full text-left p-3 rounded-lg transition-colors duration-150 flex items-center justify-between group text-sm ${
+                        className={`w-full text-left p-3 rounded-lg transition-colors duration-150 flex items-center justify-between group text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 ${
                           activeCategory === categoryKey &&
                           activeSection === section.id
                             ? "bg-blue-50 text-blue-700 font-medium border-l-4 border-blue-500"
@@ -283,15 +286,16 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
                         }`}
                       >
                         <span className="flex-1">{section.title}</span>
-                        <FaChevronRight className="text-xs opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                        <FaChevronRight className="text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex-shrink-0" />
                       </button>
-                    </motion.li>
+                    </li>
                   ))}
                 </motion.ul>
               )}
             </AnimatePresence>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Footer */}
@@ -356,6 +360,8 @@ const Sidebar: React.FC<SidebarProps> = ({
     }));
   };
 
+  const prefersReducedMotion = useReducedMotion();
+
   // For mobile, render animated sidebar (solid white surface, no glassmorphism)
   if (isMobile) {
     return (
@@ -363,7 +369,11 @@ const Sidebar: React.FC<SidebarProps> = ({
         initial={{ x: "-100%" }}
         animate={{ x: 0 }}
         exit={{ x: "-100%" }}
-        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        transition={
+          prefersReducedMotion
+            ? { duration: 0 }
+            : { type: "tween", duration: 0.2, ease: "easeOut" }
+        }
         className="fixed inset-y-0 left-0 z-50 w-80 sm:w-72 xl:w-80 bg-white shadow-xl overflow-hidden"
         style={{
           borderTopRightRadius: "1.5rem",

@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Global, css } from "@emotion/react";
 
 interface HeaderProps {
@@ -13,11 +13,11 @@ const Header = ({ title = "SupplyChain", page = "dashboard" }: HeaderProps) => {
 
   return (
     <motion.header
-      initial={{ opacity: 0, y: -20 }}
+      initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
-        duration: 0.8,
-        ease: [0.16, 1, 0.3, 1],
+        duration: 0.2,
+        ease: "easeOut",
       }}
       className="relative max-w-7xl mx-auto bg-[var(--color-primary-500)] text-[var(--color-neutral-50)] py-6 sm:py-10 rounded-b-3xl overflow-hidden w-full shadow-[var(--shadow-custom-medium)]"
     >
@@ -53,7 +53,7 @@ const Header = ({ title = "SupplyChain", page = "dashboard" }: HeaderProps) => {
           <motion.g
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 2, delay: 0.5 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
           >
             <path
               d="M100 50 L300 50 L300 100 L500 100 L500 150 L700 150"
@@ -80,9 +80,9 @@ const Header = ({ title = "SupplyChain", page = "dashboard" }: HeaderProps) => {
 
           {/* Circuit Nodes */}
           <motion.g
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 1, delay: 1, staggerChildren: 0.2 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2, delay: 0.15 }}
           >
             <circle
               cx="300"
@@ -119,26 +119,29 @@ const Header = ({ title = "SupplyChain", page = "dashboard" }: HeaderProps) => {
       {/* Main Content */}
       <div className="relative px-4 sm:px-6 flex items-center justify-between gap-3">
         <motion.div
-          initial={{ opacity: 0, x: -30 }}
+          initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{
-            duration: 0.8,
-            delay: 0.3,
-            ease: [0.16, 1, 0.3, 1],
+            duration: 0.2,
+            delay: 0.05,
+            ease: "easeOut",
           }}
           className="flex items-center space-x-1 sm:space-x-2"
         >
           {/* Logo Container */}
           <motion.div
-            initial={{ scale: 0, rotate: -180 }}
-            animate={{ scale: 1, rotate: 0 }}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
             transition={{
-              duration: 0.8,
-              delay: 0.5,
-              ease: [0.16, 1, 0.3, 1],
+              duration: 0.15,
+              delay: 0.05,
+              ease: "easeOut",
             }}
-            onClick={() => navigate("/dashboard")}
-            className="cursor-pointer relative w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-[var(--color-primary-400)] to-[var(--color-secondary-500)] rounded-2xl flex items-center justify-center shadow-[var(--shadow-custom-light)]"
+          >
+          <Link
+            to="/dashboard"
+            aria-label="Go to dashboard"
+            className="relative w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-[var(--color-primary-400)] to-[var(--color-secondary-500)] rounded-2xl flex items-center justify-center shadow-[var(--shadow-custom-light)] focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-secondary-500)] outline-none"
           >
             {/* Logo Icon - Abstract S */}
             <div className="relative">
@@ -161,16 +164,17 @@ const Header = ({ title = "SupplyChain", page = "dashboard" }: HeaderProps) => {
 
             {/* Subtle glow effect */}
             <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-primary-400)] to-[var(--color-secondary-500)] rounded-2xl blur-lg opacity-30 -z-10" />
+          </Link>
           </motion.div>
 
           {/* Title */}
           <motion.h1
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{
-              duration: 0.6,
-              delay: 0.6,
-              ease: [0.16, 1, 0.3, 1],
+              duration: 0.2,
+              delay: 0.08,
+              ease: "easeOut",
             }}
             className="text-xl sm:text-3xl font-bold text-[var(--color-neutral-50)] tracking-tight"
             style={{ fontFamily: "var(--font-sans)" }}
@@ -182,10 +186,11 @@ const Header = ({ title = "SupplyChain", page = "dashboard" }: HeaderProps) => {
           <motion.div
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
+            style={{ originX: 0 }}
             transition={{
-              duration: 0.8,
-              delay: 1,
-              ease: [0.16, 1, 0.3, 1],
+              duration: 0.2,
+              delay: 0.1,
+              ease: "easeOut",
             }}
             className="hidden sm:block w-12 h-px bg-gradient-to-r from-[var(--color-primary-400)] to-transparent ml-4"
           />
@@ -193,12 +198,12 @@ const Header = ({ title = "SupplyChain", page = "dashboard" }: HeaderProps) => {
 
         {/* Right side - Status indicator and Buttons */}
         <motion.div
-          initial={{ opacity: 0, x: 30 }}
+          initial={{ opacity: 0, x: 10 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{
-            duration: 0.8,
-            delay: 0.9,
-            ease: [0.16, 1, 0.3, 1],
+            duration: 0.2,
+            delay: 0.1,
+            ease: "easeOut",
           }}
           className="flex items-center space-x-2"
         >
@@ -208,7 +213,7 @@ const Header = ({ title = "SupplyChain", page = "dashboard" }: HeaderProps) => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => navigate("/inventory-management")}
-              className="border-none outline-none bg-[var(--color-secondary-500)] px-3 py-1.5 text-[var(--color-neutral-50)] text-xs font-bold rounded-[var(--radius-custom)] transition-colors duration-150 shadow-[0_4px_0_0_var(--color-secondary-700)]"
+              className="border-none bg-[var(--color-secondary-500)] px-3 py-1.5 text-[var(--color-neutral-50)] text-xs font-bold rounded-[var(--radius-custom)] transition-colors duration-150 shadow-[0_4px_0_0_var(--color-secondary-700)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-secondary-500)]"
             >
               Inventory
             </motion.button>
@@ -219,7 +224,7 @@ const Header = ({ title = "SupplyChain", page = "dashboard" }: HeaderProps) => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => navigate("/inventory-management")}
-                className="border-none outline-none bg-[var(--color-secondary-500)] px-3 py-1.5 text-[var(--color-neutral-50)] text-xs font-bold rounded-[var(--radius-custom)] transition-colors duration-150 shadow-[0_4px_0_0_var(--color-secondary-700)]"
+                className="border-none bg-[var(--color-secondary-500)] px-3 py-1.5 text-[var(--color-neutral-50)] text-xs font-bold rounded-[var(--radius-custom)] transition-colors duration-150 shadow-[0_4px_0_0_var(--color-secondary-700)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-secondary-500)]"
               >
                 Inventory
               </motion.button>

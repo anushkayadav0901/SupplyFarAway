@@ -131,18 +131,18 @@ const ComplianceResponse: React.FC<ComplianceResponseProps> = ({ response }) => 
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.2,
-        delayChildren: 0.3,
+        staggerChildren: 0.06,
+        delayChildren: 0.1,
       },
     },
   };
 
   const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
+    hidden: { y: 12, opacity: 0 },
     visible: {
       y: 0,
       opacity: 1,
-      transition: { type: "spring" as const, stiffness: 100 },
+      transition: { duration: 0.2, ease: "easeOut" as const },
     },
   };
 
@@ -150,10 +150,10 @@ const ComplianceResponse: React.FC<ComplianceResponseProps> = ({ response }) => 
     <ErrorBoundary>
       <div className="max-w-7xl mx-auto">
         <motion.div
-          initial={{ opacity: 0, y: 50 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-custom-medium rounded-lg p-8"
+          transition={{ duration: 0.25, ease: "easeOut" }}
+          className="mt-6 bg-blue-50 shadow-custom-medium rounded-lg p-8"
         >
           <motion.div
             variants={containerVariants}
@@ -163,7 +163,7 @@ const ComplianceResponse: React.FC<ComplianceResponseProps> = ({ response }) => 
             {/* Header */}
             <motion.h2
               variants={itemVariants}
-              className="text-3xl font-bold text-indigo-700 mb-6 flex items-center"
+              className="text-3xl font-bold text-gray-900 mb-6 flex items-center"
             >
               <span className="mr-2">
                 {complianceStatus === "Ready for Shipment" ? (
@@ -177,7 +177,7 @@ const ComplianceResponse: React.FC<ComplianceResponseProps> = ({ response }) => 
 
             {/* Compliance Status */}
             <motion.div variants={itemVariants} className="mb-6">
-              <h3 className="text-xl font-semibold text-gray-800">Status</h3>
+              <h3 className="text-xl font-semibold text-gray-900">Status</h3>
               <span
                 className={`inline-block px-4 py-2 mt-2 rounded-full text-white font-medium ${
                   complianceStatus === "Ready for Shipment"
@@ -191,25 +191,26 @@ const ComplianceResponse: React.FC<ComplianceResponseProps> = ({ response }) => 
 
             {/* Summary */}
             <motion.div variants={itemVariants} className="mb-6">
-              <h3 className="text-xl font-semibold text-gray-800">Summary</h3>
+              <h3 className="text-xl font-semibold text-gray-900">Summary</h3>
               <p className="mt-2 text-gray-600">{summary}</p>
             </motion.div>
 
             {/* Risk Level */}
             <motion.div variants={itemVariants} className="mb-6">
-              <h3 className="text-xl font-semibold text-gray-800">
+              <h3 className="text-xl font-semibold text-gray-900">
                 Risk Level
               </h3>
               <div className="mt-2">
                 <p className="text-gray-600">
                   Risk Score: {riskLevel.riskScore}/100
                 </p>
-                <div className="w-full bg-gray-200 rounded-full h-4 mt-2">
+                <div className="w-full bg-gray-200 rounded-full h-4 mt-2 overflow-hidden">
                   <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${riskLevel.riskScore}%` }}
-                    transition={{ duration: 0.8, ease: "easeOut" }}
-                    className={`h-4 rounded-full ${
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: riskLevel.riskScore / 100 }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                    style={{ transformOrigin: "left" }}
+                    className={`h-4 w-full rounded-full ${
                       riskLevel.riskScore < 30
                         ? "bg-green-500"
                         : riskLevel.riskScore < 60
@@ -225,20 +226,20 @@ const ComplianceResponse: React.FC<ComplianceResponseProps> = ({ response }) => 
             {/* Violations and Recommendations */}
             {(violations.length > 0 || recommendations.length > 0) && (
               <motion.div variants={itemVariants} className="mb-6">
-                <h3 className="text-xl font-semibold text-gray-800">
+                <h3 className="text-xl font-semibold text-gray-900">
                   Issues & Recommendations
                 </h3>
                 <div className="overflow-x-auto mt-2">
                   <table className="min-w-full bg-white rounded-lg shadow-sm">
                     <thead>
-                      <tr className="bg-indigo-100">
-                        <th className="px-4 py-2 text-left text-indigo-700">
+                      <tr className="bg-blue-100">
+                        <th className="px-4 py-2 text-left text-blue-700">
                           Field
                         </th>
-                        <th className="px-4 py-2 text-left text-indigo-700">
+                        <th className="px-4 py-2 text-left text-blue-700">
                           Violation
                         </th>
-                        <th className="px-4 py-2 text-left text-indigo-700">
+                        <th className="px-4 py-2 text-left text-blue-700">
                           Recommendation
                         </th>
                       </tr>
@@ -274,7 +275,7 @@ const ComplianceResponse: React.FC<ComplianceResponseProps> = ({ response }) => 
 
             {/* Scores */}
             <motion.div variants={itemVariants} className="mb-6">
-              <h3 className="text-xl font-semibold text-gray-800">
+              <h3 className="text-xl font-semibold text-gray-900">
                 Compliance Scores
               </h3>
               <div className="mt-4 h-64">
@@ -288,7 +289,7 @@ const ComplianceResponse: React.FC<ComplianceResponseProps> = ({ response }) => 
                     />
                     <YAxis domain={[0, 100]} />
                     <Tooltip />
-                    <Bar dataKey="score" fill="#4F46E5" />
+                    <Bar dataKey="score" fill="#2563EB" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -297,7 +298,7 @@ const ComplianceResponse: React.FC<ComplianceResponseProps> = ({ response }) => 
             {/* Additional Tips */}
             {additionalTips.length > 0 && (
               <motion.div variants={itemVariants}>
-                <h3 className="text-xl font-semibold text-gray-800">
+                <h3 className="text-xl font-semibold text-gray-900">
                   Additional Tips
                 </h3>
                 <ul className="mt-2 space-y-2">
@@ -307,7 +308,7 @@ const ComplianceResponse: React.FC<ComplianceResponseProps> = ({ response }) => 
                       variants={itemVariants}
                       className="flex items-start"
                     >
-                      <span className="text-indigo-500 mr-2">•</span>
+                      <span className="text-blue-500 mr-2">•</span>
                       <span className="text-gray-600">{tip}</span>
                     </motion.li>
                   ))}
