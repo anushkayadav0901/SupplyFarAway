@@ -23,6 +23,10 @@ const draftSchema = new Schema(
       type: Schema.Types.Mixed,
       default: {},
     },
+    mapData: {
+      type: Schema.Types.Mixed,
+      default: {},
+    },
     productAnalysisData: {
       type: Schema.Types.Mixed,
       default: {},

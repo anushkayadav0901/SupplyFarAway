@@ -12,22 +12,33 @@ const TypewriterText = ({ text, delay = 0, speed = 50 }: TypewriterTextProps) =>
   const [showCursor, setShowCursor] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    let cancelled = false;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    setDisplayText("");
+    setShowCursor(true);
+
+    const delayTimer = setTimeout(() => {
       let i = 0;
       const typeWriter = () => {
+        if (cancelled) return;
         if (i < text.length) {
           setDisplayText(text.slice(0, i + 1));
           i++;
-          setTimeout(typeWriter, speed);
+          timers.push(setTimeout(typeWriter, speed));
         } else {
-          // Hide cursor after typing is complete
-          setTimeout(() => setShowCursor(false), 500);
+          timers.push(setTimeout(() => {
+            if (!cancelled) setShowCursor(false);
+          }, 500));
         }
       };
       typeWriter();
     }, delay);
 
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(delayTimer);
+      timers.forEach(clearTimeout);
+    };
   }, [text, delay, speed]);
 
   return (

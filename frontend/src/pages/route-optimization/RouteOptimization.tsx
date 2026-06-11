@@ -340,10 +340,10 @@ const RouteOptimization: React.FC = () => {
   const handleCarbonClick = async (route: Route, index: number): Promise<void> => {
     setCarbonLoading(index);
     try {
+      const lastLeg = route.routeDirections[route.routeDirections.length - 1];
       const carbonParams = {
         origin: route.routeDirections[0].waypoints[0],
-        destination:
-          route.routeDirections[route.routeDirections.length - 1].waypoints[1],
+        destination: lastLeg.waypoints[lastLeg.waypoints.length - 1],
         distance: route.totalDistance,
         weight: parseFloat(packageData.weight),
         routeDirections: route.routeDirections.map((d) => ({
@@ -1084,8 +1084,8 @@ const RouteOptimization: React.FC = () => {
           component="div"
           sx={{
             backgroundColor:
-              carbonWarningSeverity === "warning" ? "#f44336" : "#ffeb3b",
-            color: carbonWarningSeverity === "warning" ? "white" : "black",
+              carbonWarningSeverity === "red" ? "#f44336" : "#ffeb3b",
+            color: carbonWarningSeverity === "red" ? "white" : "black",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -1097,7 +1097,7 @@ const RouteOptimization: React.FC = () => {
             aria-label="Close dialog"
           >
             <FaTimes
-              color={carbonWarningSeverity === "Carbon" ? "white" : "black"}
+              color={carbonWarningSeverity === "red" ? "white" : "black"}
             />
           </IconButton>
         </DialogTitle>

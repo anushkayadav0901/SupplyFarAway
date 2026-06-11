@@ -90,7 +90,7 @@ legacyComplianceRouter.post(
       const prompt = `
 Analyze the following Google Vision API response and provide:
 
-1. The Hair Code for the product.
+1. The HS Code for the product.
 2. A detailed product description.
 3. Whether the product is perishable (true/false).
 4. Whether the product is hazardous (true/false).

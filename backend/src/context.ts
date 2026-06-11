@@ -1,15 +1,10 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import jwt from "jsonwebtoken";
 
-if (!process.env.JWT_SECRET) {
-  throw new Error("JWT_SECRET environment variable must be set");
-}
-const JWT_SECRET: string = process.env.JWT_SECRET;
-
 export interface AuthUser {
   id?: string;
   _id?: string;
-  emailAddress?: string;
+  email?: string;
   [key: string]: unknown;
 }
 
@@ -49,12 +44,17 @@ export async function createContext({
   req,
   res,
 }: CreateExpressContextOptions): Promise<Context> {
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    throw new Error("JWT_SECRET environment variable must be set");
+  }
+
   let user: AuthUser | null = null;
 
   const token = extractToken(req);
   if (token) {
     try {
-      const decoded = jwt.verify(token, JWT_SECRET) as AuthUser;
+      const decoded = jwt.verify(token, jwtSecret) as AuthUser;
       user = decoded;
     } catch {
       user = null;

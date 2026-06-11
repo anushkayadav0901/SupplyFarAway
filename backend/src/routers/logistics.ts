@@ -571,7 +571,8 @@ JSON format:
       }
 
       const sumOfDistances = distanceByLeg.reduce((sum, dist) => sum + dist, 0);
-      if (Math.abs(sumOfDistances - distance) > 0.01) {
+      const tolerance = Math.max(1, distance * 0.01);
+      if (Math.abs(sumOfDistances - distance) > tolerance) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Sum of distanceByLeg must equal the total distance",

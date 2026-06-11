@@ -310,7 +310,8 @@ const Profile: React.FC = () => {
 
   // Filter drafts by search and date
   useEffect(() => {
-    let filtered = rawDrafts.map((draft) => ({
+    const source = draftsData?.drafts ?? [];
+    let filtered = source.map((draft: any) => ({
       ...draft,
       statuses: {
         ...draft.statuses,
@@ -322,7 +323,7 @@ const Profile: React.FC = () => {
       },
     }));
 
-    filtered = filtered.filter((draft) => {
+    filtered = filtered.filter((draft: any) => {
       const productDescription =
         draft.formData?.ShipmentDetails?.[
           "Product Description"
@@ -338,14 +339,14 @@ const Profile: React.FC = () => {
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999);
 
-      filtered = filtered.filter((draft) => {
+      filtered = filtered.filter((draft: any) => {
         const draftDate = new Date(draft.timestamp);
         return draftDate >= start && draftDate <= end;
       });
     }
 
     setFilteredDrafts(filtered);
-  }, [searchQuery, startDate, endDate, rawDrafts]);
+  }, [searchQuery, startDate, endDate, draftsData]);
 
   const handleLogout = (): void => {
     setToastProps({

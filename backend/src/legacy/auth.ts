@@ -12,6 +12,7 @@ import jwt from "jsonwebtoken";
 import passport from "../config/passport.js";
 import { upload, storage as gcsStorage } from "../config/multer.js";
 import { UserModel } from "../models/User.js";
+import verifyToken from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -48,6 +49,7 @@ router.get(
 // --- Upload Profile Photo (multer + Google Cloud Storage) ---
 router.post(
   "/api/user/upload-photo",
+  verifyToken as express.RequestHandler,
   upload.single("photo"),
   async (req: express.Request, res: express.Response) => {
     try {

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { ContentCopy, Send } from "@mui/icons-material";
@@ -43,6 +43,19 @@ const ProductAnalysis: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [toastProps, setToastProps] = useState<ToastProps>({ type: "", message: "" });
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!selectedImage) {
+      setPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(selectedImage);
+    setPreviewUrl(url);
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, [selectedImage]);
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>): void => {
     e.preventDefault();
@@ -239,13 +252,15 @@ const ProductAnalysis: React.FC = () => {
                     <div className="relative">
                       <div className="mb-6">
                         <div className="mx-auto w-[320px] aspect-[4/3] relative mb-4">
-                          <img
-                            src={URL.createObjectURL(selectedImage)}
-                            alt="Preview"
-                            width={320}
-                            height={240}
-                            className="w-full h-full object-contain rounded-2xl shadow-xl"
-                          />
+                          {previewUrl && (
+                            <img
+                              src={previewUrl}
+                              alt="Preview"
+                              width={320}
+                              height={240}
+                              className="w-full h-full object-contain rounded-2xl shadow-xl"
+                            />
+                          )}
                         </div>
                         <div className="w-16 h-16 bg-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
                           <svg

@@ -16,6 +16,7 @@ import {
   transportOptions,
 } from "../../constants/constants";
 import Header from "../../components/Header";
+import Toast from "../../components/Toast";
 import { trpc } from "../../lib/trpc";
 
 type ToastProps = { type: string; message: string } | null;
@@ -724,6 +725,9 @@ const ComplianceForm: React.FC = () => {
           ) : null}
         </AnimatePresence>
       </div>
+      {toastProps && (
+        <Toast type={toastProps.type} message={toastProps.message} />
+      )}
     </div>
   );
 };

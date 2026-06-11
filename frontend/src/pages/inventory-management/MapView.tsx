@@ -250,7 +250,9 @@ function MapView({ draftId }: MapViewProps): React.ReactElement {
     return () => {
       isMounted = false;
       if (mapInstance.current) {
-        google.maps.event.clearInstanceListeners(mapInstance.current);
+        if (typeof google !== "undefined" && google.maps?.event) {
+          google.maps.event.clearInstanceListeners(mapInstance.current);
+        }
         mapInstance.current = null;
       }
     };

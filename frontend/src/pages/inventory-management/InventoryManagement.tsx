@@ -10,7 +10,6 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  FormControl,
   FormControlLabel,
   Checkbox,
   IconButton,
@@ -115,14 +114,6 @@ const InventoryManagement: React.FC = () => {
   const [deleteEmail, setDeleteEmail] = useState<string>("");
   const [deleteEmailError, setDeleteEmailError] = useState<string>("");
   const navigate = useNavigate();
-
-  // tRPC
-  const tabValues = [
-    "yet-to-be-checked",
-    "compliant",
-    "non-compliant",
-    "ready-for-shipment",
-  ] as const;
 
   // Fetch all tabs in parallel and combine
   const draftQueries = [

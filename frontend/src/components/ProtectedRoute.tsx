@@ -19,7 +19,7 @@ const ProtectedRoute = () => {
 
   const isAuthenticated = !!data && !isError;
 
-  return isAuthenticated ? <Outlet /> : <Navigate to="/" />;
+  return isAuthenticated ? <Outlet /> : <Navigate to="/" replace />;
 };
 
 export default ProtectedRoute;

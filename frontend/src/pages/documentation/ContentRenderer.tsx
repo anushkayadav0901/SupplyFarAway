@@ -81,7 +81,7 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
     if (contentRef.current) {
       contentRef.current.scrollTo({
         top: 0,
-        left: contentRef.current.scrollWidth,
+        left: 0,
         behavior: "smooth",
       });
     }
@@ -109,7 +109,7 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
     navigate(url);
     window.scrollTo({
       top: 0,
-      left: document.documentElement.scrollWidth,
+      left: 0,
       behavior: "smooth",
     });
   };
