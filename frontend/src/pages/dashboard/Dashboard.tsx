@@ -22,6 +22,7 @@ import ThemeToggle from "../../components/ThemeToggle";
 import FeatureCarousel from "./FeatureCarousel";
 import AppleStyleSideBackground from "./EnhancedBackground";
 import AboutSection from "./AboutSection";
+import LiveStatsSection from "./LiveStatsSection";
 import Button from "./Button";
 import { trpc } from "../../lib/trpc";
 
@@ -447,6 +448,9 @@ function MovexDashboard() {
 
         {/* About Section */}
         <AboutSection />
+
+        {/* Live Supply Chain Command Center */}
+        <LiveStatsSection />
 
         {/* Problems We Solve Section - Enhanced Design */}
         <section
