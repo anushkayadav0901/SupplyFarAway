@@ -19,7 +19,7 @@ const Header = ({ title = "SupplyChain", page = "dashboard" }: HeaderProps) => {
         duration: 0.2,
         ease: "easeOut",
       }}
-      className="relative max-w-7xl mx-auto bg-[var(--color-primary-500)] text-[var(--color-neutral-50)] py-6 sm:py-10 rounded-b-3xl overflow-hidden w-full shadow-[var(--shadow-custom-medium)]"
+      className="relative max-w-7xl mx-auto bg-gradient-to-r from-blue-600 via-blue-600 to-blue-700 text-white py-8 sm:py-12 rounded-b-3xl overflow-hidden w-full shadow-xl"
     >
       {/* Animated SVG Background - Circuit Pattern */}
       <div className="absolute inset-0">
@@ -141,14 +141,14 @@ const Header = ({ title = "SupplyChain", page = "dashboard" }: HeaderProps) => {
           <Link
             to="/dashboard"
             aria-label="Go to dashboard"
-            className="relative w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-[var(--color-primary-400)] to-[var(--color-secondary-500)] rounded-2xl flex items-center justify-center shadow-[var(--shadow-custom-light)] focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-secondary-500)] outline-none"
+            className="relative w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-2xl flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600 outline-none group"
           >
             {/* Logo Icon - Abstract S */}
             <div className="relative">
-              <div className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center">
+              <div className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center">
                 <svg
                   viewBox="0 0 24 24"
-                  className="w-3 h-3 sm:w-4 sm:h-4 text-[var(--color-neutral-50)]"
+                  className="w-5 h-5 sm:w-6 sm:h-6 text-white group-hover:scale-110 transition-transform duration-200"
                   fill="currentColor"
                 >
                   <path d="M12 2L2 7v10c0 5.55 3.84 9.74 9 11 5.16-1.26 9-5.45 9-11V7l-10-5z" />
@@ -161,9 +161,6 @@ const Header = ({ title = "SupplyChain", page = "dashboard" }: HeaderProps) => {
                 </svg>
               </div>
             </div>
-
-            {/* Subtle glow effect */}
-            <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-primary-400)] to-[var(--color-secondary-500)] rounded-2xl blur-lg opacity-30 -z-10" />
           </Link>
           </motion.div>
 
@@ -176,7 +173,7 @@ const Header = ({ title = "SupplyChain", page = "dashboard" }: HeaderProps) => {
               delay: 0.08,
               ease: "easeOut",
             }}
-            className="text-xl sm:text-3xl font-bold text-[var(--color-neutral-50)] tracking-tight"
+            className="text-xl sm:text-3xl font-bold text-white tracking-tight drop-shadow-sm"
             style={{ fontFamily: "var(--font-sans)" }}
           >
             {title}
@@ -192,7 +189,7 @@ const Header = ({ title = "SupplyChain", page = "dashboard" }: HeaderProps) => {
               delay: 0.1,
               ease: "easeOut",
             }}
-            className="hidden sm:block w-12 h-px bg-gradient-to-r from-[var(--color-primary-400)] to-transparent ml-4"
+            className="hidden sm:block w-16 h-0.5 bg-gradient-to-r from-white/40 to-transparent ml-4 rounded-full"
           />
         </motion.div>
 
@@ -213,7 +210,7 @@ const Header = ({ title = "SupplyChain", page = "dashboard" }: HeaderProps) => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => navigate("/inventory-management")}
-              className="border-none bg-[var(--color-secondary-500)] px-3 py-1.5 text-[var(--color-neutral-50)] text-xs font-bold rounded-[var(--radius-custom)] transition-colors duration-150 shadow-[0_4px_0_0_var(--color-secondary-700)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-secondary-500)]"
+              className="border-none bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 px-5 py-2.5 text-white text-sm font-bold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600"
             >
               Inventory
             </motion.button>
@@ -224,7 +221,7 @@ const Header = ({ title = "SupplyChain", page = "dashboard" }: HeaderProps) => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => navigate("/inventory-management")}
-                className="border-none bg-[var(--color-secondary-500)] px-3 py-1.5 text-[var(--color-neutral-50)] text-xs font-bold rounded-[var(--radius-custom)] transition-colors duration-150 shadow-[0_4px_0_0_var(--color-secondary-700)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-secondary-500)]"
+                className="border-none bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 px-5 py-2.5 text-white text-sm font-bold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600"
               >
                 Inventory
               </motion.button>

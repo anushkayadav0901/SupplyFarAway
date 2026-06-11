@@ -579,29 +579,39 @@ const ComplianceForm: React.FC = () => {
         title="Compliance Check Form"
         page="compliance-check"
       />
-      <div className="max-w-7xl mx-auto bg-white mt-4 shadow-custom-light rounded-lg mb-4 sm:mb-6 overflow-x-auto">
-        <div className="flex border-b border-neutral-200 whitespace-nowrap">
+      <div className="max-w-7xl mx-auto bg-white mt-6 shadow-lg rounded-2xl mb-6 overflow-x-auto border border-gray-100">
+        <div className="flex border-b border-gray-200 whitespace-nowrap bg-gradient-to-r from-gray-50 to-white">
           {tabOrder.map((tab: string) => (
             <button
               key={tab}
               onClick={() => !responseReceived && setActiveTab(tab)}
-              className={`flex-shrink-0 px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 ${
+              className={`flex-shrink-0 px-6 py-4 text-sm sm:text-base font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 relative ${
                 activeTab === tab
-                  ? "border-b-2 border-primary-500 text-primary-500"
+                  ? "text-blue-600 bg-white"
                   : responseReceived
-                  ? "text-neutral-400 cursor-not-allowed"
-                  : "text-neutral-700 hover:text-black"
+                  ? "text-gray-400 cursor-not-allowed"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50/50"
               }`}
             >
               {tab.replace(/([A-Z])/g, " $1").trim()}
+              {activeTab === tab && (
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 to-blue-500 rounded-t-full" />
+              )}
             </button>
           ))}
         </div>
       </div>
-      <div className="max-w-7xl mx-auto bg-white shadow-custom-medium rounded-lg p-4 sm:p-6">
-        <h2 className="text-xl sm:text-2xl font-bold text-tertiary-500 mb-4 sm:mb-6">
-          {activeTab.replace(/([A-Z])/g, " $1").trim()}
-        </h2>
+      <div className="max-w-7xl mx-auto bg-white shadow-xl rounded-2xl p-6 sm:p-8 border border-gray-100">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center shadow-md">
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+            {activeTab.replace(/([A-Z])/g, " $1").trim()}
+          </h2>
+        </div>
         <div className="grid grid-cols-1 gap-4 sm:gap-6">
           {((formStructure as Record<string, typeof formStructure[keyof typeof formStructure]>)[activeTab]).map((fieldData: {
             field: string;
@@ -634,10 +644,10 @@ const ComplianceForm: React.FC = () => {
           <button
             onClick={handlePrevTab}
             disabled={tabOrder.indexOf(activeTab) === 0 || responseReceived}
-            className={`py-2 sm:py-3 px-4 sm:px-6 text-base sm:text-lg font-medium rounded-xl transition-colors duration-150 w-full sm:w-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-secondary-500 focus-visible:ring-offset-1 ${
+            className={`py-3 sm:py-3.5 px-6 sm:px-8 text-base sm:text-lg font-semibold rounded-xl transition-all duration-200 w-full sm:w-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 shadow-md ${
               tabOrder.indexOf(activeTab) === 0 || responseReceived
-                ? "bg-neutral-400 text-white cursor-not-allowed opacity-60"
-                : "bg-secondary-500 text-white hover:bg-secondary-600"
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed opacity-60"
+                : "bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white hover:shadow-lg hover:scale-[1.02]"
             }`}
           >
             Previous
@@ -648,10 +658,10 @@ const ComplianceForm: React.FC = () => {
               disabled={
                 !areCurrentTabMandatoryFieldsFilled() || responseReceived
               }
-              className={`py-2 sm:py-3 px-4 sm:px-6 text-base sm:text-lg font-medium rounded-xl transition-colors duration-150 w-full sm:w-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 ${
+              className={`py-3 sm:py-3.5 px-6 sm:px-8 text-base sm:text-lg font-semibold rounded-xl transition-all duration-200 w-full sm:w-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 shadow-md ${
                 !areCurrentTabMandatoryFieldsFilled() || responseReceived
-                  ? "bg-neutral-400 text-white cursor-not-allowed opacity-60"
-                  : "bg-primary-500 text-white hover:bg-primary-600"
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed opacity-60"
+                  : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white hover:shadow-lg hover:scale-[1.02]"
               }`}
             >
               Next
@@ -660,10 +670,10 @@ const ComplianceForm: React.FC = () => {
             <button
               onClick={handleSubmit}
               disabled={isButtonDisabled}
-              className={`py-2 sm:py-3 px-4 sm:px-6 text-base sm:text-lg font-medium rounded-xl transition-colors duration-150 w-full sm:w-auto min-w-[220px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 inline-flex items-center justify-center gap-2 ${
+              className={`py-3 sm:py-3.5 px-6 sm:px-8 text-base sm:text-lg font-semibold rounded-xl transition-all duration-200 w-full sm:w-auto min-w-[240px] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 inline-flex items-center justify-center gap-3 shadow-md ${
                 isButtonDisabled
-                  ? "bg-neutral-400 text-white cursor-not-allowed opacity-60"
-                  : "bg-primary-500 text-white hover:bg-primary-600"
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed opacity-60"
+                  : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white hover:shadow-lg hover:scale-[1.02]"
               }`}
             >
               {loading && (

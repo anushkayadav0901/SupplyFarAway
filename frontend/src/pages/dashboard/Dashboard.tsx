@@ -70,15 +70,16 @@ function MovexDashboard() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [showSidebar]);
 
-  // Primary CTA button
+  // Primary CTA button with gradient
   const GradientButton: React.FC<GradientButtonProps> = ({ children, onClick }) => (
     <motion.button
       onClick={onClick}
-      whileHover={{ scale: 1.02 }}
+      whileHover={{ scale: 1.03, y: -2 }}
       whileTap={{ scale: 0.98 }}
-      className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base sm:text-lg px-6 py-3 rounded-full flex items-center justify-center gap-2 shadow-sm hover:shadow-md transition-colors duration-150"
+      className="relative bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold text-base sm:text-lg px-8 py-4 rounded-2xl flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transition-all duration-200 overflow-hidden group"
     >
-      {children}
+      <span className="relative z-10 flex items-center gap-3">{children}</span>
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
     </motion.button>
   );
 
@@ -199,8 +200,8 @@ function MovexDashboard() {
   return (
     <div className="bg-gray-50 text-gray-900 font-sans min-h-screen relative overflow-x-hidden">
       <AppleStyleSideBackground>
-        {/* Navigation Bar with old code's colors */}
-        <nav className="fixed top-0 left-4 right-4 mx-auto mt-6 max-w-6xl bg-white border border-gray-200 rounded-2xl shadow-sm z-50 flex justify-between items-center px-6 lg:px-8 py-4 transition-shadow duration-150 hover:shadow-md">
+        {/* Navigation Bar - Modern Design */}
+        <nav className="fixed top-0 left-4 right-4 mx-auto mt-6 max-w-6xl bg-white/80 backdrop-blur-lg border border-gray-200/50 rounded-3xl shadow-lg z-50 flex justify-between items-center px-6 lg:px-8 py-4 transition-all duration-300 hover:shadow-xl">
           <motion.h2
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -209,7 +210,7 @@ function MovexDashboard() {
             className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight"
           >
             Smart
-            <span className="bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-blue-600 via-blue-500 to-emerald-500 bg-clip-text text-transparent">
               logix
             </span>
           </motion.h2>
@@ -218,30 +219,30 @@ function MovexDashboard() {
             <div className="hidden md:flex items-center space-x-4">
               <motion.button
                 onClick={handleDocsClick}
-                whileHover={{ scale: 1.02, y: -1 }}
+                whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.98 }}
-                className="text-gray-700 hover:text-blue-600 text-base font-medium px-4 py-2.5 rounded-xl hover:bg-gray-100 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                className="text-gray-700 hover:text-blue-600 text-base font-medium px-5 py-2.5 rounded-xl hover:bg-blue-50/80 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
               >
                 Docs
               </motion.button>
               <motion.button
                 onClick={handleNewsClick}
-                whileHover={{ scale: 1.02, y: -1 }}
+                whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.98 }}
-                className="text-gray-700 hover:text-blue-600 text-base font-medium px-4 py-2.5 rounded-xl hover:bg-gray-100 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                className="text-gray-700 hover:text-blue-600 text-base font-medium px-5 py-2.5 rounded-xl hover:bg-blue-50/80 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
               >
                 News
               </motion.button>
               <motion.a
                 href="#about"
-                whileHover={{ scale: 1.02, y: -1 }}
+                whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.98 }}
-                className="text-gray-700 hover:text-blue-600 text-base font-medium px-4 py-2.5 rounded-xl hover:bg-gray-100 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                className="text-gray-700 hover:text-blue-600 text-base font-medium px-5 py-2.5 rounded-xl hover:bg-blue-50/80 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
               >
                 About
               </motion.a>
               <motion.div
-                whileHover={{ scale: 1.02, y: -1 }}
+                whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.98 }}
                 className="flex items-center"
               >
@@ -249,11 +250,11 @@ function MovexDashboard() {
               </motion.div>
               <motion.button
                 onClick={handleProfileClick}
-                whileHover={{ scale: 1.02, y: -1 }}
+                whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.98 }}
-                className="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium text-sm px-5 py-2.5 rounded-xl flex items-center gap-2.5 transition-colors duration-150 border border-gray-200 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                className="cursor-pointer bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold text-sm px-6 py-3 rounded-xl flex items-center gap-2.5 transition-all duration-200 shadow-md hover:shadow-lg focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
               >
-                <FaUserCircle size={16} className="text-blue-600" />
+                <FaUserCircle size={16} />
                 Profile
               </motion.button>
             </div>
@@ -397,10 +398,10 @@ function MovexDashboard() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.08, ease: "easeOut" }}
-                className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold text-gray-900"
+                className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold text-gray-900 leading-tight"
               >
                 Smart
-                <span className="bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-blue-600 via-blue-500 to-emerald-500 bg-clip-text text-transparent">
                   logix
                 </span>
               </motion.h2>
@@ -408,28 +409,31 @@ function MovexDashboard() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1, duration: 0.3, ease: "easeOut" }}
-                className="text-xl md:text-2xl max-w-2xl mx-auto lg:mx-0 mt-6 text-gray-600 leading-relaxed font-medium"
+                className="text-xl md:text-2xl max-w-2xl mx-auto lg:mx-0 mt-6 text-gray-600 leading-relaxed font-normal"
               >
-                Innovating Logistics for the Future
+                Revolutionizing logistics with AI-powered route optimization and real-time tracking
               </motion.p>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.18, duration: 0.3, ease: "easeOut" }}
-                className="mt-6 flex flex-col sm:flex-row justify-center lg:justify-start gap-6"
+                className="mt-10 flex flex-col sm:flex-row justify-center lg:justify-start gap-4"
               >
                 <GradientButton
                   onClick={complianceCheck}
                 >
-                  <FaCheckCircle className="text-lg" />
+                  <FaCheckCircle className="text-xl" />
                   <span>Compliance Check</span>
                 </GradientButton>
-                <GradientButton
+                <motion.button
                   onClick={routeOptimization}
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="bg-white hover:bg-gray-50 text-gray-900 border-2 border-gray-300 hover:border-blue-600 font-semibold text-base sm:text-lg px-8 py-4 rounded-2xl flex items-center justify-center gap-3 shadow-sm hover:shadow-lg transition-all duration-200"
                 >
-                  <FaRoute className="text-lg" />
+                  <FaRoute className="text-xl text-blue-600" />
                   <span>Route Optimization</span>
-                </GradientButton>
+                </motion.button>
               </motion.div>
             </motion.div>
 
@@ -442,95 +446,118 @@ function MovexDashboard() {
         {/* About Section */}
         <AboutSection />
 
-        {/* Problems We Solve Section from Old Code */}
+        {/* Problems We Solve Section - Enhanced Design */}
         <section
           ref={solvesInView}
-          className="py-12 sm:py-24 px-4 sm:px-6 relative z-10 bg-gray-50"
+          className="py-16 sm:py-28 px-4 sm:px-6 relative z-10 bg-gradient-to-b from-gray-50 to-white"
           id="solves"
         >
-          <motion.h2
-            initial={{ opacity: 0 }}
-            animate={solvesVisible ? { opacity: 1 } : {}}
-            className="text-3xl sm:text-4xl md:text-5xl font-bold text-center text-gray-900 mb-12"
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={solvesVisible ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.5 }}
+            className="text-center mb-16"
           >
-            Problems We Solve
-          </motion.h2>
-          <div className="max-w-5xl mx-auto space-y-8">
+            <span className="inline-block px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold mb-4">
+              Solutions
+            </span>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900">
+              Problems We Solve
+            </h2>
+            <p className="text-lg text-gray-600 mt-4 max-w-2xl mx-auto">
+              Transforming logistics challenges into opportunities
+            </p>
+          </motion.div>
+          <div className="max-w-5xl mx-auto space-y-6">
             {[
               {
                 problem: "Inefficient Route Selection",
-                icon: <FaRoute className="text-gray-600" />,
-                solve: "Route Optimization",
+                icon: <FaRoute className="text-blue-600" />,
+                solve: "AI-Powered Route Optimization",
+                color: "blue",
               },
               {
                 problem: "Compliance Complexities",
-                icon: <FaCheckCircle className="text-gray-600" />,
-                solve: "Compliance Check",
+                icon: <FaCheckCircle className="text-emerald-600" />,
+                solve: "Automated Compliance Check",
+                color: "emerald",
               },
               {
                 problem: "High Operational Costs",
-                icon: <FaDollarSign className="text-gray-600" />,
-                solve: "Cost Optimization",
+                icon: <FaDollarSign className="text-purple-600" />,
+                solve: "Cost Optimization Engine",
+                color: "purple",
               },
               {
                 problem: "Transit Delays",
-                icon: <FaClock className="text-gray-600" />,
-                solve: "Transit Time Optimization",
+                icon: <FaClock className="text-amber-600" />,
+                solve: "Real-Time Transit Optimization",
+                color: "amber",
               },
               {
                 problem: "Environmental Impact",
-                icon: <FaLeaf className="text-gray-600" />,
-                solve: "Carbon Emission Checker",
+                icon: <FaLeaf className="text-green-600" />,
+                solve: "Carbon Emission Tracking",
+                color: "green",
               },
             ].map((item, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, x: index % 2 === 0 ? -30 : 30 }}
                 animate={solvesVisible ? { opacity: 1, x: 0 } : {}}
-                transition={{ delay: index * 0.06, duration: 0.3, ease: "easeOut" }}
-                className="flex flex-col sm:flex-row items-center justify-between gap-6 bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow duration-150"
+                transition={{ delay: index * 0.1, duration: 0.5, ease: "easeOut" }}
+                className="group relative bg-white rounded-2xl p-6 sm:p-8 shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-blue-200 overflow-hidden"
               >
-                {/* Problem Side */}
-                <div className="flex-1 flex items-center gap-4">
-                  <div
-                    className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center"
-                  >
-                    {item.icon}
+                {/* Gradient overlay on hover */}
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-50/50 to-emerald-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+                
+                <div className="relative flex flex-col sm:flex-row items-center justify-between gap-6">
+                  {/* Problem Side */}
+                  <div className="flex-1 flex items-center gap-5">
+                    <div
+                      className={`w-14 h-14 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-sm`}
+                    >
+                      <span className="text-2xl">{item.icon}</span>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                        Problem
+                      </h3>
+                      <p className="text-xl font-bold text-gray-900">{item.problem}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900">
-                      Problem
-                    </h3>
-                    <p className="text-gray-600">{item.problem}</p>
+                  
+                  {/* Arrow */}
+                  <div className="flex-shrink-0">
+                    <svg
+                      className="w-10 h-10 text-blue-600 group-hover:translate-x-2 transition-transform duration-300"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2.5"
+                        d="M13 7l5 5-5 5M6 12h12"
+                      />
+                    </svg>
                   </div>
-                </div>
-                {/* Arrow */}
-                <svg
-                  className="w-8 h-8 text-gray-400 hidden sm:block"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-                {/* Solution Side */}
-                <div className="flex-1 flex items-center gap-4 sm:justify-end">
-                  <div className="text-right">
-                    <h3 className="text-xl font-semibold text-gray-900">
-                      Solution
-                    </h3>
-                    <p className="text-gray-600">{item.solve}</p>
-                  </div>
-                  <div
-                    className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center"
-                  >
-                    <FaCheckCircle className="text-emerald-500" />
+                  
+                  {/* Solution Side */}
+                  <div className="flex-1 flex items-center gap-5 sm:justify-end">
+                    <div className="text-right">
+                      <h3 className="text-sm font-semibold text-emerald-600 uppercase tracking-wide mb-1">
+                        Solution
+                      </h3>
+                      <p className="text-xl font-bold text-gray-900">{item.solve}</p>
+                    </div>
+                    <div
+                      className={`w-14 h-14 rounded-2xl bg-gradient-to-br from-${item.color}-100 to-${item.color}-200 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-sm`}
+                    >
+                      <FaCheckCircle className={`text-${item.color}-600 text-2xl`} />
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -538,17 +565,68 @@ function MovexDashboard() {
           </div>
         </section>
 
-        {/* Footer with old code's colors */}
-        <footer className="py-6 px-4 text-center relative z-10 bg-gray-50 border-t border-gray-200/50">
-          <motion.p
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-            className="text-gray-900 text-sm font-medium"
-          >
-            © {new Date().getFullYear()} SupplyChain. All rights reserved.
-          </motion.p>
+        {/* Footer - Enhanced Design */}
+        <footer className="py-12 px-4 text-center relative z-10 bg-gradient-to-br from-gray-50 to-gray-100 border-t border-gray-200/50">
+          <div className="max-w-6xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              viewport={{ once: true }}
+              className="flex flex-col items-center gap-6"
+            >
+              {/* Logo */}
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg">
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="w-6 h-6 text-white"
+                    fill="currentColor"
+                  >
+                    <path d="M12 2L2 7v10c0 5.55 3.84 9.74 9 11 5.16-1.26 9-5.45 9-11V7l-10-5z" />
+                    <path
+                      d="M8 12l2 2 4-4"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      fill="none"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900">
+                  Smart<span className="bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent">logix</span>
+                </h3>
+              </div>
+              
+              {/* Tagline */}
+              <p className="text-gray-600 text-base max-w-md">
+                Revolutionizing logistics with AI-powered solutions for a smarter, sustainable future
+              </p>
+              
+              {/* Links */}
+              <div className="flex flex-wrap justify-center gap-6 text-sm">
+                <button onClick={handleDocsClick} className="text-gray-600 hover:text-blue-600 transition-colors duration-200 font-medium">
+                  Documentation
+                </button>
+                <button onClick={handleNewsClick} className="text-gray-600 hover:text-blue-600 transition-colors duration-200 font-medium">
+                  News
+                </button>
+                <a href="#about" className="text-gray-600 hover:text-blue-600 transition-colors duration-200 font-medium">
+                  About
+                </a>
+                <button onClick={handleInventoryClick} className="text-gray-600 hover:text-blue-600 transition-colors duration-200 font-medium">
+                  Inventory
+                </button>
+              </div>
+              
+              {/* Divider */}
+              <div className="w-full max-w-md h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent" />
+              
+              {/* Copyright */}
+              <p className="text-gray-500 text-sm font-medium">
+                © {new Date().getFullYear()} SmartLogix. All rights reserved.
+              </p>
+            </motion.div>
+          </div>
         </footer>
       </AppleStyleSideBackground>
     </div>

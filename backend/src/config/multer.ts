@@ -30,14 +30,21 @@ if (process.env.NODE_ENV === "production") {
   storage = new Storage({ credentials });
   visionClient = new vision.ImageAnnotatorClient({ credentials });
 } else {
-  // Local development: load from JSON file. The legacy file lives at
-  // backend/Config/supplychain-upload.json. From backend/src/config/multer.ts,
-  // we resolve up two directories: ../../Config/supplychain-upload.json
+  // Local development: load from JSON file if it exists, otherwise use mock credentials
   const localPath = path.resolve(__dirname, "../../Config/supplychain-upload.json");
-  const credentials = JSON.parse(fs.readFileSync(localPath, "utf8"));
-
-  storage = new Storage({ credentials });
-  visionClient = new vision.ImageAnnotatorClient({ credentials });
+  
+  let credentials: Record<string, unknown>;
+  if (fs.existsSync(localPath)) {
+    credentials = JSON.parse(fs.readFileSync(localPath, "utf8"));
+    storage = new Storage({ credentials });
+    visionClient = new vision.ImageAnnotatorClient({ credentials });
+  } else {
+    console.warn("⚠️  Google Cloud credentials file not found. Image upload features will be disabled.");
+    console.warn("   To enable, create: backend/Config/supplychain-upload.json");
+    // Initialize with empty credentials for development (features will fail gracefully)
+    storage = new Storage({ projectId: 'dev-project' });
+    visionClient = new vision.ImageAnnotatorClient();
+  }
 }
 
 const upload = multer({ storage: multer.memoryStorage() });

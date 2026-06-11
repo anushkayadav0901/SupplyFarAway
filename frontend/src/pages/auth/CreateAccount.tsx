@@ -528,9 +528,9 @@ const CreateAccount = () => {
             transition={{ duration: 1, delay: 0.3 }}
             className="z-20"
           >
-            <h1 className="text-5xl font-bold text-white mb-2 tracking-tight">
+            <h1 className="text-5xl font-bold text-white mb-2 tracking-tight drop-shadow-lg">
               Smart
-              <span className="bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-blue-300 to-emerald-300 bg-clip-text text-transparent">
                 Logix
               </span>
             </h1>
@@ -745,11 +745,11 @@ const CreateAccount = () => {
 
               {/* Create Account Button */}
               <motion.button
-                whileHover={{ scale: loading ? 1 : 1.02 }}
+                whileHover={{ scale: loading ? 1 : 1.03 }}
                 whileTap={{ scale: loading ? 1 : 0.98 }}
                 onClick={handleCreateAccount}
                 disabled={loading}
-                className="w-full bg-primary-500 text-white py-3 rounded-xl font-semibold hover:bg-primary-600 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-0"
+                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3.5 rounded-xl font-semibold transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-0 shadow-lg hover:shadow-xl"
               >
                 {loading ? (
                   <>
