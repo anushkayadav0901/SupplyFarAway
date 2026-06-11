@@ -1,8 +1,20 @@
 @import "tailwindcss";
 
+/* Dark Mode Setup */
+.dark {
+  color-scheme: dark;
+}
+
 /* Prevent CLS from scrollbar appearing/disappearing */
 html {
   scrollbar-gutter: stable;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Dark mode background */
+.dark body {
+  background-color: #0f172a;
+  color: #f1f5f9;
 }
 
 /* Respect reduced-motion preference for CSS animations */
@@ -87,7 +99,7 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar - Light & Dark Mode */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -98,14 +110,26 @@ html {
   border-radius: 10px;
 }
 
+.dark ::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 10px;
   transition: background 0.2s;
 }
 
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
 }
 
 .glass-reflection {

@@ -17,6 +17,8 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import { useInView } from "react-intersection-observer";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "../../context/ThemeContext";
+import ThemeToggle from "../../components/ThemeToggle";
 import FeatureCarousel from "./FeatureCarousel";
 import AppleStyleSideBackground from "./EnhancedBackground";
 import AboutSection from "./AboutSection";
