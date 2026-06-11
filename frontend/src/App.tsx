@@ -21,6 +21,16 @@ import CsvUpload from "./pages/compliance-check/CsvUpload";
 import ExportReport from "./pages/inventory-management/ExportReport";
 import News from "./pages/news/News";
 import DocumentationPage from "./pages/documentation/DocumentationPage";
+import BoxCount from "./pages/box-count/BoxCount";
+import ShipmentDiff from "./pages/shipment-diff/ShipmentDiff";
+import LoadAggregation from "./pages/load-aggregation/LoadAggregation";
+import LiveTracking from "./pages/live-tracking/LiveTracking";
+import AnomalyDetection from "./pages/anomaly-detection/AnomalyDetection";
+import RfidVerification from "./pages/rfid-verification/RfidVerification";
+import WeightCheck from "./pages/weight-check/WeightCheck";
+import FraudDashboard from "./pages/fraud-dashboard/FraudDashboard";
+import TruckRegistry from "./pages/truck-registry/TruckRegistry";
+import AuditLog from "./pages/audit-log/AuditLog";
 
 const pageFade = {
   initial: { opacity: 0 },
@@ -65,6 +75,16 @@ function AnimatedRoutes() {
             <Route path="/export-report/:draftId" element={<ExportReport />} />
             <Route path="/news" element={<News />} />
             <Route path="/docs" element={<DocumentationPage />} />
+            <Route path="/box-count" element={<BoxCount />} />
+            <Route path="/shipment-diff" element={<ShipmentDiff />} />
+            <Route path="/load-aggregation" element={<LoadAggregation />} />
+            <Route path="/live-tracking" element={<LiveTracking />} />
+            <Route path="/anomaly-detection" element={<AnomalyDetection />} />
+            <Route path="/rfid-verification" element={<RfidVerification />} />
+            <Route path="/weight-check" element={<WeightCheck />} />
+            <Route path="/fraud-dashboard" element={<FraudDashboard />} />
+            <Route path="/truck-registry" element={<TruckRegistry />} />
+            <Route path="/audit-log" element={<AuditLog />} />
           </Route>
         </Routes>
       </motion.div>

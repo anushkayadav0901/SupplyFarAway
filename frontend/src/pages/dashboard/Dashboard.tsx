@@ -13,6 +13,15 @@ import {
   FaBars,
   FaDollarSign,
   FaClock,
+  FaCamera,
+  FaExchangeAlt,
+  FaTruck,
+  FaLocationArrow,
+  FaBrain,
+  FaTag,
+  FaWeight,
+  FaShieldAlt,
+  FaListAlt,
 } from "react-icons/fa";
 import CloseIcon from "@mui/icons-material/Close";
 import { useInView } from "react-intersection-observer";
@@ -125,6 +134,19 @@ function MovexDashboard() {
     navigate("/route-optimization");
   };
 
+  const newFeatures = [
+    { route: "/box-count", title: "Box Count Verification", desc: "Upload a shipment photo and compare the AI-detected box count against the declared manifest count.", icon: <FaCamera className="text-blue-600" size={22} /> },
+    { route: "/shipment-diff", title: "Damage & Tampering Diff", desc: "Upload loading and delivery photos. AI estimates missing items, visible damage, and tampering probability.", icon: <FaExchangeAlt className="text-emerald-600" size={22} /> },
+    { route: "/load-aggregation", title: "Small Truck Load Aggregation", desc: "Post loads with origin, destination, weight, and pickup date. Algorithm matches loads sharing route corridors.", icon: <FaTruck className="text-blue-600" size={22} /> },
+    { route: "/live-tracking", title: "Live Tracking & ETA", desc: "Driver posts geolocation pings. System computes ETA to destination using straight-line distance.", icon: <FaLocationArrow className="text-emerald-600" size={22} /> },
+    { route: "/anomaly-detection", title: "AI Anomaly Detection", desc: "Runs a Gemini analysis on shipment metadata to flag suspicious patterns in weight, count, and route.", icon: <FaBrain className="text-blue-600" size={22} /> },
+    { route: "/rfid-verification", title: "RFID/NFC Verification", desc: "Submit manifest and scanned tag lists. System returns matched, missing, and extra tags.", icon: <FaTag className="text-emerald-600" size={22} /> },
+    { route: "/weight-check", title: "Load Sensor Weight Check", desc: "Compare measured load-sensor weight against declared shipment weight. Flags deviations beyond threshold.", icon: <FaWeight className="text-blue-600" size={22} /> },
+    { route: "/fraud-dashboard", title: "Fraud & Risk Dashboard", desc: "Aggregated risk metrics across all verification events for the current user.", icon: <FaShieldAlt className="text-emerald-600" size={22} /> },
+    { route: "/truck-registry", title: "Truck Registry", desc: "Small-truck owners register their truck (plate, capacity, base city). Powers the load aggregation matcher.", icon: <FaTruck className="text-blue-600" size={22} /> },
+    { route: "/audit-log", title: "Verification Audit Log", desc: "Append-only log of all verification events on a shipment — box count, RFID scan, weight check, anomaly.", icon: <FaListAlt className="text-emerald-600" size={22} /> },
+  ];
+
   const features: Feature[] = [
     {
       id: 1,
@@ -195,6 +217,96 @@ function MovexDashboard() {
       description:
         "Generate and export comprehensive reports on routes, compliance, and emissions for easy sharing and record-keeping.",
       icon: <FaFileExport className="text-emerald-600" size={24} />,
+      bgAccent: "",
+      borderColor: "",
+    },
+    {
+      id: 9,
+      title: "Box Count Verification",
+      description:
+        "Upload a shipment photo and compare the AI-detected box count against the declared manifest count.",
+      icon: <FaCamera className="text-blue-600" size={24} />,
+      bgAccent: "",
+      borderColor: "",
+    },
+    {
+      id: 10,
+      title: "Damage & Tampering Diff",
+      description:
+        "Upload loading and delivery photos. AI estimates missing items, visible damage, and tampering probability with a risk score.",
+      icon: <FaExchangeAlt className="text-emerald-600" size={24} />,
+      bgAccent: "",
+      borderColor: "",
+    },
+    {
+      id: 11,
+      title: "Small Truck Load Aggregation",
+      description:
+        "Post loads with origin, destination, weight, and pickup date. Algorithm matches loads sharing route corridors.",
+      icon: <FaTruck className="text-blue-600" size={24} />,
+      bgAccent: "",
+      borderColor: "",
+    },
+    {
+      id: 12,
+      title: "Live Tracking & ETA",
+      description:
+        "Driver posts geolocation pings. System computes ETA to destination using straight-line distance.",
+      icon: <FaLocationArrow className="text-emerald-600" size={24} />,
+      bgAccent: "",
+      borderColor: "",
+    },
+    {
+      id: 13,
+      title: "AI Anomaly Detection",
+      description:
+        "Runs a Gemini analysis on shipment metadata to flag suspicious patterns in weight, count, and route.",
+      icon: <FaBrain className="text-blue-600" size={24} />,
+      bgAccent: "",
+      borderColor: "",
+    },
+    {
+      id: 14,
+      title: "RFID/NFC Verification",
+      description:
+        "Submit manifest and scanned tag lists. System returns matched, missing, and extra tags.",
+      icon: <FaTag className="text-emerald-600" size={24} />,
+      bgAccent: "",
+      borderColor: "",
+    },
+    {
+      id: 15,
+      title: "Load Sensor Weight Check",
+      description:
+        "Compare measured load-sensor weight against declared shipment weight. Flags deviations beyond threshold.",
+      icon: <FaWeight className="text-blue-600" size={24} />,
+      bgAccent: "",
+      borderColor: "",
+    },
+    {
+      id: 16,
+      title: "Fraud & Risk Dashboard",
+      description:
+        "Aggregated risk metrics across all verification events for the current user.",
+      icon: <FaShieldAlt className="text-emerald-600" size={24} />,
+      bgAccent: "",
+      borderColor: "",
+    },
+    {
+      id: 17,
+      title: "Truck Registry",
+      description:
+        "Small-truck owners register their truck (plate, capacity, base city). Powers the load aggregation matcher.",
+      icon: <FaTruck className="text-blue-600" size={24} />,
+      bgAccent: "",
+      borderColor: "",
+    },
+    {
+      id: 18,
+      title: "Verification Audit Log",
+      description:
+        "Append-only log of all verification events on a shipment — box count, RFID scan, weight check, anomaly.",
+      icon: <FaListAlt className="text-emerald-600" size={24} />,
       bgAccent: "",
       borderColor: "",
     },
@@ -442,6 +554,56 @@ function MovexDashboard() {
 
             <div className="hidden lg:flex w-full lg:w-1/2">
               <FeatureCarousel features={features} />
+            </div>
+          </div>
+        </section>
+
+        {/* New Features Grid */}
+        <section className="py-16 sm:py-24 px-4 sm:px-6 relative z-10" id="features">
+          <div className="max-w-6xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              viewport={{ once: true }}
+              className="text-center mb-12"
+            >
+              <span className="inline-block px-4 py-2 bg-emerald-100 text-emerald-700 rounded-full text-sm font-semibold mb-4">
+                New Features
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
+                Verification & Intelligence Suite
+              </h2>
+              <p className="text-lg text-gray-600 mt-4 max-w-2xl mx-auto">
+                AI-powered tools to verify, track, and protect every shipment
+              </p>
+            </motion.div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {newFeatures.map((feat, idx) => (
+                <motion.button
+                  key={feat.route}
+                  onClick={() => navigate(feat.route)}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05, duration: 0.4 }}
+                  viewport={{ once: true }}
+                  whileHover={{ scale: 1.02, y: -3 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="group text-left bg-white border border-gray-200 hover:border-blue-300 rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-200 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                >
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className="w-11 h-11 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center group-hover:bg-blue-50 transition-colors duration-200">
+                      {feat.icon}
+                    </div>
+                    <h3 className="font-bold text-gray-900 text-base leading-tight">
+                      {feat.title}
+                    </h3>
+                  </div>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    {feat.desc}
+                  </p>
+                </motion.button>
+              ))}
             </div>
           </div>
         </section>

@@ -227,6 +227,26 @@ const Header = ({ title = "SupplyChain", page = "dashboard" }: HeaderProps) => {
               </motion.button>
             </>
           )}
+          {/* Quick nav links to key new features */}
+          <div className="hidden sm:flex items-center gap-2">
+            {[
+              { label: "Box Count", path: "/box-count" },
+              { label: "Shipment Diff", path: "/shipment-diff" },
+              { label: "Live Tracking", path: "/live-tracking" },
+              { label: "Load Match", path: "/load-aggregation" },
+              { label: "Fraud", path: "/fraud-dashboard" },
+            ].map((link) => (
+              <motion.button
+                key={link.path}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => navigate(link.path)}
+                className="border-none bg-white/20 hover:bg-white/30 px-3 py-1.5 text-white text-xs font-semibold rounded-lg transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600"
+              >
+                {link.label}
+              </motion.button>
+            ))}
+          </div>
         </motion.div>
       </div>
 
