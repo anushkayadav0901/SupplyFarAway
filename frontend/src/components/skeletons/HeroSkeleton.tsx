@@ -8,7 +8,7 @@ import { TileSkeleton } from "./CardSkeleton";
 export default function HeroSkeleton() {
   return (
     <div
-      className="bg-white/80 backdrop-blur-sm rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8"
+      className="bg-white  rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8"
       aria-hidden="true"
     >
       <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-8 items-center">

@@ -26,8 +26,6 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import { useInView } from "react-intersection-observer";
 import { useNavigate } from "react-router-dom";
-import { useTheme } from "../../context/ThemeContext";
-import ThemeToggle from "../../components/ThemeToggle";
 import FeatureCarousel from "./FeatureCarousel";
 import AppleStyleSideBackground from "./EnhancedBackground";
 import AboutSection from "./AboutSection";
@@ -314,7 +312,7 @@ function MovexDashboard() {
     <div className="bg-gray-50 text-gray-900 font-sans min-h-screen relative overflow-x-hidden">
       <AppleStyleSideBackground>
         {/* Navigation Bar - Modern Design */}
-        <nav className="fixed top-0 left-4 right-4 mx-auto mt-6 max-w-6xl bg-white/80 backdrop-blur-lg border border-gray-200/50 rounded-3xl shadow-lg z-50 flex justify-between items-center px-6 lg:px-8 py-4 transition-all duration-300 hover:shadow-xl">
+        <nav className="fixed top-0 left-4 right-4 mx-auto mt-6 max-w-6xl bg-white border border-gray-200 rounded-3xl shadow-md z-50 flex justify-between items-center px-6 lg:px-8 py-4 transition-all duration-300">
           <motion.h2
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}

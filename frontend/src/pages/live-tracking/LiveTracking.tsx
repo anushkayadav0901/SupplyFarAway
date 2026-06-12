@@ -261,7 +261,7 @@ function StaticMapFallback({ ping }: { ping: PingResult | null }) {
         className="w-full h-full"
         aria-label="Static map fallback"
       />
-      <div className="absolute bottom-3 left-3 bg-white/80 backdrop-blur-sm rounded-lg px-2 py-1 text-xs text-slate-500 flex items-center gap-1">
+      <div className="absolute bottom-3 left-3 bg-white  rounded-lg px-2 py-1 text-xs text-slate-500 flex items-center gap-1">
         <MapPin className="w-3 h-3" aria-hidden="true" />
         Map preview — set VITE_GOOGLE_MAPS_KEY to enable live maps
       </div>
@@ -660,7 +660,7 @@ export default function LiveTracking() {
 
                 {/* ETA overlay — C1: glow effect on card */}
                 {latestPing && (
-                  <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm rounded-2xl border border-slate-200 shadow-md shadow-blue-100 p-3 flex items-center gap-3">
+                  <div className="absolute top-3 right-3 bg-white/95  rounded-2xl border border-slate-200 shadow-md shadow-blue-100 p-3 flex items-center gap-3">
                     <EtaRing minutes={latestPing.etaMinutes} />
                     <div>
                       <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">

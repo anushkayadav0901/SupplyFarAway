@@ -1,20 +1,8 @@
 @import "tailwindcss";
 
-/* Dark Mode Setup */
-.dark {
-  color-scheme: dark;
-}
-
 /* Prevent CLS from scrollbar appearing/disappearing */
 html {
   scrollbar-gutter: stable;
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-/* Dark mode background */
-.dark body {
-  background-color: #0f172a;
-  color: #f1f5f9;
 }
 
 /* Respect reduced-motion preference for CSS animations */
@@ -30,13 +18,13 @@ html {
 }
 
 @theme {
-  /* Modern Color Palette - Blue & Emerald Theme */
+  /* Modern Color Palette - Blue & Neutral */
   --color-primary-50: #eff6ff;
   --color-primary-100: #dbeafe;
   --color-primary-200: #bfdbfe;
   --color-primary-300: #93c5fd;
   --color-primary-400: #60a5fa;
-  --color-primary-500: #3b82f6; /* Modern Blue */
+  --color-primary-500: #3b82f6;
   --color-primary-600: #2563eb;
   --color-primary-700: #1d4ed8;
   --color-primary-800: #1e40af;
@@ -47,7 +35,7 @@ html {
   --color-secondary-200: #a7f3d0;
   --color-secondary-300: #6ee7b7;
   --color-secondary-400: #34d399;
-  --color-secondary-500: #10b981; /* Emerald Green */
+  --color-secondary-500: #10b981;
   --color-secondary-600: #059669;
   --color-secondary-700: #047857;
   --color-secondary-800: #065f46;
@@ -58,14 +46,14 @@ html {
   --color-tertiary-200: #e2e8f0;
   --color-tertiary-300: #cbd5e1;
   --color-tertiary-400: #94a3b8;
-  --color-tertiary-500: #64748b; /* Slate Gray */
+  --color-tertiary-500: #64748b;
   --color-tertiary-600: #475569;
   --color-tertiary-700: #334155;
   --color-tertiary-800: #1e293b;
   --color-tertiary-900: #0f172a;
 
   --color-neutral-50: #ffffff;
-  --color-neutral-100: #f9fafb; /* Clean Light Gray */
+  --color-neutral-100: #f9fafb;
   --color-neutral-200: #f3f4f6;
   --color-neutral-300: #e5e7eb;
   --color-neutral-400: #d1d5db;
@@ -75,10 +63,8 @@ html {
   --color-neutral-800: #374151;
   --color-neutral-900: #1f2937;
 
-  /* Font Families */
   --font-sans: Inter, ui-sans-serif, system-ui;
 
-  /* Box Shadows - Enhanced */
   --shadow-custom-light: 0 1px 3px 0 rgba(0, 0, 0, 0.1),
     0 1px 2px 0 rgba(0, 0, 0, 0.06);
   --shadow-custom-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
@@ -88,18 +74,15 @@ html {
   --shadow-custom-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
     0 10px 10px -5px rgba(0, 0, 0, 0.04);
 
-  /* Border Radius - Modern */
-  --radius-custom: 0.75rem; /* 12px */
-  --radius-custom-lg: 1rem; /* 16px */
-  --radius-custom-xl: 1.5rem; /* 24px */
+  --radius-custom: 0.75rem;
+  --radius-custom-lg: 1rem;
+  --radius-custom-xl: 1.5rem;
 }
 
-/* Smooth scroll behavior */
 html {
   scroll-behavior: smooth;
 }
 
-/* Custom scrollbar - Light & Dark Mode */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -110,52 +93,12 @@ html {
   border-radius: 10px;
 }
 
-.dark ::-webkit-scrollbar-track {
-  background: #1e293b;
-}
-
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 10px;
   transition: background 0.2s;
 }
 
-.dark ::-webkit-scrollbar-thumb {
-  background: #475569;
-}
-
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
-}
-
-.glass-reflection {
-  position: relative;
-  background: rgba(45, 121, 96, 0.4); /* Matches bg-secondary-600/40 */
-  backdrop-filter: blur(6px);
-  transition: all 0.3s ease;
-}
-
-.glass-reflection::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -100%; /* Starts fully off-screen to the left */
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(
-    120deg,
-    transparent,
-    rgba(255, 255, 255, 0.3),
-    transparent
-  );
-  transform: skewX(-20deg);
-  transition: left 0.6s ease; /* Move transition here for consistency */
-}
-
-.glass-reflection:hover::before {
-  left: 150%; /* Moves fully off-screen to the right */
 }

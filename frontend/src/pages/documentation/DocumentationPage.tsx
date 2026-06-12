@@ -124,7 +124,7 @@ const DocumentationPage: React.FC = () => {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   onClick={() => setIsSidebarOpen(false)}
-                  className="fixed inset-0 bg-transparent backdrop-blur-md z-40 lg:hidden"
+                  className="fixed inset-0 bg-transparent  z-40 lg:hidden"
                 />
               </>
             )}

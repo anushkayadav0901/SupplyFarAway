@@ -122,7 +122,7 @@ const History: React.FC = () => {
 
   // Tab navigation — rendered always (stable during load)
   const tabNav = (
-    <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-2">
+    <div className="bg-white  rounded-2xl shadow-lg border border-gray-200/50 p-2">
       {/* Dropdown for small screens */}
       <div className="sm:hidden">
         <FormControl fullWidth>
@@ -223,7 +223,7 @@ const History: React.FC = () => {
               {[1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className="bg-white/80 rounded-2xl border border-gray-200/50 p-6 animate-pulse"
+                  className="bg-white rounded-2xl border border-gray-200/50 p-6 animate-pulse"
                 >
                   <div className="flex items-center gap-3 mb-6">
                     <div className="w-10 h-10 bg-gray-200 rounded-full" />
@@ -274,7 +274,7 @@ const History: React.FC = () => {
                     </button>
                   </div>
                 ) : complianceHistory.length === 0 ? (
-                  <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-12 text-center">
+                  <div className="bg-white  rounded-2xl shadow-lg border border-gray-200/50 p-12 text-center">
                     <FaShieldAlt className="text-4xl text-gray-300 mx-auto mb-4" />
                     <p className="text-gray-500 text-lg mb-4">
                       No compliance checks yet.
@@ -292,7 +292,7 @@ const History: React.FC = () => {
                       <motion.div
                         key={entry._id}
                         variants={itemVariants}
-                        className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-6 hover:shadow-xl transition-shadow duration-150 ease-out"
+                        className="bg-white  rounded-2xl shadow-lg border border-gray-200/50 p-6 hover:shadow-xl transition-shadow duration-150 ease-out"
                       >
                         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
                           <div className="flex items-center gap-3">
@@ -494,7 +494,7 @@ const History: React.FC = () => {
                     </button>
                   </div>
                 ) : routeHistory.length === 0 ? (
-                  <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-12 text-center">
+                  <div className="bg-white  rounded-2xl shadow-lg border border-gray-200/50 p-12 text-center">
                     <FaRoute className="text-4xl text-gray-300 mx-auto mb-4" />
                     <p className="text-gray-500 text-lg mb-4">
                       No saved routes yet.
@@ -512,7 +512,7 @@ const History: React.FC = () => {
                       <motion.div
                         key={entry._id}
                         variants={itemVariants}
-                        className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-6 hover:shadow-xl transition-shadow duration-150 ease-out"
+                        className="bg-white  rounded-2xl shadow-lg border border-gray-200/50 p-6 hover:shadow-xl transition-shadow duration-150 ease-out"
                       >
                         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
                           <div className="flex items-center gap-3">
@@ -657,7 +657,7 @@ const History: React.FC = () => {
                     </button>
                   </div>
                 ) : productAnalysisHistory.length === 0 ? (
-                  <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-12 text-center">
+                  <div className="bg-white  rounded-2xl shadow-lg border border-gray-200/50 p-12 text-center">
                     <FaBox className="text-4xl text-gray-300 mx-auto mb-4" />
                     <p className="text-gray-500 text-lg mb-4">
                       No product analyses yet.
@@ -675,7 +675,7 @@ const History: React.FC = () => {
                       <motion.div
                         key={entry._id}
                         variants={itemVariants}
-                        className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-6 hover:shadow-xl transition-shadow duration-150 ease-out"
+                        className="bg-white  rounded-2xl shadow-lg border border-gray-200/50 p-6 hover:shadow-xl transition-shadow duration-150 ease-out"
                       >
                         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
                           <div className="flex items-center gap-3">

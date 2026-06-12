@@ -210,7 +210,7 @@ const ProductAnalysis: React.FC = () => {
             {/* Card Header */}
             <div className="bg-blue-600 p-8">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center">
                   <svg
                     className="w-6 h-6 text-white"
                     fill="none"

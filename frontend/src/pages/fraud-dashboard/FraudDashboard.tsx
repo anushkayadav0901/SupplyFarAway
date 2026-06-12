@@ -427,7 +427,7 @@ export default function FraudDashboard() {
                   aria-label={`Overall account risk score: ${fmtPct(overallRiskScore * 100, 1)}`}
                 >
                   <div
-                    className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0"
+                    className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center flex-shrink-0"
                     aria-hidden="true"
                   >
                     <ShieldCheck className="w-6 h-6 text-white" />

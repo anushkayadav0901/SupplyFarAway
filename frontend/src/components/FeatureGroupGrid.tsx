@@ -1,5 +1,4 @@
 import React from "react";
-import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
   Camera,
@@ -132,28 +131,25 @@ const GROUPS: FeatureGroup[] = [
 
 const accentClasses: Record<
   FeatureGroup["accent"],
-  { chip: string; iconBg: string; iconText: string; ring: string; barFrom: string }
+  { chip: string; iconBg: string; iconText: string; hoverBorder: string }
 > = {
   blue: {
-    chip: "bg-blue-50 text-blue-700 ring-blue-100",
+    chip: "bg-blue-100 text-blue-700 ring-blue-500/20",
     iconBg: "bg-blue-50",
     iconText: "text-blue-600",
-    ring: "hover:ring-blue-200",
-    barFrom: "from-blue-500 to-blue-300",
+    hoverBorder: "hover:border-blue-400",
   },
   emerald: {
-    chip: "bg-emerald-50 text-emerald-700 ring-emerald-100",
+    chip: "bg-emerald-100 text-emerald-700 ring-emerald-500/20",
     iconBg: "bg-emerald-50",
     iconText: "text-emerald-600",
-    ring: "hover:ring-emerald-200",
-    barFrom: "from-emerald-500 to-emerald-300",
+    hoverBorder: "hover:border-emerald-400",
   },
   violet: {
-    chip: "bg-violet-50 text-violet-700 ring-violet-100",
+    chip: "bg-violet-100 text-violet-700 ring-violet-500/20",
     iconBg: "bg-violet-50",
     iconText: "text-violet-600",
-    ring: "hover:ring-violet-200",
-    barFrom: "from-violet-500 to-violet-300",
+    hoverBorder: "hover:border-violet-400",
   },
 };
 
@@ -183,28 +179,19 @@ const FeatureGroupGrid: React.FC = () => {
                 </p>
               </div>
               <div
-                className={`hidden sm:block flex-1 max-w-[200px] h-px bg-gradient-to-r ${acc.barFrom} opacity-50 mb-2`}
+                className="hidden sm:block flex-1 max-w-[200px] h-px bg-slate-200 opacity-60 mb-2"
                 aria-hidden="true"
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {group.items.map((item, idx) => {
+              {group.items.map((item) => {
                 const { Icon } = item;
                 return (
-                  <motion.button
+                  <button
                     key={item.path}
                     onClick={() => navigate(item.path)}
-                    initial={{ opacity: 0, y: 10 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{
-                      delay: idx * 0.04,
-                      duration: 0.2,
-                      ease: "easeOut",
-                    }}
-                    viewport={{ once: true, margin: "-50px" }}
-                    whileHover={{ y: -3 }}
-                    className={`group text-left bg-white rounded-2xl border border-slate-200 ring-1 ring-transparent ${acc.ring} shadow-sm hover:shadow-md transition-all duration-200 p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500`}
+                    className={`group text-left bg-white rounded-2xl border border-slate-200 ${acc.hoverBorder} shadow-sm hover:shadow-md transition-colors duration-200 p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500`}
                   >
                     <div className="flex items-start justify-between gap-3 mb-3">
                       <span
@@ -214,7 +201,7 @@ const FeatureGroupGrid: React.FC = () => {
                       </span>
                       <ChevronRight
                         size={16}
-                        className="text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all duration-150"
+                        className="text-slate-300 group-hover:text-slate-500 transition-colors duration-150"
                       />
                     </div>
                     <h3 className="text-base font-bold text-slate-900 leading-snug">
@@ -223,7 +210,7 @@ const FeatureGroupGrid: React.FC = () => {
                     <p className="text-sm text-slate-600 leading-relaxed mt-1">
                       {item.desc}
                     </p>
-                  </motion.button>
+                  </button>
                 );
               })}
             </div>

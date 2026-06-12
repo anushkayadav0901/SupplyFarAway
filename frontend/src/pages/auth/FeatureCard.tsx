@@ -37,7 +37,7 @@ const FeatureCard = ({
 
   return (
     <motion.div
-      className={`group relative overflow-hidden rounded-custom border border-white/[0.08] ${feature.gradient} backdrop-blur-xl h-16 w-full max-w-xs sm:max-w-sm md:max-w-md ${className}`}
+      className={`group relative overflow-hidden rounded-custom border border-white/[0.08] ${feature.gradient}  h-16 w-full max-w-xs sm:max-w-sm md:max-w-md ${className}`}
       style={style}
       initial={{ opacity: 0, x: -50, scale: 0.9 }}
       animate={{ opacity: 1, x: 0, scale: 1 }}
@@ -61,7 +61,7 @@ const FeatureCard = ({
       <div className="relative h-full flex items-center px-3 sm:px-4 gap-3 sm:gap-4">
         {/* Icon */}
         <motion.div
-          className={`flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 ${feature.iconBg} rounded-full flex items-center justify-center backdrop-blur-sm border border-white/[0.05]`}
+          className={`flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 ${feature.iconBg} rounded-full flex items-center justify-center  border border-white/[0.05]`}
           whileHover={{
             rotate: [0, -5, 5, 0],
             scale: 1.1,

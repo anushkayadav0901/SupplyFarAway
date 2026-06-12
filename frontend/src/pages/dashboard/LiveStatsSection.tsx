@@ -496,7 +496,7 @@ const LiveStatsSection: React.FC = () => {
                 y: -6,
                 transition: { duration: 0.2 },
               }}
-              className="group relative bg-white/70 backdrop-blur-xl border border-gray-200/60 rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden"
+              className="group relative bg-white  border border-gray-200/60 rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden"
             >
               {/* Hover glow */}
               <div
@@ -563,7 +563,7 @@ const LiveStatsSection: React.FC = () => {
             initial={{ opacity: 0, y: 40 }}
             animate={sectionInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6, delay: 0.6 }}
-            className="lg:col-span-2 relative bg-white/70 backdrop-blur-xl border border-gray-200/60 rounded-2xl p-6 sm:p-8 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden"
+            className="lg:col-span-2 relative bg-white  border border-gray-200/60 rounded-2xl p-6 sm:p-8 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden"
           >
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -596,7 +596,7 @@ const LiveStatsSection: React.FC = () => {
             className="flex flex-col gap-6"
           >
             {/* Sustainability Card */}
-            <div className="relative bg-white/70 backdrop-blur-xl border border-gray-200/60 rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 flex-1 flex flex-col items-center justify-center overflow-hidden group">
+            <div className="relative bg-white  border border-gray-200/60 rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 flex-1 flex flex-col items-center justify-center overflow-hidden group">
               {/* hover glow */}
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-emerald-50/50 rounded-2xl" />
               <div className="relative flex flex-col items-center">
@@ -620,7 +620,7 @@ const LiveStatsSection: React.FC = () => {
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_2px_2px,rgba(255,255,255,0.3)_1px,transparent_0)] bg-[length:20px_20px]" />
               </div>
               <div className="relative flex items-center gap-4">
-                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/10">
+                <div className="w-12 h-12 bg-white  rounded-xl flex items-center justify-center border border-white/10">
                   <FaShieldAlt className="text-white text-lg" />
                 </div>
                 <div>
@@ -633,7 +633,7 @@ const LiveStatsSection: React.FC = () => {
                 </div>
               </div>
               <div className="relative mt-4 flex items-center gap-2">
-                <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                <div className="flex-1 h-1.5 bg-white rounded-full overflow-hidden">
                   <motion.div
                     className="h-full bg-white rounded-full"
                     initial={{ width: 0 }}

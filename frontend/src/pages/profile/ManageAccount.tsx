@@ -451,7 +451,7 @@ const ManageAccount: React.FC = () => {
 
           {/* Profile Completion */}
           <motion.div variants={itemVariants} className="mb-8">
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-6">
+            <div className="bg-white  rounded-2xl shadow-lg border border-gray-200/50 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-gray-900">
                   Profile Completion
@@ -485,7 +485,7 @@ const ManageAccount: React.FC = () => {
 
           {/* User Info and Photo */}
           <motion.div variants={itemVariants} className="mb-8">
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-6">
+            <div className="bg-white  rounded-2xl shadow-lg border border-gray-200/50 p-6">
               <div className="flex flex-col sm:flex-row items-center gap-6">
                 <div className="relative">
                   {localProfilePhoto ? (
@@ -557,7 +557,7 @@ const ManageAccount: React.FC = () => {
 
           {/* Update Username */}
           <motion.div variants={itemVariants} className="mb-8">
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-6">
+            <div className="bg-white  rounded-2xl shadow-lg border border-gray-200/50 p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-gray-900">
                   Update Username
@@ -615,7 +615,7 @@ const ManageAccount: React.FC = () => {
 
           {/* Profile Information */}
           <motion.div variants={itemVariants} className="mb-8">
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-6">
+            <div className="bg-white  rounded-2xl shadow-lg border border-gray-200/50 p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-gray-900">
                   Profile Information
@@ -839,7 +839,7 @@ const ManageAccount: React.FC = () => {
 
           {/* Update Password */}
           <motion.div variants={itemVariants} className="mb-8">
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-6">
+            <div className="bg-white  rounded-2xl shadow-lg border border-gray-200/50 p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-gray-900">
                   Update Password
@@ -909,7 +909,7 @@ const ManageAccount: React.FC = () => {
 
           {/* Delete Account */}
           <motion.div variants={itemVariants}>
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-6">
+            <div className="bg-white  rounded-2xl shadow-lg border border-gray-200/50 p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
                 Delete Account
               </h2>
