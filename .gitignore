@@ -44,6 +44,9 @@ backend/Config/*.json
 # Reference projects pasted in for context (not part of the build)
 yolo_reference/
 
+# Design manifesto — developer-side reference, not shipped
+taste.txt
+
 # YOLO service Python venv + cached weights
 yolo/.venv/
 yolo/__pycache__/
