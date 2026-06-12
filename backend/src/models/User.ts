@@ -1,28 +1,41 @@
 import mongoose, { Schema, type InferSchemaType, type Model } from "mongoose";
 
+// ---------------------------------------------------------------------------
+// Field length constraints — keep in sync with schemas/user.ts.
+// Enforced at the DB layer as a second line of defence.
+// ---------------------------------------------------------------------------
+const NAME_MAX = 100;
+const EMAIL_MAX = 254;
+const PHONE_MAX = 30;
+const COMPANY_NAME_MAX = 200;
+const TAX_ID_MAX = 50;
+const ADDRESS_MAX = 200;
+
 const userSchema = new Schema({
-  firstName: { type: String, required: true },
-  lastName: { type: String, required: false },
-  emailAddress: { type: String, required: true },
+  firstName: { type: String, required: true, maxlength: NAME_MAX },
+  lastName: { type: String, required: false, maxlength: NAME_MAX },
+  // Unique index prevents duplicate registrations at the DB level.
+  emailAddress: { type: String, required: true, maxlength: EMAIL_MAX, index: { unique: true, sparse: false } },
+  // Stored as a bcrypt hash or "GOOGLE_AUTH_PLACEHOLDER"; never stored as plaintext.
   password: { type: String, required: true },
-  phoneNumber: { type: String, required: false },
-  companyName: { type: String, required: false },
+  phoneNumber: { type: String, required: false, maxlength: PHONE_MAX },
+  companyName: { type: String, required: false, maxlength: COMPANY_NAME_MAX },
   companyAddress: {
-    street: { type: String, required: false },
-    city: { type: String, required: false },
-    state: { type: String, required: false },
-    postalCode: { type: String, required: false },
-    country: { type: String, required: false },
+    street: { type: String, required: false, maxlength: ADDRESS_MAX },
+    city: { type: String, required: false, maxlength: ADDRESS_MAX },
+    state: { type: String, required: false, maxlength: ADDRESS_MAX },
+    postalCode: { type: String, required: false, maxlength: 20 },
+    country: { type: String, required: false, maxlength: ADDRESS_MAX },
   },
-  taxId: { type: String, required: false },
-  businessType: { type: String, required: false },
-  primaryContactName: { type: String, required: false },
-  primaryContactPhone: { type: String, required: false },
+  taxId: { type: String, required: false, maxlength: TAX_ID_MAX },
+  businessType: { type: String, required: false, maxlength: 100 },
+  primaryContactName: { type: String, required: false, maxlength: NAME_MAX },
+  primaryContactPhone: { type: String, required: false, maxlength: PHONE_MAX },
   preferredShippingMethods: [{ type: String, required: false }],
   operatingRegions: [{ type: String, required: false }],
-  annualShipmentVolume: { type: Number, required: false },
-  averageShipmentWeight: { type: Number, required: false },
-  sustainabilityGoals: { type: String, required: false },
+  annualShipmentVolume: { type: Number, required: false, min: 0 },
+  averageShipmentWeight: { type: Number, required: false, min: 0 },
+  sustainabilityGoals: { type: String, required: false, maxlength: 1000 },
   profilePhoto: { type: String, required: false },
   createdAt: { type: Date, default: Date.now },
 });

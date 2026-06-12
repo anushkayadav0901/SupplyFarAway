@@ -9,6 +9,28 @@ import { AuditEventModel } from "../models/AuditEvent.js";
 import { BoxCountResultModel } from "../models/BoxCountResult.js";
 import { protectedProcedure, router } from "../trpc.js";
 
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+/** 10 MB in base64 characters (10 * 1024 * 1024 * 4/3 ≈ 13,981,013) */
+const MAX_IMAGE_BASE64_CHARS = 13_981_013;
+/** Maximum characters to include in error log snippets to avoid log explosion */
+const ERR_SNIPPET_LEN = 240;
+/** mismatchPct threshold above which an AnomalyReport stub is emitted */
+const ANOMALY_MISMATCH_PCT_THRESHOLD = 20;
+/** Upper bound for riskScore forwarded to AnomalyReport */
+const MAX_RISK_SCORE = 100;
+/** Confidence range bounds */
+const CONFIDENCE_MIN = 0;
+const CONFIDENCE_MAX = 1;
+/** Maximum length for user-supplied notes string */
+const MAX_NOTES_LEN = 2000;
+/** Maximum tag list length for MIME type string */
+const MAX_MIME_LEN = 100;
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 async function writeAudit(
   userId: mongoose.Types.ObjectId,
   draftId: string | undefined,
@@ -30,6 +52,17 @@ async function writeAudit(
   }
 }
 
+function clampConfidence(value: unknown): number {
+  return Math.min(CONFIDENCE_MAX, Math.max(CONFIDENCE_MIN, Number(value ?? 0)));
+}
+
+function clampRiskScore(value: unknown): number {
+  return Math.min(MAX_RISK_SCORE, Math.max(0, Math.round(Number(value ?? 0))));
+}
+
+// ---------------------------------------------------------------------------
+// Router
+// ---------------------------------------------------------------------------
 export const boxCountRouter = router({
   /**
    * Mutation: verify
@@ -39,10 +72,12 @@ export const boxCountRouter = router({
   verify: protectedProcedure
     .input(
       z.object({
-        draftId: z.string().optional(),
+        draftId: z.string().max(100).optional(),
         declaredCount: z.number().int().positive(),
-        imageBase64: z.string().min(10),
-        mimeType: z.string().default("image/jpeg"),
+        imageBase64: z.string().min(10).max(MAX_IMAGE_BASE64_CHARS, {
+          message: "Image exceeds 10 MB limit",
+        }),
+        mimeType: z.string().min(1).max(MAX_MIME_LEN).default("image/jpeg"),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -76,7 +111,7 @@ export const boxCountRouter = router({
       } catch (err) {
         throw new TRPCError({
           code: "BAD_GATEWAY",
-          message: `Gemini API failed: ${(err as Error)?.message ?? "unknown"}`,
+          message: `Gemini API failed: ${String((err as Error)?.message ?? "unknown").slice(0, ERR_SNIPPET_LEN)}`,
         });
       }
 
@@ -96,18 +131,18 @@ export const boxCountRouter = router({
       } catch {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to parse Gemini response as JSON. Raw text: ${rawText.slice(0, 300)}`,
+          message: `Failed to parse Gemini response as JSON. Raw text: ${rawText.slice(0, ERR_SNIPPET_LEN)}`,
         });
       }
 
-      const detectedCount = Math.max(0, Math.round(parsed.count ?? 0));
-      const confidence = Math.min(1, Math.max(0, parsed.confidence ?? 0));
-      const notes = parsed.notes ?? "";
+      const detectedCount = Math.max(0, Math.round(Number(parsed.count ?? 0)));
+      const confidence = clampConfidence(parsed.confidence);
+      const notes = String(parsed.notes ?? "").slice(0, MAX_NOTES_LEN);
 
       const diff = Math.abs(detectedCount - input.declaredCount);
       const mismatch = diff > 0;
       const mismatchPct =
-        input.declaredCount > 0 ? (diff / input.declaredCount) * 100 : 0;
+        input.declaredCount > 0 ? Math.min(100, (diff / input.declaredCount) * 100) : 0;
 
       const doc = await BoxCountResultModel.create({
         userId,
@@ -143,8 +178,10 @@ export const boxCountRouter = router({
   liveCommentary: protectedProcedure
     .input(
       z.object({
-        imageBase64: z.string().min(10),
-        mimeType: z.string().default("image/jpeg"),
+        imageBase64: z.string().min(10).max(MAX_IMAGE_BASE64_CHARS, {
+          message: "Image exceeds 10 MB limit",
+        }),
+        mimeType: z.string().min(1).max(MAX_MIME_LEN).default("image/jpeg"),
         manifestCount: z.number().int().nonnegative().optional(),
         yoloClassCounts: z.record(z.string(), z.number()).optional(),
       }),
@@ -189,7 +226,7 @@ Respond ONLY with strict JSON:
       } catch (err) {
         throw new TRPCError({
           code: "BAD_GATEWAY",
-          message: `Gemini commentary failed: ${(err as Error)?.message ?? "unknown"}`,
+          message: `Gemini commentary failed: ${String((err as Error)?.message ?? "unknown").slice(0, ERR_SNIPPET_LEN)}`,
         });
       }
 
@@ -205,16 +242,18 @@ Respond ONLY with strict JSON:
           riskLevel: "low" | "medium" | "high";
           alert: boolean;
         };
+        const validRiskLevels: Array<"low" | "medium" | "high"> = ["low", "medium", "high"];
+        const riskLevel = validRiskLevels.includes(parsed.riskLevel) ? parsed.riskLevel : "low";
         return {
-          commentary: String(parsed.commentary ?? "").slice(0, 240),
-          suspectedCount: Math.max(0, Math.round(parsed.suspectedCount ?? 0)),
-          riskLevel: (parsed.riskLevel ?? "low") as "low" | "medium" | "high",
+          commentary: String(parsed.commentary ?? "").slice(0, ERR_SNIPPET_LEN),
+          suspectedCount: Math.max(0, Math.round(Number(parsed.suspectedCount ?? 0))),
+          riskLevel,
           alert: Boolean(parsed.alert),
         };
       } catch {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to parse Gemini commentary. Raw text: ${rawText.slice(0, 240)}`,
+          message: `Failed to parse Gemini commentary. Raw text: ${rawText.slice(0, ERR_SNIPPET_LEN)}`,
         });
       }
     }),
@@ -222,16 +261,16 @@ Respond ONLY with strict JSON:
   /**
    * Mutation: saveSession
    * Persist the aggregate result of a live monitoring session.
-   * Emits an AnomalyReport stub when mismatchPct > 20.
+   * Emits an AnomalyReport stub when mismatchPct > ANOMALY_MISMATCH_PCT_THRESHOLD.
    */
   saveSession: protectedProcedure
     .input(
       z.object({
-        draftId: z.string().optional(),
+        draftId: z.string().max(100).optional(),
         declaredCount: z.number().int().positive(),
         detectedCount: z.number().int().nonnegative(),
-        confidence: z.number().min(0).max(1).default(0.85),
-        notes: z.string().default(""),
+        confidence: z.number().min(CONFIDENCE_MIN).max(CONFIDENCE_MAX).default(0.85),
+        notes: z.string().max(MAX_NOTES_LEN).default(""),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -240,7 +279,7 @@ Respond ONLY with strict JSON:
       const diff = Math.abs(input.detectedCount - input.declaredCount);
       const mismatch = diff > 0;
       const mismatchPct =
-        input.declaredCount > 0 ? (diff / input.declaredCount) * 100 : 0;
+        input.declaredCount > 0 ? Math.min(100, (diff / input.declaredCount) * 100) : 0;
 
       const doc = await BoxCountResultModel.create({
         userId,
@@ -268,7 +307,7 @@ Respond ONLY with strict JSON:
       );
 
       // Cross-feature linkage: emit AnomalyReport stub on large mismatch.
-      if (mismatchPct > 20) {
+      if (mismatchPct > ANOMALY_MISMATCH_PCT_THRESHOLD) {
         try {
           await AnomalyReportModel.create({
             userId,
@@ -282,7 +321,7 @@ Respond ONLY with strict JSON:
             routeDeviationKm: 0,
             flags: ["box-count-mismatch"],
             severity: "medium",
-            riskScore: Math.min(100, Math.round(mismatchPct)),
+            riskScore: clampRiskScore(mismatchPct),
             summary: `Box count mismatch ${mismatchPct.toFixed(1)}% (declared ${input.declaredCount}, detected ${input.detectedCount}).`,
             createdAt: new Date(),
           });

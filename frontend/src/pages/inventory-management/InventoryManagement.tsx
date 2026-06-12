@@ -243,7 +243,7 @@ const InventoryManagement: React.FC = () => {
     } catch (error: unknown) {
       console.error("Error deleting draft:", error);
       const errorMessage =
-        (error as any)?.message || "Failed to delete draft.";
+        (error as unknown as { message?: string })?.message || "Failed to delete draft.";
       setToastProps({ type: "error", message: errorMessage });
     }
   };
@@ -257,7 +257,7 @@ const InventoryManagement: React.FC = () => {
 
     try {
       const result = await utils.auth.getMe.fetch();
-      const userEmail = (result as any)?.user?.emailAddress ?? "";
+      const userEmail = (result as unknown as { user?: { emailAddress?: string } })?.user?.emailAddress ?? "";
 
       if (deleteEmail.toLowerCase() !== userEmail.toLowerCase()) {
         setDeleteEmailError("The email does not match your account email.");
@@ -273,7 +273,7 @@ const InventoryManagement: React.FC = () => {
       setDeleteEmailError("");
     } catch (error: unknown) {
       console.error("Error verifying email:", error);
-      const errorMessage = (error as any)?.message || "Failed to verify email.";
+      const errorMessage = (error as unknown as { message?: string })?.message || "Failed to verify email.";
       setDeleteEmailError(errorMessage);
     }
   };
@@ -360,7 +360,7 @@ const InventoryManagement: React.FC = () => {
     } catch (error: unknown) {
       console.error("Error creating draft:", error);
       const errorMessage =
-        (error as any)?.message || "Failed to create draft.";
+        (error as unknown as { message?: string })?.message || "Failed to create draft.";
       setToastProps({ type: "error", message: errorMessage });
     } finally {
       setSubmitting(false);
@@ -487,15 +487,20 @@ const InventoryManagement: React.FC = () => {
 
         <div className="space-y-4 sm:space-y-6" style={{ minHeight: 400 }}>
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-8 mb-8 min-h-[400px]">
-              <div className="relative">
-                <div className="w-16 h-16 border-4 border-indigo-200 rounded-full animate-spin">
-                  <div className="absolute top-0 left-0 w-16 h-16 border-4 border-transparent border-t-indigo-500 rounded-full animate-spin"></div>
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-6 animate-pulse">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-5 h-5 bg-gray-200 rounded-full" />
+                    <div className="h-5 bg-gray-200 rounded w-24" />
+                    <div className="h-5 bg-gray-200 rounded-full w-20 ml-2" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="h-4 bg-gray-100 rounded w-full" />
+                    <div className="h-4 bg-gray-100 rounded w-full" />
+                  </div>
                 </div>
-              </div>
-              <p className="text-gray-600 mt-4 font-medium">
-                Fetching records...
-              </p>
+              ))}
             </div>
           ) : getFilteredDrafts().length === 0 ? (
             <Card

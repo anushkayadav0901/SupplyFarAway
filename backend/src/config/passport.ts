@@ -1,3 +1,4 @@
+// External
 import passport from "passport";
 import {
   Strategy as GoogleStrategy,
@@ -5,6 +6,8 @@ import {
   type VerifyCallback,
 } from "passport-google-oauth20";
 import dotenv from "dotenv";
+
+// Internal
 import UserModel from "../models/User.js";
 
 dotenv.config();
@@ -24,6 +27,34 @@ if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Rate-limiting hook: mount express-rate-limit on /auth/google/callback in
+// legacy/auth.ts to mitigate OAuth callback abuse.
+// Example:
+//   import rateLimit from "express-rate-limit";
+//   export const oauthLimiter = rateLimit({ windowMs: 15 * 60_000, max: 30 });
+// ---------------------------------------------------------------------------
+
+/**
+ * Validates that a Google OAuth profile contains the minimum required fields
+ * before we proceed to sign a JWT. Prevents malformed profile objects from
+ * reaching the token-signing step.
+ */
+function validateGoogleProfile(
+  profile: Profile
+): { email: string; firstName: string; lastName: string; photo: string } | null {
+  const email = profile.emails?.[0]?.value?.trim();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return null;
+  }
+  return {
+    email,
+    firstName: profile.name?.givenName?.trim() ?? "",
+    lastName: profile.name?.familyName?.trim() ?? "",
+    photo: profile.photos?.[0]?.value ?? "",
+  };
+}
+
 passport.use(
   new GoogleStrategy(
     {
@@ -38,19 +69,22 @@ passport.use(
       done: VerifyCallback
     ) => {
       try {
-        const email = profile.emails?.[0]?.value;
-        if (!email) {
-          return done(new Error("Google profile missing email"));
+        const validated = validateGoogleProfile(profile);
+        if (!validated) {
+          return done(new Error("Google profile is missing a valid email address"));
         }
+
+        const { email, firstName, lastName, photo } = validated;
 
         let user = await UserModel.findOne({ emailAddress: email });
         if (!user) {
           user = await UserModel.create({
-            firstName: profile.name?.givenName ?? "",
-            lastName: profile.name?.familyName ?? "",
+            firstName,
+            lastName,
             emailAddress: email,
+            // Placeholder signals this account must not use password login.
             password: "GOOGLE_AUTH_PLACEHOLDER",
-            profilePhoto: profile.photos?.[0]?.value ?? "",
+            profilePhoto: photo,
           });
         }
         return done(null, user);
@@ -62,7 +96,7 @@ passport.use(
 );
 
 passport.serializeUser((user: Express.User, done) => {
-  // Mongoose docs have `.id` getter
+  // Mongoose docs expose an `.id` string getter backed by `_id`.
   done(null, (user as unknown as { id: string }).id);
 });
 

@@ -10,6 +10,7 @@ const anomalyReportSchema = new Schema({
   draftId: {
     type: String,
     required: false,
+    index: true,
   },
   declaredWeightKg: {
     type: Number,
@@ -60,6 +61,7 @@ const anomalyReportSchema = new Schema({
   createdAt: {
     type: Date,
     default: Date.now,
+    index: true,
   },
 });
 

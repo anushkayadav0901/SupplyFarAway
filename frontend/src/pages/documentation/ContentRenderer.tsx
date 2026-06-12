@@ -139,30 +139,39 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
       const trimmedLine = line.trim();
 
       if (trimmedLine.startsWith("# ")) {
+        const text = trimmedLine.slice(2);
+        const anchor = text.toLowerCase().replace(/\s+/g, "-");
         return (
           <h1
             key={index}
-            className="text-3xl font-bold text-gray-900 mt-8 mb-4"
+            id={anchor}
+            className="text-3xl font-bold text-gray-900 mt-8 mb-4 scroll-mt-20"
           >
-            {trimmedLine.slice(2)}
+            {text}
           </h1>
         );
       } else if (trimmedLine.startsWith("## ")) {
+        const text = trimmedLine.slice(3);
+        const anchor = text.toLowerCase().replace(/\s+/g, "-");
         return (
           <h2
             key={index}
-            className="text-2xl font-semibold text-gray-800 mt-6 mb-3"
+            id={anchor}
+            className="text-2xl font-semibold text-gray-800 mt-6 mb-3 scroll-mt-20"
           >
-            {trimmedLine.slice(3)}
+            {text}
           </h2>
         );
       } else if (trimmedLine.startsWith("### ")) {
+        const text = trimmedLine.slice(4);
+        const anchor = text.toLowerCase().replace(/\s+/g, "-");
         return (
           <h3
             key={index}
-            className="text-xl font-medium text-gray-700 mt-4 mb-2"
+            id={anchor}
+            className="text-xl font-medium text-gray-700 mt-4 mb-2 scroll-mt-20"
           >
-            {trimmedLine.slice(4)}
+            {text}
           </h3>
         );
       } else if (trimmedLine.startsWith("- **")) {

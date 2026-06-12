@@ -149,7 +149,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
               <FaBookOpen className="text-white text-sm" />
             </div>
             <h2 className="text-lg sm:text-xl font-bold text-gray-900">
-              SupplyChain
+              Supply Chain
             </h2>
           </div>
           {/* Close Button for Mobile Only */}
@@ -301,7 +301,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
       {/* Footer */}
       <div className="p-4 border-t border-gray-200 bg-gray-50">
         <div className="text-xs text-gray-500 text-center">
-          SupplyChain Documentation v2.0
+          Supply Chain Documentation v2.0
         </div>
       </div>
     </div>

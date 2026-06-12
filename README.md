@@ -1,4 +1,4 @@
-# SupplyChain - SmartLogix 🚀
+# Supply Chain 🚀
 
 A modern logistics intelligence platform with compliance checks, multimodal route optimization, and product analysis.
 

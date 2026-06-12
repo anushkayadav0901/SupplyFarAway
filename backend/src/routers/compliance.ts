@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
 import { z } from "zod";
 
-import { requireUserId } from "../lib/auth.js";
+import { assertObjectId, requireUserId } from "../lib/auth.js";
 import ComplianceRecordModel from "../models/ComplianceRecord.js";
 import DraftModel from "../models/Draft.js";
 import ProductAnalysisModel from "../models/ProductAnalysis.js";
@@ -253,6 +253,8 @@ You are a compliance checker AI for international trade shipments, designed to a
       const userId = requireUserId(ctx);
       const { recordId } = input;
 
+      assertObjectId(recordId, "recordId");
+
       const record = await ComplianceRecordModel.findOneAndDelete({
         _id: recordId,
         userId,
@@ -288,6 +290,8 @@ You are a compliance checker AI for international trade shipments, designed to a
     .mutation(async ({ ctx, input }) => {
       const userId = requireUserId(ctx);
       const { recordId } = input;
+
+      assertObjectId(recordId, "recordId");
 
       const record = await ProductAnalysisModel.findOneAndDelete({
         _id: recordId,

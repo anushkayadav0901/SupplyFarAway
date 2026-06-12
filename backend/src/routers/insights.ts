@@ -17,6 +17,67 @@ import { LoadOfferModel } from "../models/LoadOffer.js";
 import { TruckModel } from "../models/Truck.js";
 
 // ---------------------------------------------------------------------------
+// Named constants (H7)
+// ---------------------------------------------------------------------------
+
+/** Score returned for a subsystem with no data on record. */
+const NEUTRAL_SCORE = 70;
+
+/** Weight applied to subsystems with no data — keeps them low-influence. */
+const NEUTRAL_WEIGHT = 0.5;
+
+/** Maximum character length accepted for a user-supplied draftId string. */
+const DRAFT_ID_MAX_LEN = 100;
+
+/** Maximum number of activity items the caller may request in one query. */
+const ACTIVITY_LIMIT_MAX = 100;
+
+/** Default number of activity items per request. */
+const ACTIVITY_LIMIT_DEFAULT = 25;
+
+/** Maximum number of drafts sampled when computing average trust score. */
+const AVG_TRUST_SAMPLE_SIZE = 25;
+
+/** Maximum characters of text fields surfaced in activity summaries. */
+const SUMMARY_MAX_CHARS = 220;
+
+/** Score threshold (inclusive) for a "trusted" verdict. */
+const VERDICT_TRUSTED_THRESHOLD = 80;
+
+/** Score threshold (inclusive) for a "watch" verdict. */
+const VERDICT_WATCH_THRESHOLD = 60;
+
+/** Risk score above which a shipment-diff or tracking severity is "high". */
+const RISK_HIGH_THRESHOLD = 70;
+
+/** Risk score above which a shipment-diff severity is "medium". */
+const RISK_MED_THRESHOLD = 40;
+
+/** RFID match-pct below which severity is "high". */
+const RFID_HIGH_THRESHOLD = 80;
+
+/** RFID match-pct below which severity is "medium". */
+const RFID_MED_THRESHOLD = 95;
+
+/** Box-count mismatch-pct above which severity is "high". */
+const BOX_HIGH_THRESHOLD = 20;
+
+/** Box-count mismatch-pct above which severity is "medium". */
+const BOX_MED_THRESHOLD = 5;
+
+/** Weight deviation above which severity escalates to "high". */
+const WEIGHT_HIGH_DEVIATION = 15;
+
+const SUBSYSTEM_WEIGHTS: Record<Subsystem, number> = {
+  boxCount: 1.0,
+  shipmentDiff: 1.2,
+  rfid: 1.0,
+  weight: 0.8,
+  anomaly: 1.3,
+  compliance: 0.9,
+};
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
@@ -55,17 +116,254 @@ interface ActivityItem {
   icon: string;
 }
 
-const SUBSYSTEM_WEIGHTS: Record<Subsystem, number> = {
-  boxCount: 1.0,
-  shipmentDiff: 1.2,
-  rfid: 1.0,
-  weight: 0.8,
-  anomaly: 1.3,
-  compliance: 0.9,
-};
+// ---------------------------------------------------------------------------
+// Defensive query helpers — every model query returns null on failure (H3)
+// ---------------------------------------------------------------------------
 
-const NEUTRAL_SCORE = 70;
-const NEUTRAL_WEIGHT = 0.5;
+/** Run a Mongoose promise; return null if it rejects so callers stay neutral. */
+async function safeFindOne<T>(
+  label: string,
+  promise: Promise<T | null>,
+): Promise<T | null> {
+  try {
+    return await promise;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`[insights] safeFindOne(${label}) failed — returning null:`, message);
+    return null;
+  }
+}
+
+/** Run a Mongoose count; return 0 if it rejects. */
+async function safeCount(label: string, promise: Promise<number>): Promise<number> {
+  try {
+    return await promise;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`[insights] safeCount(${label}) failed — returning 0:`, message);
+    return 0;
+  }
+}
+
+/** Run a Mongoose find; return [] if it rejects. */
+async function safeFind<T>(label: string, promise: Promise<T[]>): Promise<T[]> {
+  try {
+    return await promise;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`[insights] safeFind(${label}) failed — returning []:`, message);
+    return [];
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Scoring helpers — all inputs clamped to [0, 100] (extra directive)
+// ---------------------------------------------------------------------------
+
+/** Clamp a numeric value to the inclusive range [0, 100]. */
+function clamp100(n: number): number {
+  return Math.max(0, Math.min(100, n));
+}
+
+function scoreBoxCount(doc: Record<string, unknown> | null): SubsystemBreakdown {
+  if (!doc) {
+    return {
+      score: NEUTRAL_SCORE,
+      weight: NEUTRAL_WEIGHT,
+      latestAt: null,
+      note: "No box count check on record",
+    };
+  }
+  const mismatchPct = clamp100(Number(doc.mismatchPct ?? 0));
+  const score = clamp100(100 - mismatchPct * 2);
+  return {
+    score,
+    weight: SUBSYSTEM_WEIGHTS.boxCount,
+    latestAt: (doc.createdAt as Date | undefined) ?? null,
+    note: `Mismatch ${mismatchPct.toFixed(1)}% (declared ${doc.declaredCount}, detected ${doc.detectedCount})`,
+  };
+}
+
+function scoreShipmentDiff(
+  doc: Record<string, unknown> | null,
+): SubsystemBreakdown {
+  if (!doc) {
+    return {
+      score: NEUTRAL_SCORE,
+      weight: NEUTRAL_WEIGHT,
+      latestAt: null,
+      note: "No before/after diff on record",
+    };
+  }
+  const risk = clamp100(Number(doc.riskScore ?? 0));
+  const score = clamp100(100 - risk);
+  return {
+    score,
+    weight: SUBSYSTEM_WEIGHTS.shipmentDiff,
+    latestAt: (doc.createdAt as Date | undefined) ?? null,
+    note: `Risk ${risk} — ${(doc.summary as string | undefined)?.slice(0, 80) ?? ""}`,
+  };
+}
+
+function scoreRfid(doc: Record<string, unknown> | null): SubsystemBreakdown {
+  if (!doc) {
+    return {
+      score: NEUTRAL_SCORE,
+      weight: NEUTRAL_WEIGHT,
+      latestAt: null,
+      note: "No RFID scan on record",
+    };
+  }
+  const matchPct = clamp100(Number(doc.matchPct ?? 0));
+  return {
+    score: matchPct,
+    weight: SUBSYSTEM_WEIGHTS.rfid,
+    latestAt: (doc.createdAt as Date | undefined) ?? null,
+    note: `Match ${matchPct.toFixed(1)}%`,
+  };
+}
+
+function scoreWeight(doc: Record<string, unknown> | null): SubsystemBreakdown {
+  if (!doc) {
+    return {
+      score: NEUTRAL_SCORE,
+      weight: NEUTRAL_WEIGHT,
+      latestAt: null,
+      note: "No weight check on record",
+    };
+  }
+  const flagged = Boolean(doc.flagged);
+  const deviationPct = clamp100(Number(doc.deviationPct ?? 0));
+  const score = flagged ? clamp100(100 - deviationPct * 5) : 100;
+  return {
+    score,
+    weight: SUBSYSTEM_WEIGHTS.weight,
+    latestAt: (doc.createdAt as Date | undefined) ?? null,
+    note: flagged
+      ? `Flagged — deviation ${deviationPct.toFixed(1)}%`
+      : "Within tolerance",
+  };
+}
+
+function scoreAnomaly(doc: Record<string, unknown> | null): SubsystemBreakdown {
+  if (!doc) {
+    return {
+      score: NEUTRAL_SCORE,
+      weight: NEUTRAL_WEIGHT,
+      latestAt: null,
+      note: "No anomaly check on record",
+    };
+  }
+  const risk = clamp100(Number(doc.riskScore ?? 0));
+  const severity = (doc.severity as string | undefined) ?? "low";
+  let score = clamp100(100 - risk);
+  if (severity === "high") {
+    score = clamp100(score - 10);
+  }
+  return {
+    score,
+    weight: SUBSYSTEM_WEIGHTS.anomaly,
+    latestAt: (doc.createdAt as Date | undefined) ?? null,
+    note: `Severity ${severity}, risk ${risk}`,
+  };
+}
+
+function scoreCompliance(
+  doc: Record<string, unknown> | null,
+): SubsystemBreakdown {
+  if (!doc) {
+    return {
+      score: NEUTRAL_SCORE,
+      weight: NEUTRAL_WEIGHT,
+      latestAt: null,
+      note: "No compliance data linked to draft",
+    };
+  }
+  const riskLevel = doc.riskLevel as Record<string, unknown> | undefined;
+  const rawRisk =
+    typeof doc.riskScore === "number"
+      ? (doc.riskScore as number)
+      : typeof riskLevel?.riskScore === "number"
+        ? (riskLevel.riskScore as number)
+        : null;
+
+  if (rawRisk === null) {
+    return {
+      score: NEUTRAL_SCORE,
+      weight: NEUTRAL_WEIGHT,
+      latestAt: null,
+      note: "Compliance present but no risk score",
+    };
+  }
+  const riskScore = clamp100(rawRisk);
+  return {
+    score: clamp100(100 - riskScore),
+    weight: SUBSYSTEM_WEIGHTS.compliance,
+    latestAt: null,
+    note: `Compliance risk ${riskScore}`,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Avg trust score helper (used by operationsTicker)
+// ---------------------------------------------------------------------------
+
+async function computeAvgTrustScore(
+  userId: mongoose.Types.ObjectId,
+  draftIds: string[],
+  asOf?: Date,
+): Promise<number> {
+  if (draftIds.length === 0) return 0;
+
+  // Limit how many drafts we inspect — averaging is approximate.
+  const sampled = draftIds.slice(0, AVG_TRUST_SAMPLE_SIZE);
+  let total = 0;
+  let counted = 0;
+
+  for (const draftId of sampled) {
+    try {
+      const dateClause: Record<string, unknown> | undefined = asOf
+        ? { createdAt: { $lte: asOf } }
+        : undefined;
+      const findFilter: Record<string, unknown> = { userId, draftId };
+      if (dateClause) Object.assign(findFilter, dateClause);
+
+      const [box, diff, rfid, weight, anomaly] = await Promise.all([
+        safeFindOne("boxCount/avg", BoxCountResultModel.findOne(findFilter).sort({ createdAt: -1 }).lean()),
+        safeFindOne("shipmentDiff/avg", ShipmentDiffModel.findOne(findFilter).sort({ createdAt: -1 }).lean()),
+        safeFindOne("rfid/avg", RfidScanResultModel.findOne(findFilter).sort({ createdAt: -1 }).lean()),
+        safeFindOne("weight/avg", WeightCheckModel.findOne(findFilter).sort({ createdAt: -1 }).lean()),
+        safeFindOne("anomaly/avg", AnomalyReportModel.findOne(findFilter).sort({ createdAt: -1 }).lean()),
+      ]);
+
+      const breakdown: SubsystemBreakdown[] = [
+        scoreBoxCount(box as Record<string, unknown> | null),
+        scoreShipmentDiff(diff as Record<string, unknown> | null),
+        scoreRfid(rfid as Record<string, unknown> | null),
+        scoreWeight(weight as Record<string, unknown> | null),
+        scoreAnomaly(anomaly as Record<string, unknown> | null),
+        scoreCompliance(null),
+      ];
+
+      let weighted = 0;
+      let weightSum = 0;
+      for (const b of breakdown) {
+        weighted += b.score * b.weight;
+        weightSum += b.weight;
+      }
+      if (weightSum > 0) {
+        total += weighted / weightSum;
+        counted += 1;
+      }
+    } catch (err) {
+      // Averaging is best-effort — log and continue.
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn(`[insights] computeAvgTrustScore failed for draftId ${draftId}:`, message);
+    }
+  }
+
+  return counted > 0 ? total / counted : 0;
+}
 
 // ---------------------------------------------------------------------------
 // Router
@@ -77,61 +375,96 @@ export const insightsRouter = router({
    * subsystems and returning a per-system breakdown.
    */
   shipmentTrustScore: protectedProcedure
-    .input(z.object({ draftId: z.string().min(1) }))
+    .input(
+      z.object({
+        draftId: z.string().min(1).max(DRAFT_ID_MAX_LEN),
+      }),
+    )
     .query(async ({ ctx, input }) => {
       const userId = requireUserId(ctx);
       const { draftId } = input;
 
       const [latestBox, latestDiff, latestRfid, latestWeight, latestAnomaly] =
         await Promise.all([
-          BoxCountResultModel.findOne({ userId, draftId })
-            .sort({ createdAt: -1 })
-            .lean(),
-          ShipmentDiffModel.findOne({ userId, draftId })
-            .sort({ createdAt: -1 })
-            .lean(),
-          RfidScanResultModel.findOne({ userId, draftId })
-            .sort({ createdAt: -1 })
-            .lean(),
-          WeightCheckModel.findOne({ userId, draftId })
-            .sort({ createdAt: -1 })
-            .lean(),
-          AnomalyReportModel.findOne({ userId, draftId })
-            .sort({ createdAt: -1 })
-            .lean(),
+          safeFindOne(
+            "boxCount",
+            BoxCountResultModel.findOne({ userId, draftId })
+              .sort({ createdAt: -1 })
+              .lean(),
+          ),
+          safeFindOne(
+            "shipmentDiff",
+            ShipmentDiffModel.findOne({ userId, draftId })
+              .sort({ createdAt: -1 })
+              .lean(),
+          ),
+          safeFindOne(
+            "rfid",
+            RfidScanResultModel.findOne({ userId, draftId })
+              .sort({ createdAt: -1 })
+              .lean(),
+          ),
+          safeFindOne(
+            "weight",
+            WeightCheckModel.findOne({ userId, draftId })
+              .sort({ createdAt: -1 })
+              .lean(),
+          ),
+          safeFindOne(
+            "anomaly",
+            AnomalyReportModel.findOne({ userId, draftId })
+              .sort({ createdAt: -1 })
+              .lean(),
+          ),
         ]);
 
       // Compliance is linked via draft (no direct draftId on ComplianceRecord).
       let latestCompliance: Record<string, unknown> | null = null;
       if (mongoose.Types.ObjectId.isValid(draftId)) {
-        const draft = await DraftModel.findOne({ _id: draftId, userId }).lean();
-        if (draft) {
-          const draftCompliance =
-            (draft as unknown as Record<string, unknown>).complianceData;
-          if (
-            draftCompliance &&
-            typeof draftCompliance === "object" &&
-            Object.keys(draftCompliance).length > 0
-          ) {
-            latestCompliance = draftCompliance as Record<string, unknown>;
+        try {
+          const draft = await DraftModel.findOne({
+            _id: draftId,
+            userId,
+          }).lean();
+          if (draft) {
+            const draftCompliance = (
+              draft as unknown as Record<string, unknown>
+            ).complianceData;
+            if (
+              draftCompliance &&
+              typeof draftCompliance === "object" &&
+              Object.keys(draftCompliance).length > 0
+            ) {
+              latestCompliance = draftCompliance as Record<string, unknown>;
+            }
           }
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          console.warn("[insights] shipmentTrustScore — compliance fetch failed:", message);
         }
       }
 
       // ----- per-subsystem score helpers -----
       const breakdown: Record<Subsystem, SubsystemBreakdown> = {
-        boxCount: scoreBoxCount(latestBox),
-        shipmentDiff: scoreShipmentDiff(latestDiff),
-        rfid: scoreRfid(latestRfid),
-        weight: scoreWeight(latestWeight),
-        anomaly: scoreAnomaly(latestAnomaly),
+        boxCount: scoreBoxCount(latestBox as Record<string, unknown> | null),
+        shipmentDiff: scoreShipmentDiff(
+          latestDiff as Record<string, unknown> | null,
+        ),
+        rfid: scoreRfid(latestRfid as Record<string, unknown> | null),
+        weight: scoreWeight(latestWeight as Record<string, unknown> | null),
+        anomaly: scoreAnomaly(latestAnomaly as Record<string, unknown> | null),
         compliance: scoreCompliance(latestCompliance),
       };
 
-      // Weighted average
+      // Weighted average — inputs already clamped inside score helpers.
       let totalWeighted = 0;
       let totalWeight = 0;
-      const signals: Array<{ type: string; value: number; contribution: number }> = [];
+      const signals: Array<{
+        type: string;
+        value: number;
+        contribution: number;
+      }> = [];
+
       for (const key of Object.keys(breakdown) as Subsystem[]) {
         const b = breakdown[key];
         totalWeighted += b.score * b.weight;
@@ -144,9 +477,16 @@ export const insightsRouter = router({
       }
       signals.sort((a, b) => b.contribution - a.contribution);
 
-      const score = totalWeight > 0 ? Math.round(totalWeighted / totalWeight) : 0;
+      const score =
+        totalWeight > 0
+          ? clamp100(Math.round(totalWeighted / totalWeight))
+          : 0;
       const verdict: "trusted" | "watch" | "high-risk" =
-        score >= 80 ? "trusted" : score >= 60 ? "watch" : "high-risk";
+        score >= VERDICT_TRUSTED_THRESHOLD
+          ? "trusted"
+          : score >= VERDICT_WATCH_THRESHOLD
+            ? "watch"
+            : "high-risk";
 
       return {
         score,
@@ -163,9 +503,14 @@ export const insightsRouter = router({
   recentActivity: protectedProcedure
     .input(
       z.object({
-        limit: z.number().int().positive().max(100).default(25),
-        draftId: z.string().optional(),
-      })
+        limit: z
+          .number()
+          .int()
+          .positive()
+          .max(ACTIVITY_LIMIT_MAX)
+          .default(ACTIVITY_LIMIT_DEFAULT),
+        draftId: z.string().max(DRAFT_ID_MAX_LEN).optional(),
+      }),
     )
     .query(async ({ ctx, input }) => {
       const userId = requireUserId(ctx);
@@ -174,154 +519,235 @@ export const insightsRouter = router({
       const baseFilter: Record<string, unknown> = { userId };
       if (draftId) baseFilter.draftId = draftId;
 
-      const [boxes, diffs, rfids, weights, anomalies, audits, pings, loads, trucks] =
-        await Promise.all([
-          BoxCountResultModel.find(baseFilter).sort({ createdAt: -1 }).limit(limit).lean(),
-          ShipmentDiffModel.find(baseFilter).sort({ createdAt: -1 }).limit(limit).lean(),
-          RfidScanResultModel.find(baseFilter).sort({ createdAt: -1 }).limit(limit).lean(),
-          WeightCheckModel.find(baseFilter).sort({ createdAt: -1 }).limit(limit).lean(),
-          AnomalyReportModel.find(baseFilter).sort({ createdAt: -1 }).limit(limit).lean(),
-          AuditEventModel.find(baseFilter).sort({ createdAt: -1 }).limit(limit).lean(),
-          draftId
-            ? TrackingPingModel.find(baseFilter).sort({ createdAt: -1 }).limit(limit).lean()
-            : Promise.resolve([]),
-          draftId
-            ? Promise.resolve([])
-            : LoadOfferModel.find({ userId }).sort({ createdAt: -1 }).limit(limit).lean(),
-          draftId
-            ? Promise.resolve([])
-            : TruckModel.find({ userId }).sort({ createdAt: -1 }).limit(limit).lean(),
-        ]);
+      const [
+        boxes,
+        diffs,
+        rfids,
+        weights,
+        anomalies,
+        audits,
+        pings,
+        loads,
+        trucks,
+      ] = await Promise.all([
+        safeFind(
+          "boxCount",
+          BoxCountResultModel.find(baseFilter)
+            .sort({ createdAt: -1 })
+            .limit(limit)
+            .lean() as Promise<Record<string, unknown>[]>,
+        ),
+        safeFind(
+          "shipmentDiff",
+          ShipmentDiffModel.find(baseFilter)
+            .sort({ createdAt: -1 })
+            .limit(limit)
+            .lean() as Promise<Record<string, unknown>[]>,
+        ),
+        safeFind(
+          "rfid",
+          RfidScanResultModel.find(baseFilter)
+            .sort({ createdAt: -1 })
+            .limit(limit)
+            .lean() as Promise<Record<string, unknown>[]>,
+        ),
+        safeFind(
+          "weight",
+          WeightCheckModel.find(baseFilter)
+            .sort({ createdAt: -1 })
+            .limit(limit)
+            .lean() as Promise<Record<string, unknown>[]>,
+        ),
+        safeFind(
+          "anomaly",
+          AnomalyReportModel.find(baseFilter)
+            .sort({ createdAt: -1 })
+            .limit(limit)
+            .lean() as Promise<Record<string, unknown>[]>,
+        ),
+        safeFind(
+          "audit",
+          AuditEventModel.find(baseFilter)
+            .sort({ createdAt: -1 })
+            .limit(limit)
+            .lean() as Promise<Record<string, unknown>[]>,
+        ),
+        draftId
+          ? safeFind(
+              "tracking",
+              TrackingPingModel.find(baseFilter)
+                .sort({ createdAt: -1 })
+                .limit(limit)
+                .lean() as Promise<Record<string, unknown>[]>,
+            )
+          : Promise.resolve([] as Record<string, unknown>[]),
+        draftId
+          ? Promise.resolve([] as Record<string, unknown>[])
+          : safeFind(
+              "loads",
+              LoadOfferModel.find({ userId })
+                .sort({ createdAt: -1 })
+                .limit(limit)
+                .lean() as Promise<Record<string, unknown>[]>,
+            ),
+        draftId
+          ? Promise.resolve([] as Record<string, unknown>[])
+          : safeFind(
+              "trucks",
+              TruckModel.find({ userId })
+                .sort({ createdAt: -1 })
+                .limit(limit)
+                .lean() as Promise<Record<string, unknown>[]>,
+            ),
+      ]);
 
       const items: ActivityItem[] = [];
 
       for (const b of boxes) {
-        const created = (b as Record<string, unknown>).createdAt as Date | undefined;
+        const created = b.createdAt as Date | undefined;
+        const mismatchPct = Number(b.mismatchPct ?? 0);
         items.push({
-          id: String((b as Record<string, unknown>)._id ?? ""),
+          id: String(b._id ?? ""),
           type: "box-count",
           timestamp: (created ?? new Date()).toISOString(),
-          summary: `Box count: declared ${(b as Record<string, unknown>).declaredCount}, detected ${(b as Record<string, unknown>).detectedCount}`,
+          summary: `Box count: declared ${b.declaredCount}, detected ${b.detectedCount}`,
           severity:
-            ((b as Record<string, unknown>).mismatchPct as number) > 20
+            mismatchPct > BOX_HIGH_THRESHOLD
               ? "high"
-              : ((b as Record<string, unknown>).mismatchPct as number) > 5
+              : mismatchPct > BOX_MED_THRESHOLD
                 ? "medium"
                 : "low",
-          draftId: ((b as Record<string, unknown>).draftId as string | undefined) ?? undefined,
+          draftId: (b.draftId as string | undefined) ?? undefined,
           icon: "package",
         });
       }
+
       for (const d of diffs) {
-        const created = (d as Record<string, unknown>).createdAt as Date | undefined;
-        const risk = ((d as Record<string, unknown>).riskScore as number) ?? 0;
+        const created = d.createdAt as Date | undefined;
+        const risk = Number(d.riskScore ?? 0);
         items.push({
-          id: String((d as Record<string, unknown>)._id ?? ""),
+          id: String(d._id ?? ""),
           type: "shipment-diff",
           timestamp: (created ?? new Date()).toISOString(),
-          summary:
-            (((d as Record<string, unknown>).summary as string) ??
-              `Shipment diff (risk ${risk})`).slice(0, 220),
-          severity: risk > 70 ? "high" : risk > 40 ? "medium" : "low",
-          draftId: ((d as Record<string, unknown>).draftId as string | undefined) ?? undefined,
+          summary: (
+            (d.summary as string) ?? `Shipment diff (risk ${risk})`
+          ).slice(0, SUMMARY_MAX_CHARS),
+          severity:
+            risk > RISK_HIGH_THRESHOLD
+              ? "high"
+              : risk > RISK_MED_THRESHOLD
+                ? "medium"
+                : "low",
+          draftId: (d.draftId as string | undefined) ?? undefined,
           icon: "scan",
         });
       }
+
       for (const r of rfids) {
-        const created = (r as Record<string, unknown>).createdAt as Date | undefined;
-        const matchPct = ((r as Record<string, unknown>).matchPct as number) ?? 0;
+        const created = r.createdAt as Date | undefined;
+        const matchPct = Number(r.matchPct ?? 0);
         items.push({
-          id: String((r as Record<string, unknown>)._id ?? ""),
+          id: String(r._id ?? ""),
           type: "rfid",
           timestamp: (created ?? new Date()).toISOString(),
           summary: `RFID match ${matchPct.toFixed(1)}%`,
-          severity: matchPct < 80 ? "high" : matchPct < 95 ? "medium" : "low",
-          draftId: ((r as Record<string, unknown>).draftId as string | undefined) ?? undefined,
+          severity:
+            matchPct < RFID_HIGH_THRESHOLD
+              ? "high"
+              : matchPct < RFID_MED_THRESHOLD
+                ? "medium"
+                : "low",
+          draftId: (r.draftId as string | undefined) ?? undefined,
           icon: "tag",
         });
       }
+
       for (const w of weights) {
-        const created = (w as Record<string, unknown>).createdAt as Date | undefined;
-        const dev = ((w as Record<string, unknown>).deviationPct as number) ?? 0;
-        const flagged = Boolean((w as Record<string, unknown>).flagged);
+        const created = w.createdAt as Date | undefined;
+        const dev = Number(w.deviationPct ?? 0);
+        const flagged = Boolean(w.flagged);
         items.push({
-          id: String((w as Record<string, unknown>)._id ?? ""),
+          id: String(w._id ?? ""),
           type: "weight",
           timestamp: (created ?? new Date()).toISOString(),
           summary: `Weight deviation ${dev.toFixed(1)}%${flagged ? " (flagged)" : ""}`,
-          severity: flagged && dev > 15 ? "high" : flagged ? "medium" : "low",
-          draftId: ((w as Record<string, unknown>).draftId as string | undefined) ?? undefined,
+          severity:
+            flagged && dev > WEIGHT_HIGH_DEVIATION
+              ? "high"
+              : flagged
+                ? "medium"
+                : "low",
+          draftId: (w.draftId as string | undefined) ?? undefined,
           icon: "scale",
         });
       }
+
       for (const a of anomalies) {
-        const created = (a as Record<string, unknown>).createdAt as Date | undefined;
-        const sev = ((a as Record<string, unknown>).severity as
-          | "low"
-          | "medium"
-          | "high"
-          | undefined) ?? "low";
+        const created = a.createdAt as Date | undefined;
+        const sev = ((a.severity as "low" | "medium" | "high" | undefined) ??
+          "low");
         items.push({
-          id: String((a as Record<string, unknown>)._id ?? ""),
+          id: String(a._id ?? ""),
           type: "anomaly",
           timestamp: (created ?? new Date()).toISOString(),
-          summary:
-            (((a as Record<string, unknown>).summary as string) ?? "Anomaly report").slice(
-              0,
-              220
-            ),
+          summary: (
+            (a.summary as string) ?? "Anomaly report"
+          ).slice(0, SUMMARY_MAX_CHARS),
           severity: sev,
-          draftId: ((a as Record<string, unknown>).draftId as string | undefined) ?? undefined,
+          draftId: (a.draftId as string | undefined) ?? undefined,
           icon: "alert",
         });
       }
+
       for (const ev of audits) {
-        const created = (ev as Record<string, unknown>).createdAt as Date | undefined;
+        const created = ev.createdAt as Date | undefined;
         items.push({
-          id: String((ev as Record<string, unknown>)._id ?? ""),
+          id: String(ev._id ?? ""),
           type: "audit",
           timestamp: (created ?? new Date()).toISOString(),
-          summary:
-            (((ev as Record<string, unknown>).summary as string) ??
-              ((ev as Record<string, unknown>).eventType as string) ??
-              "Audit event").slice(0, 220),
+          summary: (
+            (ev.summary as string) ??
+            (ev.eventType as string) ??
+            "Audit event"
+          ).slice(0, SUMMARY_MAX_CHARS),
           severity: "low",
-          draftId: ((ev as Record<string, unknown>).draftId as string | undefined) ?? undefined,
+          draftId: (ev.draftId as string | undefined) ?? undefined,
           icon: "audit",
         });
       }
+
       for (const p of pings) {
-        const created = (p as Record<string, unknown>).createdAt as Date | undefined;
+        const created = p.createdAt as Date | undefined;
         items.push({
-          id: String((p as Record<string, unknown>)._id ?? ""),
+          id: String(p._id ?? ""),
           type: "tracking",
           timestamp: (created ?? new Date()).toISOString(),
-          summary: `Tracking ping (${Math.round(
-            ((p as Record<string, unknown>).distanceKm as number) ?? 0
-          )} km to destination)`,
+          summary: `Tracking ping (${Math.round(Number(p.distanceKm ?? 0))} km to destination)`,
           severity: "low",
-          draftId: ((p as Record<string, unknown>).draftId as string | undefined) ?? undefined,
+          draftId: (p.draftId as string | undefined) ?? undefined,
           icon: "map",
         });
       }
+
       for (const lo of loads) {
-        const created = (lo as Record<string, unknown>).createdAt as Date | undefined;
+        const created = lo.createdAt as Date | undefined;
         items.push({
-          id: String((lo as Record<string, unknown>)._id ?? ""),
+          id: String(lo._id ?? ""),
           type: "load",
           timestamp: (created ?? new Date()).toISOString(),
-          summary: `Load offer ${(lo as Record<string, unknown>).originCity} → ${(lo as Record<string, unknown>).destinationCity}`,
+          summary: `Load offer ${lo.originCity} → ${lo.destinationCity}`,
           severity: "low",
           icon: "truck",
         });
       }
+
       for (const t of trucks) {
-        const created = (t as Record<string, unknown>).createdAt as Date | undefined;
+        const created = t.createdAt as Date | undefined;
         items.push({
-          id: String((t as Record<string, unknown>)._id ?? ""),
+          id: String(t._id ?? ""),
           type: "truck",
           timestamp: (created ?? new Date()).toISOString(),
-          summary: `Truck ${(t as Record<string, unknown>).plate} registered`,
+          summary: `Truck ${t.plate} registered`,
           severity: "low",
           icon: "truck",
         });
@@ -329,7 +755,7 @@ export const insightsRouter = router({
 
       items.sort(
         (a, b) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
       );
 
       return items.slice(0, limit);
@@ -341,7 +767,11 @@ export const insightsRouter = router({
    * one query.
    */
   draftBundle: protectedProcedure
-    .input(z.object({ draftId: z.string().min(1) }))
+    .input(
+      z.object({
+        draftId: z.string().min(1).max(DRAFT_ID_MAX_LEN),
+      }),
+    )
     .query(async ({ ctx, input }) => {
       const userId = requireUserId(ctx);
       const { draftId } = input;
@@ -363,28 +793,52 @@ export const insightsRouter = router({
         latestPing,
         audit,
       ] = await Promise.all([
-        DraftModel.findOne({ _id: draftId, userId }).lean(),
-        BoxCountResultModel.findOne({ userId, draftId })
-          .sort({ createdAt: -1 })
-          .lean(),
-        ShipmentDiffModel.findOne({ userId, draftId })
-          .sort({ createdAt: -1 })
-          .lean(),
-        RfidScanResultModel.findOne({ userId, draftId })
-          .sort({ createdAt: -1 })
-          .lean(),
-        WeightCheckModel.findOne({ userId, draftId })
-          .sort({ createdAt: -1 })
-          .lean(),
-        AnomalyReportModel.findOne({ userId, draftId })
-          .sort({ createdAt: -1 })
-          .lean(),
-        TrackingPingModel.findOne({ userId, draftId })
-          .sort({ createdAt: -1 })
-          .lean(),
-        AuditEventModel.find({ userId, draftId })
-          .sort({ createdAt: 1 })
-          .lean(),
+        safeFindOne(
+          "draft",
+          DraftModel.findOne({ _id: draftId, userId }).lean(),
+        ),
+        safeFindOne(
+          "boxCount",
+          BoxCountResultModel.findOne({ userId, draftId })
+            .sort({ createdAt: -1 })
+            .lean(),
+        ),
+        safeFindOne(
+          "shipmentDiff",
+          ShipmentDiffModel.findOne({ userId, draftId })
+            .sort({ createdAt: -1 })
+            .lean(),
+        ),
+        safeFindOne(
+          "rfid",
+          RfidScanResultModel.findOne({ userId, draftId })
+            .sort({ createdAt: -1 })
+            .lean(),
+        ),
+        safeFindOne(
+          "weight",
+          WeightCheckModel.findOne({ userId, draftId })
+            .sort({ createdAt: -1 })
+            .lean(),
+        ),
+        safeFindOne(
+          "anomaly",
+          AnomalyReportModel.findOne({ userId, draftId })
+            .sort({ createdAt: -1 })
+            .lean(),
+        ),
+        safeFindOne(
+          "tracking",
+          TrackingPingModel.findOne({ userId, draftId })
+            .sort({ createdAt: -1 })
+            .lean(),
+        ),
+        safeFind(
+          "audit",
+          AuditEventModel.find({ userId, draftId })
+            .sort({ createdAt: 1 })
+            .lean() as Promise<Record<string, unknown>[]>,
+        ),
       ]);
 
       // Compliance is keyed off draft only (no draftId on ComplianceRecord);
@@ -392,10 +846,15 @@ export const insightsRouter = router({
       // user as a best-effort.
       let compliance: Record<string, unknown> | null = null;
       if (draft) {
-        const recent = await ComplianceRecordModel.findOne({ userId })
-          .sort({ timestamp: -1 })
-          .lean();
-        compliance = (recent as Record<string, unknown> | null) ?? null;
+        try {
+          const recent = await ComplianceRecordModel.findOne({ userId })
+            .sort({ timestamp: -1 })
+            .lean();
+          compliance = (recent as Record<string, unknown> | null) ?? null;
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          console.warn("[insights] draftBundle — compliance fetch failed:", message);
+        }
       }
 
       return {
@@ -432,36 +891,44 @@ export const insightsRouter = router({
         drafts,
         recentTicks,
       ] = await Promise.all([
-        DraftModel.countDocuments({ userId }),
-        LoadOfferModel.countDocuments({ userId, status: "open" }),
-        TruckModel.countDocuments({ userId }),
-        AnomalyReportModel.countDocuments({
-          userId,
-          severity: "high",
-          createdAt: { $gte: twentyFourHoursAgo },
-        }),
-        DraftModel.find({ userId }).select({ _id: 1 }).lean(),
-        AuditEventModel.find({ userId })
-          .sort({ createdAt: -1 })
-          .limit(10)
-          .lean(),
+        safeCount("activeShipments", DraftModel.countDocuments({ userId })),
+        safeCount("openLoads", LoadOfferModel.countDocuments({ userId, status: "open" })),
+        safeCount("registeredTrucks", TruckModel.countDocuments({ userId })),
+        safeCount(
+          "highRiskEvents",
+          AnomalyReportModel.countDocuments({
+            userId,
+            severity: "high",
+            createdAt: { $gte: twentyFourHoursAgo },
+          }),
+        ),
+        safeFind(
+          "drafts",
+          DraftModel.find({ userId })
+            .select({ _id: 1 })
+            .lean() as Promise<Record<string, unknown>[]>,
+        ),
+        safeFind(
+          "recentTicks",
+          AuditEventModel.find({ userId })
+            .sort({ createdAt: -1 })
+            .limit(10)
+            .lean() as Promise<Record<string, unknown>[]>,
+        ),
       ]);
 
-      const draftIds = drafts.map((d) => String((d as Record<string, unknown>)._id));
+      const draftIds = drafts.map((d) => String(d._id));
 
-      const avgTrustScore = await computeAvgTrustScore(userId, draftIds, undefined);
-      const avgTrustScore24hAgo = await computeAvgTrustScore(
-        userId,
-        draftIds,
-        fortyEightHoursAgo,
-      );
+      const [avgTrustScore, avgTrustScore24hAgo] = await Promise.all([
+        computeAvgTrustScore(userId, draftIds, undefined),
+        computeAvgTrustScore(userId, draftIds, fortyEightHoursAgo),
+      ]);
 
       const ticks = recentTicks.map((ev) => {
-        const created = (ev as Record<string, unknown>).createdAt as Date | undefined;
+        const created = ev.createdAt as Date | undefined;
         return {
-          type: ((ev as Record<string, unknown>).eventType as string) ?? "audit",
-          summary:
-            (((ev as Record<string, unknown>).summary as string) ?? "Event").slice(0, 200),
+          type: (ev.eventType as string) ?? "audit",
+          summary: ((ev.summary as string) ?? "Event").slice(0, SUMMARY_MAX_CHARS),
           ts: (created ?? new Date()).toISOString(),
           severity: "low" as const,
         };
@@ -472,208 +939,14 @@ export const insightsRouter = router({
         openLoads,
         registeredTrucks,
         highRiskEventsLast24h,
-        avgTrustScore: Math.round(avgTrustScore),
+        avgTrustScore: clamp100(Math.round(avgTrustScore)),
         avgTrustScoreDelta:
-          Math.round(avgTrustScore) - Math.round(avgTrustScore24hAgo),
+          clamp100(Math.round(avgTrustScore)) -
+          clamp100(Math.round(avgTrustScore24hAgo)),
         recentTicks: ticks,
       };
     }),
 });
-
-// ---------------------------------------------------------------------------
-// Scoring helpers
-// ---------------------------------------------------------------------------
-
-function scoreBoxCount(doc: Record<string, unknown> | null): SubsystemBreakdown {
-  if (!doc) {
-    return {
-      score: NEUTRAL_SCORE,
-      weight: NEUTRAL_WEIGHT,
-      latestAt: null,
-      note: "No box count check on record",
-    };
-  }
-  const mismatchPct = Number(doc.mismatchPct ?? 0);
-  const score = Math.max(0, 100 - Math.min(100, mismatchPct * 2));
-  return {
-    score,
-    weight: SUBSYSTEM_WEIGHTS.boxCount,
-    latestAt: (doc.createdAt as Date | undefined) ?? null,
-    note: `Mismatch ${mismatchPct.toFixed(1)}% (declared ${doc.declaredCount}, detected ${doc.detectedCount})`,
-  };
-}
-
-function scoreShipmentDiff(
-  doc: Record<string, unknown> | null,
-): SubsystemBreakdown {
-  if (!doc) {
-    return {
-      score: NEUTRAL_SCORE,
-      weight: NEUTRAL_WEIGHT,
-      latestAt: null,
-      note: "No before/after diff on record",
-    };
-  }
-  const risk = Number(doc.riskScore ?? 0);
-  const score = Math.max(0, 100 - risk);
-  return {
-    score,
-    weight: SUBSYSTEM_WEIGHTS.shipmentDiff,
-    latestAt: (doc.createdAt as Date | undefined) ?? null,
-    note: `Risk ${risk} — ${(doc.summary as string | undefined)?.slice(0, 80) ?? ""}`,
-  };
-}
-
-function scoreRfid(doc: Record<string, unknown> | null): SubsystemBreakdown {
-  if (!doc) {
-    return {
-      score: NEUTRAL_SCORE,
-      weight: NEUTRAL_WEIGHT,
-      latestAt: null,
-      note: "No RFID scan on record",
-    };
-  }
-  const matchPct = Number(doc.matchPct ?? 0);
-  return {
-    score: Math.max(0, Math.min(100, matchPct)),
-    weight: SUBSYSTEM_WEIGHTS.rfid,
-    latestAt: (doc.createdAt as Date | undefined) ?? null,
-    note: `Match ${matchPct.toFixed(1)}%`,
-  };
-}
-
-function scoreWeight(doc: Record<string, unknown> | null): SubsystemBreakdown {
-  if (!doc) {
-    return {
-      score: NEUTRAL_SCORE,
-      weight: NEUTRAL_WEIGHT,
-      latestAt: null,
-      note: "No weight check on record",
-    };
-  }
-  const flagged = Boolean(doc.flagged);
-  const deviationPct = Number(doc.deviationPct ?? 0);
-  const score = flagged ? Math.max(0, 100 - deviationPct * 5) : 100;
-  return {
-    score,
-    weight: SUBSYSTEM_WEIGHTS.weight,
-    latestAt: (doc.createdAt as Date | undefined) ?? null,
-    note: flagged
-      ? `Flagged — deviation ${deviationPct.toFixed(1)}%`
-      : "Within tolerance",
-  };
-}
-
-function scoreAnomaly(doc: Record<string, unknown> | null): SubsystemBreakdown {
-  if (!doc) {
-    return {
-      score: NEUTRAL_SCORE,
-      weight: NEUTRAL_WEIGHT,
-      latestAt: null,
-      note: "No anomaly check on record",
-    };
-  }
-  const risk = Number(doc.riskScore ?? 0);
-  const severity = (doc.severity as string | undefined) ?? "low";
-  let score = Math.max(0, 100 - risk);
-  if (severity === "high") {
-    score = Math.max(0, score - 10);
-  }
-  return {
-    score,
-    weight: SUBSYSTEM_WEIGHTS.anomaly,
-    latestAt: (doc.createdAt as Date | undefined) ?? null,
-    note: `Severity ${severity}, risk ${risk}`,
-  };
-}
-
-function scoreCompliance(
-  doc: Record<string, unknown> | null,
-): SubsystemBreakdown {
-  if (!doc) {
-    return {
-      score: NEUTRAL_SCORE,
-      weight: NEUTRAL_WEIGHT,
-      latestAt: null,
-      note: "No compliance data linked to draft",
-    };
-  }
-  const riskLevel = doc.riskLevel as Record<string, unknown> | undefined;
-  const riskScore =
-    typeof doc.riskScore === "number"
-      ? (doc.riskScore as number)
-      : typeof riskLevel?.riskScore === "number"
-        ? (riskLevel.riskScore as number)
-        : null;
-  if (riskScore === null) {
-    return {
-      score: NEUTRAL_SCORE,
-      weight: NEUTRAL_WEIGHT,
-      latestAt: null,
-      note: "Compliance present but no risk score",
-    };
-  }
-  return {
-    score: Math.max(0, 100 - riskScore),
-    weight: SUBSYSTEM_WEIGHTS.compliance,
-    latestAt: null,
-    note: `Compliance risk ${riskScore}`,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Avg trust score helper (used by operationsTicker)
-// ---------------------------------------------------------------------------
-
-async function computeAvgTrustScore(
-  userId: mongoose.Types.ObjectId,
-  draftIds: string[],
-  asOf?: Date,
-): Promise<number> {
-  if (draftIds.length === 0) return 0;
-
-  // Limit how many drafts we inspect — averaging is approximate.
-  const sampled = draftIds.slice(0, 25);
-  let total = 0;
-  let counted = 0;
-  for (const draftId of sampled) {
-    try {
-      const dateClause: Record<string, unknown> | undefined = asOf
-        ? { createdAt: { $lte: asOf } }
-        : undefined;
-      const findFilter: Record<string, unknown> = { userId, draftId };
-      if (dateClause) Object.assign(findFilter, dateClause);
-      const [box, diff, rfid, weight, anomaly] = await Promise.all([
-        BoxCountResultModel.findOne(findFilter).sort({ createdAt: -1 }).lean(),
-        ShipmentDiffModel.findOne(findFilter).sort({ createdAt: -1 }).lean(),
-        RfidScanResultModel.findOne(findFilter).sort({ createdAt: -1 }).lean(),
-        WeightCheckModel.findOne(findFilter).sort({ createdAt: -1 }).lean(),
-        AnomalyReportModel.findOne(findFilter).sort({ createdAt: -1 }).lean(),
-      ]);
-      const breakdown: SubsystemBreakdown[] = [
-        scoreBoxCount(box as Record<string, unknown> | null),
-        scoreShipmentDiff(diff as Record<string, unknown> | null),
-        scoreRfid(rfid as Record<string, unknown> | null),
-        scoreWeight(weight as Record<string, unknown> | null),
-        scoreAnomaly(anomaly as Record<string, unknown> | null),
-        scoreCompliance(null),
-      ];
-      let weighted = 0;
-      let weightSum = 0;
-      for (const b of breakdown) {
-        weighted += b.score * b.weight;
-        weightSum += b.weight;
-      }
-      if (weightSum > 0) {
-        total += weighted / weightSum;
-        counted += 1;
-      }
-    } catch {
-      // swallow — averaging is best-effort
-    }
-  }
-  return counted > 0 ? total / counted : 0;
-}
 
 // Re-export so non-call-sites can reference the helper if needed.
 export { assertObjectId };

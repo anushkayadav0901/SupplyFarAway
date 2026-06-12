@@ -1,4 +1,4 @@
-# SupplyChain Frontend
+# Supply Chain Frontend
 
 React + Vite app.
 

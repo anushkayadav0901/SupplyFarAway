@@ -357,8 +357,9 @@ const Login = () => {
     onSuccess: (data: { token: string; [key: string]: unknown }) => {
       localStorage.setItem("token", data.token);
       setToastProps({ type: "success", message: "Login Successful!" });
+      const nextPath = searchParams.get("next") || "/dashboard";
       setTimeout(() => {
-        navigate("/dashboard");
+        navigate(nextPath);
       }, 1000);
     },
     onError: (error: { message: string }) => {
@@ -404,16 +405,29 @@ const Login = () => {
     if (token) {
       localStorage.setItem("token", token);
       setToastProps({ type: "success", message: "Google Login Successful!" });
+      const nextPath = searchParams.get("next") || "/dashboard";
       setTimeout(() => {
-        navigate("/dashboard");
+        navigate(nextPath);
       }, 1500);
     }
   }, [searchParams, navigate]);
+
+  // Validate email format
+  const isValidEmail = (email: string): boolean =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   // Memoize handleLogin to prevent recreation
   const handleLogin = useCallback(() => {
     if (!emailAddress || !password) {
       setToastProps({ type: "warn", message: "Please fill in all fields" });
+      return;
+    }
+    if (!isValidEmail(emailAddress)) {
+      setToastProps({ type: "warn", message: "Please enter a valid email address" });
+      return;
+    }
+    if (password.length < 6) {
+      setToastProps({ type: "warn", message: "Password must be at least 6 characters" });
       return;
     }
 
@@ -513,10 +527,9 @@ const Login = () => {
             transition={{ duration: 1, delay: 0.3 }}
             className="z-20"
           >
-            <h1 className="text-5xl font-bold text-white mb-2 tracking-tight drop-shadow-lg">
-              Smart
+             <h1 className="text-5xl font-bold text-white mb-2 tracking-tight drop-shadow-lg">
               <span className="bg-gradient-to-r from-blue-300 to-emerald-300 bg-clip-text text-transparent">
-                Logix
+                Supply Chain
               </span>
             </h1>
             <motion.p
@@ -570,7 +583,7 @@ const Login = () => {
               transition={{ delay: 0.2, duration: 0.5 }}
               className="text-center text-neutral-600 mb-8"
             >
-              Log in to SupplyChain
+              Log in to Supply Chain
             </motion.p>
 
             <motion.div
@@ -580,12 +593,16 @@ const Login = () => {
               className="space-y-6"
             >
               <div className="relative">
+                <label htmlFor="login-email" className="sr-only">Email Address</label>
                 <input
+                  id="login-email"
                   type="email"
                   placeholder="Email Address"
                   value={emailAddress}
                   onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleLogin()}
                   disabled={loading}
+                  autoComplete="email"
                   className="w-full px-4 py-3 pl-10 border border-neutral-300 rounded-xl text-neutral-700 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-60 disabled:cursor-not-allowed"
                 />
                 <svg
@@ -606,12 +623,16 @@ const Login = () => {
 
               {/* Password Input */}
               <div className="relative">
+                <label htmlFor="login-password" className="sr-only">Password</label>
                 <input
+                  id="login-password"
                   type={showPassword ? "text" : "password"}
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleLogin()}
                   disabled={loading}
+                  autoComplete="current-password"
                   className="w-full px-4 py-3 pl-10 border border-neutral-300 rounded-xl text-neutral-700 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-60 disabled:cursor-not-allowed"
                 />
                 <svg

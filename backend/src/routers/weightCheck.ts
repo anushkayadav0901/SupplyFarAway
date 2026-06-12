@@ -7,6 +7,25 @@ import { AuditEventModel } from "../models/AuditEvent.js";
 import { WeightCheckModel } from "../models/WeightCheck.js";
 import { protectedProcedure, router } from "../trpc.js";
 
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+/** deviationPct threshold above which an AnomalyReport is emitted (when also flagged) */
+const ANOMALY_DEVIATION_PCT_THRESHOLD = 15;
+/** deviationPct threshold above which severity is elevated to "high" */
+const HIGH_SEVERITY_DEVIATION_PCT = 30;
+/** Maximum realistic weight in kg to guard against obviously erroneous input */
+const MAX_WEIGHT_KG = 1_000_000;
+/** Maximum threshold percentage input */
+const MAX_THRESHOLD_PCT = 100;
+/** Upper bound for riskScore */
+const MAX_RISK_SCORE = 100;
+/** Multiplier used to convert deviationPct to riskScore */
+const RISK_SCORE_DEVIATION_MULTIPLIER = 2;
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 async function writeAudit(
   userId: mongoose.Types.ObjectId,
   draftId: string | undefined,
@@ -28,6 +47,9 @@ async function writeAudit(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Router
+// ---------------------------------------------------------------------------
 export const weightCheckRouter = router({
   /**
    * POST → weightCheck.submit
@@ -35,10 +57,10 @@ export const weightCheckRouter = router({
   submit: protectedProcedure
     .input(
       z.object({
-        draftId: z.string().optional(),
-        declaredWeightKg: z.number().positive(),
-        measuredWeightKg: z.number().nonnegative(),
-        thresholdPct: z.number().nonnegative().default(5),
+        draftId: z.string().max(100).optional(),
+        declaredWeightKg: z.number().positive().max(MAX_WEIGHT_KG),
+        measuredWeightKg: z.number().nonnegative().max(MAX_WEIGHT_KG),
+        thresholdPct: z.number().nonnegative().max(MAX_THRESHOLD_PCT).default(5),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -75,8 +97,8 @@ export const weightCheckRouter = router({
         },
       );
 
-      // Cross-feature linkage: emit AnomalyReport when flagged AND deviationPct > 15.
-      if (flagged && deviationPct > 15) {
+      // Cross-feature linkage: emit AnomalyReport when flagged AND deviationPct > ANOMALY_DEVIATION_PCT_THRESHOLD.
+      if (flagged && deviationPct > ANOMALY_DEVIATION_PCT_THRESHOLD) {
         try {
           await AnomalyReportModel.create({
             userId,
@@ -89,8 +111,8 @@ export const weightCheckRouter = router({
             destinationCity: "n/a",
             routeDeviationKm: 0,
             flags: ["weight-mismatch"],
-            severity: deviationPct > 30 ? "high" : "medium",
-            riskScore: Math.min(100, Math.round(deviationPct * 2)),
+            severity: deviationPct > HIGH_SEVERITY_DEVIATION_PCT ? "high" : "medium",
+            riskScore: Math.min(MAX_RISK_SCORE, Math.round(deviationPct * RISK_SCORE_DEVIATION_MULTIPLIER)),
             summary: `Weight mismatch: declared ${declaredWeightKg}kg vs measured ${measuredWeightKg}kg (${deviationPct.toFixed(1)}% deviation).`,
             createdAt: new Date(),
           });

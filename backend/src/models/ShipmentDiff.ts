@@ -10,6 +10,7 @@ const shipmentDiffSchema = new Schema({
   draftId: {
     type: String,
     required: false,
+    index: true,
   },
   riskScore: {
     type: Number,
@@ -36,6 +37,7 @@ const shipmentDiffSchema = new Schema({
   createdAt: {
     type: Date,
     default: Date.now,
+    index: true,
   },
 });
 

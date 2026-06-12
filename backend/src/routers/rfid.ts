@@ -7,6 +7,23 @@ import { AuditEventModel } from "../models/AuditEvent.js";
 import { RfidScanResultModel } from "../models/RfidScanResult.js";
 import { protectedProcedure, router } from "../trpc.js";
 
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+/** matchPct threshold below which an AnomalyReport is emitted */
+const ANOMALY_MATCH_PCT_THRESHOLD = 80;
+/** matchPct threshold below which severity is elevated to "high" */
+const HIGH_SEVERITY_MATCH_PCT_THRESHOLD = 50;
+/** Maximum number of tags per list to prevent abuse */
+const MAX_TAGS_PER_LIST = 5000;
+/** Maximum character length of a single RFID tag string */
+const MAX_TAG_LEN = 256;
+/** Upper bound for riskScore */
+const MAX_RISK_SCORE = 100;
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 async function writeAudit(
   userId: mongoose.Types.ObjectId,
   draftId: string | undefined,
@@ -28,6 +45,9 @@ async function writeAudit(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Router
+// ---------------------------------------------------------------------------
 export const rfidRouter = router({
   /**
    * POST rfid.verify
@@ -36,9 +56,16 @@ export const rfidRouter = router({
   verify: protectedProcedure
     .input(
       z.object({
-        draftId: z.string().optional(),
-        manifestTags: z.array(z.string().min(1)).min(1),
-        scannedTags: z.array(z.string().min(1)),
+        draftId: z.string().max(100).optional(),
+        manifestTags: z
+          .array(z.string().min(1).max(MAX_TAG_LEN))
+          .min(1)
+          .max(MAX_TAGS_PER_LIST)
+          .transform((tags) => [...new Set(tags)]), // dedup
+        scannedTags: z
+          .array(z.string().min(1).max(MAX_TAG_LEN))
+          .max(MAX_TAGS_PER_LIST)
+          .transform((tags) => [...new Set(tags)]), // dedup
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -66,7 +93,7 @@ export const rfidRouter = router({
 
       const matchPct =
         manifestTags.length > 0
-          ? (matched.length / manifestTags.length) * 100
+          ? Math.min(100, (matched.length / manifestTags.length) * 100)
           : 0;
 
       const doc = await RfidScanResultModel.create({
@@ -95,7 +122,7 @@ export const rfidRouter = router({
       );
 
       // Cross-feature linkage: emit AnomalyReport when match rate is low.
-      if (matchPct < 80) {
+      if (matchPct < ANOMALY_MATCH_PCT_THRESHOLD) {
         try {
           await AnomalyReportModel.create({
             userId,
@@ -108,8 +135,8 @@ export const rfidRouter = router({
             destinationCity: "n/a",
             routeDeviationKm: 0,
             flags: ["rfid-shortfall"],
-            severity: matchPct < 50 ? "high" : "medium",
-            riskScore: Math.min(100, Math.round(100 - matchPct)),
+            severity: matchPct < HIGH_SEVERITY_MATCH_PCT_THRESHOLD ? "high" : "medium",
+            riskScore: Math.min(MAX_RISK_SCORE, Math.round(100 - matchPct)),
             summary: `RFID scan shortfall: ${matchPct.toFixed(1)}% matched (${missing.length} missing tags).`,
             createdAt: new Date(),
           });

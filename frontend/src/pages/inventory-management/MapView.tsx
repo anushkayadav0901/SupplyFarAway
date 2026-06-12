@@ -240,10 +240,13 @@ function MapView({ draftId }: MapViewProps): React.ReactElement {
       }
     };
 
-    if (draftId && MAPS) {
+    if (!MAPS) {
+      setError("Map service is unavailable — Google Maps API key is not configured.");
+      setLoading(false);
+    } else if (draftId) {
       fetchAndRenderMap();
     } else {
-      setError("No draft ID or Google Maps API key provided");
+      setError("No draft ID provided. Please navigate from Route Optimization.");
       setLoading(false);
     }
 

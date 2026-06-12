@@ -19,16 +19,16 @@ export const navigationStructure = {
     sections: [
       {
         id: "about",
-        title: "About SupplyChain",
+        title: "About Supply Chain",
         description:
-          "Discover SupplyChain, an AI-powered logistics intelligence platform revolutionizing global supply chain management with advanced compliance, routing, and inventory solutions.",
+          "Discover Supply Chain, an AI-powered logistics intelligence platform revolutionizing global supply chain management with advanced compliance, routing, and inventory solutions.",
         linkId: "/dashboard",
         content: `
-          # Welcome to SupplyChain ✨
+          # Welcome to Supply Chain ✨
 
           ### Revolutionizing Global Logistics with Intelligent AI-Powered Solutions
 
-          SupplyChain is the next-generation logistics intelligence platform that transforms how businesses navigate complex global and domestic shipment challenges. Powered by cutting-edge MERN stack architecture and enhanced with advanced AI technologies including Gemini Pro and Google Cloud Vision, we deliver unprecedented efficiency and intelligence to your entire supply chain ecosystem.
+          Supply Chain is the next-generation logistics intelligence platform that transforms how businesses navigate complex global and domestic shipment challenges. Powered by cutting-edge MERN stack architecture and enhanced with advanced AI technologies including Gemini Pro and Google Cloud Vision, we deliver unprecedented efficiency and intelligence to your entire supply chain ecosystem.
           
           ## Our Mission 🎯
           
@@ -54,7 +54,7 @@ export const navigationStructure = {
           ### 📋 Professional Resources Hub
           Comprehensive library of essential shipping document templates, compliance guides, and industry-standard forms for streamlined operations.
           
-          ## Why Choose SupplyChain? 🌟
+          ## Why Choose Supply Chain? 🌟
           
           ### 🔄 99.99% Uptime Guarantee
           Enterprise-grade cloud infrastructure ensures your logistics operations never stop, with redundant systems and 24/7 monitoring.
@@ -82,7 +82,7 @@ export const navigationStructure = {
           ### Step 3: Explore & Optimize
           Dive into our powerful dashboard and start leveraging features like AI compliance checking and intelligent route optimization immediately.
           
-          ### Experience the future of logistics intelligence with SupplyChain – where artificial intelligence meets supply chain excellence.
+          ### Experience the future of logistics intelligence with Supply Chain – where artificial intelligence meets supply chain excellence.
           `,
         examples: [
           "Validate 1,000+ shipments in minutes with AI compliance checks.",
@@ -101,12 +101,12 @@ export const navigationStructure = {
         id: "profile",
         title: "Profile Overview",
         description:
-          "Manage your SupplyChain account and access your personalized dashboard.",
+          "Manage your Supply Chain account and access your personalized dashboard.",
         linkId: "/profile/:userId",
         content: `
 ### About Profile
 
-The Profile section is your central hub for managing your SupplyChain account. It provides access to your saved data, account settings, and historical records.
+The Profile section is your central hub for managing your Supply Chain account. It provides access to your saved data, account settings, and historical records.
 
 ## Features
 
@@ -134,7 +134,7 @@ The Profile section is your central hub for managing your SupplyChain account. I
         content: `
 ### Smart Account
 
-Customize your SupplyChain account by updating personal details, passwords, and other details. Options such as company name, email, and contact information are available. Please note that if you have signed up using Google, you can only update your email and password.
+Customize your Supply Chain account by updating personal details, passwords, and other details. Options such as company name, email, and contact information are available. Please note that if you have signed up using Google, you can only update your email and password.
 
 ## Features
 
@@ -170,7 +170,7 @@ Customize your SupplyChain account by updating personal details, passwords, and 
         content: `
 ### Record History
 
-History provides a record of your past activities, including compliance reports, saved routes, and product analyses. Providing a detailed overview of your past activities with SupplyChain's features.
+History provides a record of your past activities, including compliance reports, saved routes, and product analyses. Providing a detailed overview of your past activities with Supply Chain's features.
 
 ## Features
 
@@ -230,12 +230,12 @@ The Analysis section provides detailed insights from AI-driven product and compl
         id: "overview",
         title: "Compliance Option Overview",
         description:
-          "Understand how SupplyChain ensures your shipments meet global trade regulations.",
+          "Understand how Supply Chain ensures your shipments meet global trade regulations.",
         linkId: "/compliance",
         content: `
           ### How Does It Work?
           
-          Experience next-generation compliance management with SupplyChain's AI-powered Compliance Check system. Leveraging advanced Gemini Pro AI technology, our platform automatically validates shipments against complex international trade regulations while offering flexible input methods and comprehensive automation capabilities.
+          Experience next-generation compliance management with Supply Chain's AI-powered Compliance Check system. Leveraging advanced Gemini Pro AI technology, our platform automatically validates shipments against complex international trade regulations while offering flexible input methods and comprehensive automation capabilities.
           
           ## Core Intelligence Features
           
@@ -282,7 +282,7 @@ The Analysis section provides detailed insights from AI-driven product and compl
         content: `
 # Understanding CSV Upload
 
-The CSV Upload functionality in SupplyChain enables efficient validation of multiple shipments simultaneously by seamlessly importing data in CSV format, significantly reducing manual tasks and streamlining lengthy processes while ensuring robust compliance checks and enhanced operational accuracy.
+The CSV Upload functionality in Supply Chain enables efficient validation of multiple shipments simultaneously by seamlessly importing data in CSV format, significantly reducing manual tasks and streamlining lengthy processes while ensuring robust compliance checks and enhanced operational accuracy.
 
 ## How It Works
 
@@ -312,7 +312,7 @@ The CSV Upload functionality in SupplyChain enables efficient validation of mult
         content: `
 # Why it is used
 
-Leverage Google Cloud Vision and Gemini Pro AI to analyze product images and generate compliance-related insights. SupplyChain analyzes product images to extract critical details, accurately identifies products, and generates actionable compliance-related insights. Additionally, it provides tailored document suggestions for regulatory adherence, which can be seamlessly sent to the Compliance Tab for streamlined processing and review.
+Leverage Google Cloud Vision and Gemini Pro AI to analyze product images and generate compliance-related insights. Supply Chain analyzes product images to extract critical details, accurately identifies products, and generates actionable compliance-related insights. Additionally, it provides tailored document suggestions for regulatory adherence, which can be seamlessly sent to the Compliance Tab for streamlined processing and review.
 
 ## Features
 
@@ -342,7 +342,7 @@ Leverage Google Cloud Vision and Gemini Pro AI to analyze product images and gen
         content: `
 # Form Overview
 
-The Manual Form feature in SupplyChain enables users to input shipment details individually for accurate compliance checks. This user-friendly interface supports precise data entry for fields like Origin Country and HS Code, ensuring regulatory adherence and seamless integration with AI-driven logistics insights.
+The Manual Form feature in Supply Chain enables users to input shipment details individually for accurate compliance checks. This user-friendly interface supports precise data entry for fields like Origin Country and HS Code, ensuring regulatory adherence and seamless integration with AI-driven logistics insights.
 
 ## Features
 
@@ -751,7 +751,7 @@ View and download filled samples of shipping documents to understand their struc
         id: "contributors",
         title: "Our Contributors",
         description:
-          "The talented individuals who make SupplyChain's vision a reality",
+          "The talented individuals who make Supply Chain's vision a reality",
         component: ProfileCards,
       },
     ],

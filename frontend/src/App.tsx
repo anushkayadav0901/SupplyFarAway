@@ -1,6 +1,7 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
+import { AlertTriangle } from "lucide-react";
 import { ThemeProvider } from "./context/ThemeContext";
 import Login from "./pages/auth/Login";
 import CreateAccount from "./pages/auth/CreateAccount";
@@ -33,6 +34,63 @@ import TruckRegistry from "./pages/truck-registry/TruckRegistry";
 import AuditLog from "./pages/audit-log/AuditLog";
 import TrustCenter from "./pages/trust-center/TrustCenter";
 
+// ─────────────────────────────────────────────────────────────
+// ErrorBoundary — catches render-phase errors anywhere in the
+// subtree and renders a graceful fallback (AlertTriangle + message
+// + Reload). No stack trace is exposed to the user.
+// ─────────────────────────────────────────────────────────────
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  ErrorBoundaryState
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(): ErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, info: React.ErrorInfo): void {
+    // Log to console for developers; never expose to the UI.
+    console.error("[ErrorBoundary] Uncaught render error:", error, info);
+  }
+
+  render(): React.ReactNode {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-slate-50 px-4 text-center">
+          <AlertTriangle
+            size={48}
+            className="text-amber-500"
+            aria-hidden="true"
+          />
+          <p className="text-slate-700 text-lg font-semibold">
+            Something went wrong. Please reload the page.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+          >
+            Reload
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Page transition config — 150 ms, respects reduced-motion via
+// framer-motion's built-in reduced-motion support.
+// ─────────────────────────────────────────────────────────────
 const pageFade = {
   initial: { opacity: 0 },
   animate: { opacity: 1 },
@@ -50,7 +108,7 @@ function AnimatedRoutes() {
           <Route path="/" element={<Login />} />
           <Route path="/createAccount" element={<CreateAccount />} />
 
-          {/* Protected Routes (Wrap in ProtectedRoute layout) */}
+          {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/compliance-check" element={<ComplianceCheck />} />
@@ -96,12 +154,15 @@ function AnimatedRoutes() {
 
 function App() {
   return (
-    <ThemeProvider>
-      <BrowserRouter>
-        <AnimatedRoutes />
-      </BrowserRouter>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <BrowserRouter>
+          <AnimatedRoutes />
+        </BrowserRouter>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 
+export { ErrorBoundary };
 export default App;

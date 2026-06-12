@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { FaLeaf, FaTimes } from "react-icons/fa";
 import { Bar } from "react-chartjs-2";
 import {
@@ -59,6 +59,7 @@ function CarbonFootprint(): React.ReactElement {
   const [toastProps, setToastProps] = useState<ToastProps>({ type: "", message: "" });
   const navigate = useNavigate();
   const { draftId } = useParams<{ draftId: string }>();
+  const prefersReducedMotion = useReducedMotion();
 
   const showToast = (type: string, message: string) => {
     setToastProps({ type, message });
@@ -198,7 +199,11 @@ function CarbonFootprint(): React.ReactElement {
               </div>
             </div>
           ) : carbonData ? (
-            <>
+            <motion.div
+              initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+            >
               {/* Summary */}
               <div className="mb-8">
                 <h2 className="text-2xl font-bold mb-4 text-gray-800">
@@ -286,7 +291,7 @@ function CarbonFootprint(): React.ReactElement {
                   ))}
                 </ul>
               </div>
-            </>
+            </motion.div>
           ) : (
             <div className="flex flex-col items-center justify-center h-96 text-center">
               <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">

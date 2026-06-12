@@ -138,18 +138,22 @@ export const logisticsRouter = router({
   generateRoutes: publicProcedure
     .input(
       z.object({
-        from: z.string().min(1),
-        to: z.string().min(1),
+        from: z.string().min(1).max(200),
+        to: z.string().min(1).max(200),
         package: PackageSchema,
-        description: z.string().min(1),
+        description: z.string().min(1).max(500),
         draftId: z.string().optional(),
       })
     )
     .mutation(async ({ input }) => {
+      if (!process.env.GOOGLE_API_KEY) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "GOOGLE_API_KEY is not configured" });
+      }
+
       const { from, to, description, draftId } = input;
       const pkg = input.package;
 
-      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY ?? "");
+      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
       const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
       const prompt = `Generate 7 shipping routes from ${from} to ${to}. Package: ${pkg.quantity} units, ${pkg.weight}kg, ${pkg.length}x${pkg.width}x${pkg.height}cm, "${description}".
@@ -292,7 +296,11 @@ JSON format:
       const userId = requireUserId(ctx);
       const { routes: routesData, draftId } = input;
 
-      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY ?? "");
+      if (!process.env.GOOGLE_API_KEY) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "GOOGLE_API_KEY is not configured" });
+      }
+
+      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
       const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
 
       const prompt = `
@@ -443,8 +451,14 @@ JSON format:
   // Retrieve map data stored in a draft.
   // -------------------------------------------------------------------------
   getMapData: protectedProcedure
-    .input(z.object({ draftId: z.string() }))
-    .query(async ({ input }) => {
+    .input(z.object({ draftId: z.string().min(1) }))
+    .query(async ({ input, ctx }) => {
+      requireUserId(ctx);
+
+      if (!mongoose.Types.ObjectId.isValid(input.draftId)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid draftId format" });
+      }
+
       const draft = await DraftModel.findById(input.draftId);
       if (!draft) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Draft not found" });
@@ -506,9 +520,13 @@ JSON format:
   // Delete a saved route record for the authenticated user.
   // -------------------------------------------------------------------------
   deleteRouteRecord: protectedProcedure
-    .input(z.object({ recordId: z.string() }))
+    .input(z.object({ recordId: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
       const userId = requireUserId(ctx);
+
+      if (!mongoose.Types.ObjectId.isValid(input.recordId)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid recordId format" });
+      }
 
       const record = await SaveRouteModel.findOneAndDelete({
         _id: input.recordId,
@@ -616,25 +634,33 @@ JSON format:
             });
         }
 
-        const apiResponse = await axios.post(
-          "https://www.carboninterface.com/api/v1/estimates",
-          {
-            type: "shipping",
-            weight_value: weight,
-            weight_unit: "kg",
-            distance_value: segmentDistance,
-            distance_unit: "km",
-            transport_method: transportMethod,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${CARBON_INTERFACE_API_KEY}`,
-              "Content-Type": "application/json",
+        let apiResponse;
+        try {
+          apiResponse = await axios.post(
+            "https://www.carboninterface.com/api/v1/estimates",
+            {
+              type: "shipping",
+              weight_value: weight,
+              weight_unit: "kg",
+              distance_value: segmentDistance,
+              distance_unit: "km",
+              transport_method: transportMethod,
             },
-          }
-        );
+            {
+              headers: {
+                Authorization: `Bearer ${CARBON_INTERFACE_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+        } catch (carbonErr) {
+          throw new TRPCError({
+            code: "BAD_GATEWAY",
+            message: `Carbon Interface API request failed: ${(carbonErr as Error)?.message ?? "unknown"}`,
+          });
+        }
 
-        if (![200, 201].includes(apiResponse.status) || !apiResponse.data.data) {
+        if (![200, 201].includes(apiResponse.status) || !apiResponse.data?.data) {
           throw new TRPCError({
             code: "BAD_GATEWAY",
             message: `Carbon Interface API failed: Status ${apiResponse.status}`,
@@ -656,7 +682,10 @@ JSON format:
       }
 
       // Step 2: Gemini AI suggestions & environmental impact
-      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY ?? "");
+      if (!process.env.GOOGLE_API_KEY) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "GOOGLE_API_KEY is not configured" });
+      }
+      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
       const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
       const legLines = perLegEmissions
@@ -697,8 +726,16 @@ ${legLines}
       Ensure the response is concise, actionable, and directly uses the provided per-leg emissions data.
     `;
 
-      const result = await model.generateContent(prompt);
-      const rawResponse = result.response.text();
+      let rawResponse: string;
+      try {
+        const result = await model.generateContent(prompt);
+        rawResponse = result.response.text();
+      } catch (geminiErr) {
+        throw new TRPCError({
+          code: "BAD_GATEWAY",
+          message: `Gemini carbon suggestions failed: ${(geminiErr as Error)?.message ?? "unknown"}`,
+        });
+      }
 
       const jsonMatch = rawResponse.match(/{[\s\S]*}/);
       if (!jsonMatch) {
@@ -780,8 +817,14 @@ ${legLines}
   // Retrieve previously-calculated carbon analysis stored in a draft.
   // -------------------------------------------------------------------------
   getCarbonFootprint: protectedProcedure
-    .input(z.object({ draftId: z.string() }))
-    .query(async ({ input }) => {
+    .input(z.object({ draftId: z.string().min(1) }))
+    .query(async ({ input, ctx }) => {
+      requireUserId(ctx);
+
+      if (!mongoose.Types.ObjectId.isValid(input.draftId)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid draftId format" });
+      }
+
       const draft = await DraftModel.findById(input.draftId);
       if (!draft) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Draft not found" });
@@ -871,7 +914,10 @@ ${legLines}
         });
       }
 
-      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY ?? "");
+      if (!process.env.GOOGLE_API_KEY) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "GOOGLE_API_KEY is not configured" });
+      }
+      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 
       let originResult, destinationResult;
       try {

@@ -1,12 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
+import { Camera, Video } from "lucide-react";
 import Header from "../../components/Header";
 import InsightsRail from "../../components/InsightsRail";
 import CountUp from "../../components/CountUp";
 import DraftPicker from "../../components/DraftPicker";
 import { trpc } from "../../lib/trpc";
 
+// ─── constants ────────────────────────────────────────────────────────────────
+const FRAME_INTERVAL_MS = 1000;
+const COMMENTARY_EVERY_N_FRAMES = 3;
+const MAX_LOG = 80;
+const YOLO_CONF = 0.4;
+const YOLO_FETCH_TIMEOUT_MS = 3500;
+const YOLO_HEALTH_TIMEOUT_MS = 2000;
+const HISTORY_LIMIT = 20;
+
+// ─── types ────────────────────────────────────────────────────────────────────
 interface YoloDetection {
   class_name: string;
   confidence: number;
@@ -41,13 +52,30 @@ interface VerifyResult {
   createdAt: string | Date;
 }
 
-const FRAME_INTERVAL_MS = 1000;
-const COMMENTARY_EVERY_N_FRAMES = 3;
-const MAX_LOG = 80;
-const YOLO_CONF = 0.4;
-
 type Mode = "idle" | "starting" | "live" | "saved" | "error";
 
+// ─── format helpers ────────────────────────────────────────────────────────────
+function fmtDuration(s: number): string {
+  return `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60)
+    .toString()
+    .padStart(2, "0")}`;
+}
+
+function fmtPct(n: number, decimals = 1): string {
+  return `${n.toFixed(decimals)}%`;
+}
+
+function fmtDate(d: string | Date): string {
+  return new Date(d).toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+// ─── main component ───────────────────────────────────────────────────────────
 export default function BoxCount() {
   const [mode, setMode] = useState<Mode>("idle");
   const [declaredCount, setDeclaredCount] = useState<string>("");
@@ -62,6 +90,8 @@ export default function BoxCount() {
   const [duration, setDuration] = useState(0);
   const [frameCount, setFrameCount] = useState(0);
 
+  // mounted guard — prevents setState after unmount from async callbacks
+  const mountedRef = useRef(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const captureRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
@@ -77,26 +107,51 @@ export default function BoxCount() {
   const lastClassCountsRef = useRef<Record<string, number>>({});
   const logEndRef = useRef<HTMLDivElement>(null);
 
+  const shouldReduceMotion = useReducedMotion();
+
   const commentaryMutation = trpc.boxCount.liveCommentary.useMutation();
   const saveSessionMutation = trpc.boxCount.saveSession.useMutation();
-  const historyQuery = trpc.boxCount.history.useQuery({ limit: 20 });
+  const historyQuery = trpc.boxCount.history.useQuery({ limit: HISTORY_LIMIT });
 
-  useEffect(() => {
-    yoloOnlineRef.current = yoloOnline;
-  }, [yoloOnline]);
-  useEffect(() => {
-    detectionsRef.current = detections;
-  }, [detections]);
-  useEffect(() => {
-    lastClassCountsRef.current = classCounts;
-  }, [classCounts]);
+  // keep refs in sync
+  useEffect(() => { yoloOnlineRef.current = yoloOnline; }, [yoloOnline]);
+  useEffect(() => { detectionsRef.current = detections; }, [detections]);
+  useEffect(() => { lastClassCountsRef.current = classCounts; }, [classCounts]);
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [log]);
 
+  // unmount cleanup — always runs regardless of session state
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      stopCameraInternal();
+      if (frameTimerRef.current) clearInterval(frameTimerRef.current);
+      if (durationTimerRef.current) clearInterval(durationTimerRef.current);
+      frameTimerRef.current = null;
+      durationTimerRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // keyboard: Escape cancels live session
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && mode === "live") {
+        void stopSession();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+    // stopSession captured via ref to avoid stale closure issues
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
+
   // ─── helpers ──────────────────────────────────────────────────────────────
   const pushLog = useCallback(
     (entry: Omit<LogEntry, "id" | "ts">) => {
+      if (!mountedRef.current) return;
       logIdRef.current += 1;
       const e: LogEntry = {
         id: logIdRef.current,
@@ -145,14 +200,18 @@ export default function BoxCount() {
   }, []);
 
   // ─── camera ───────────────────────────────────────────────────────────────
-  const startCamera = async () => {
+  const stopCameraInternal = () => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
+    const overlay = overlayRef.current;
+    if (overlay) overlay.getContext("2d")?.clearRect(0, 0, 9999, 9999);
+  };
+
+  const startCamera = async (): Promise<boolean> => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          facingMode: "environment",
-        },
+        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "environment" },
         audio: false,
       });
       streamRef.current = stream;
@@ -164,33 +223,24 @@ export default function BoxCount() {
           v.onloadeddata = () => res();
         });
       }
-      setCameraError("");
+      if (mountedRef.current) setCameraError("");
       return true;
     } catch (err) {
-      const msg =
-        err instanceof Error ? err.message : "Camera access was denied.";
-      setCameraError(msg);
+      const msg = err instanceof Error ? err.message : "Camera access was denied.";
+      if (mountedRef.current) setCameraError(msg);
       toast.error("Camera access denied");
       return false;
     }
   };
 
-  const stopCamera = () => {
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
-    if (videoRef.current) videoRef.current.srcObject = null;
-    const overlay = overlayRef.current;
-    if (overlay) overlay.getContext("2d")?.clearRect(0, 0, 9999, 9999);
-  };
-
   // ─── frame loop ───────────────────────────────────────────────────────────
   const processFrame = useCallback(async () => {
-    if (processingRef.current || !videoRef.current) return;
+    if (processingRef.current || !videoRef.current || !mountedRef.current) return;
     const video = videoRef.current;
     if (video.readyState < 2 || !video.videoWidth) return;
     processingRef.current = true;
     frameIdxRef.current += 1;
-    setFrameCount(frameIdxRef.current);
+    if (mountedRef.current) setFrameCount(frameIdxRef.current);
 
     try {
       const canvas = captureRef.current;
@@ -209,8 +259,9 @@ export default function BoxCount() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ image: base64, conf_threshold: YOLO_CONF }),
-          signal: AbortSignal.timeout(3500),
+          signal: AbortSignal.timeout(YOLO_FETCH_TIMEOUT_MS),
         });
+        if (!mountedRef.current) return;
         if (r.ok) {
           const data = (await r.json()) as YoloResponse;
           setDetections(data.detections ?? []);
@@ -218,21 +269,16 @@ export default function BoxCount() {
           drawOverlay(data.detections ?? []);
           if (yoloOnlineRef.current !== true) {
             setYoloOnline(true);
-            pushLog({
-              text: "YOLO detector online",
-              type: "system",
-            });
+            pushLog({ text: "YOLO detector online", type: "system" });
           }
         } else if (yoloOnlineRef.current !== false) {
           setYoloOnline(false);
         }
       } catch {
+        if (!mountedRef.current) return;
         if (yoloOnlineRef.current !== false) {
           setYoloOnline(false);
-          pushLog({
-            text: "YOLO offline — start the FastAPI service on :8000",
-            type: "alert",
-          });
+          pushLog({ text: "YOLO offline — start the FastAPI service on :8000", type: "alert" });
         }
       }
 
@@ -245,6 +291,7 @@ export default function BoxCount() {
             manifestCount: declaredCountRef.current || undefined,
             yoloClassCounts: lastClassCountsRef.current,
           });
+          if (!mountedRef.current) return;
           setSuspectedCount(res.suspectedCount);
           pushLog({
             text: res.commentary,
@@ -280,6 +327,7 @@ export default function BoxCount() {
 
     pushLog({ text: "Starting camera…", type: "system" });
     const camOk = await startCamera();
+    if (!mountedRef.current) return;
     if (!camOk) {
       setMode("error");
       return;
@@ -287,7 +335,8 @@ export default function BoxCount() {
     pushLog({ text: "Camera ready. Probing YOLO…", type: "system" });
 
     try {
-      const h = await fetch("/yolo/health", { signal: AbortSignal.timeout(2000) });
+      const h = await fetch("/yolo/health", { signal: AbortSignal.timeout(YOLO_HEALTH_TIMEOUT_MS) });
+      if (!mountedRef.current) return;
       if (h.ok) {
         setYoloOnline(true);
         pushLog({ text: "YOLO healthy on :8000", type: "system" });
@@ -295,6 +344,7 @@ export default function BoxCount() {
         setYoloOnline(false);
       }
     } catch {
+      if (!mountedRef.current) return;
       setYoloOnline(false);
       pushLog({
         text: "YOLO not reachable — run `cd yolo && uvicorn main:app --port 8000`. Continuing with Gemini-only commentary.",
@@ -302,24 +352,27 @@ export default function BoxCount() {
       });
     }
 
+    if (!mountedRef.current) return;
     setMode("live");
     frameTimerRef.current = setInterval(processFrame, FRAME_INTERVAL_MS);
-    durationTimerRef.current = setInterval(
-      () => setDuration((p) => p + 1),
-      1000
-    );
+    durationTimerRef.current = setInterval(() => {
+      if (mountedRef.current) setDuration((p) => p + 1);
+    }, 1000);
   };
 
-  const stop = useCallback(async () => {
-    stopCamera();
+  const stopSession = useCallback(async () => {
+    // clear timers first so the frame loop can't restart them
     if (frameTimerRef.current) clearInterval(frameTimerRef.current);
     if (durationTimerRef.current) clearInterval(durationTimerRef.current);
     frameTimerRef.current = null;
     durationTimerRef.current = null;
+    stopCameraInternal();
 
     const yoloTotal = detectionsRef.current.length;
+    // capture values before async gap
     const detected = suspectedCount > 0 ? suspectedCount : yoloTotal;
     const declared = declaredCountRef.current;
+    const capturedDuration = duration;
 
     try {
       await saveSessionMutation.mutateAsync({
@@ -327,25 +380,28 @@ export default function BoxCount() {
         declaredCount: declared,
         detectedCount: detected,
         confidence: 0.85,
-        notes: `Live camera session • ${duration}s • ${frameIdxRef.current} frames • YOLO ${yoloOnlineRef.current ? "online" : "offline"}`,
+        notes: `Live camera session • ${capturedDuration}s • ${frameIdxRef.current} frames • YOLO ${
+          yoloOnlineRef.current ? "online" : "offline"
+        }`,
       });
-      historyQuery.refetch();
+      if (!mountedRef.current) return;
+      historyQuery.refetch().catch(() => void 0);
       toast.success("Session saved");
       setMode("saved");
     } catch (err) {
+      if (!mountedRef.current) return;
       const msg = err instanceof Error ? err.message : "Failed to save session";
       toast.error(msg);
       setMode("idle");
     }
   }, [draftId, duration, historyQuery, saveSessionMutation, suspectedCount]);
 
-  useEffect(() => {
-    return () => {
-      stopCamera();
-      if (frameTimerRef.current) clearInterval(frameTimerRef.current);
-      if (durationTimerRef.current) clearInterval(durationTimerRef.current);
-    };
-  }, []);
+  // keyboard Enter on form submits
+  const handleFormKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && mode !== "live" && mode !== "starting") {
+      void start();
+    }
+  };
 
   // ─── derived ──────────────────────────────────────────────────────────────
   const declared = parseInt(declaredCount, 10) || 0;
@@ -354,16 +410,11 @@ export default function BoxCount() {
   const mismatchPct = declared > 0 ? (diff / declared) * 100 : 0;
   const mismatch = detectedNow > 0 && diff > 0;
 
-  const fmtDuration = (s: number) =>
-    `${Math.floor(s / 60)
-      .toString()
-      .padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
-
   // ─── render ───────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[var(--color-neutral-100)]">
       <Header title="Live Box Count Verification" />
-      <canvas ref={captureRef} className="hidden" />
+      <canvas ref={captureRef} className="hidden" aria-hidden="true" />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
@@ -371,7 +422,12 @@ export default function BoxCount() {
           <div className="lg:col-span-8 space-y-5">
             {/* Setup form */}
             {(mode === "idle" || mode === "saved" || mode === "error") && (
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+              <motion.div
+                initial={shouldReduceMotion ? {} : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+                className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6"
+              >
                 <h2 className="text-lg font-bold text-slate-800 mb-1">
                   Shipment Setup
                 </h2>
@@ -380,76 +436,77 @@ export default function BoxCount() {
                   boxes, Gemini narrates what it sees, and we flag mismatches
                   against your declared manifest count.
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
+                <div
+                  className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+                  onKeyDown={handleFormKeyDown}
+                >
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1">
+                    <label
+                      htmlFor="declaredCount"
+                      className="block text-sm font-semibold text-slate-700 mb-1"
+                    >
                       Declared Box Count{" "}
-                      <span className="text-red-500">*</span>
+                      <span className="text-red-500" aria-hidden="true">*</span>
                     </label>
                     <input
+                      id="declaredCount"
                       type="number"
                       min={1}
                       step={1}
                       value={declaredCount}
                       onChange={(e) => setDeclaredCount(e.target.value)}
                       placeholder="e.g. 24"
+                      aria-label="Declared box count"
+                      aria-required="true"
                       className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 text-slate-800"
                     />
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="block text-sm font-semibold text-slate-700">
+                      <label
+                        htmlFor="draftIdInput"
+                        className="block text-sm font-semibold text-slate-700"
+                      >
                         Draft ID{" "}
-                        <span className="text-slate-400 font-normal">
-                          (optional)
-                        </span>
+                        <span className="text-slate-400 font-normal">(optional)</span>
                       </label>
                       <DraftPicker value={draftId} onSelect={setDraftId} />
                     </div>
                     <input
+                      id="draftIdInput"
                       type="text"
                       value={draftId}
                       onChange={(e) => setDraftId(e.target.value)}
                       placeholder="Link to a draft"
+                      aria-label="Draft ID"
                       className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 text-slate-800"
                     />
                   </div>
                 </div>
-                <button
-                  onClick={start}
-                  className="mt-5 w-full sm:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-sm transition-colors active:scale-[0.99]"
+                <motion.button
+                  onClick={() => void start()}
+                  whileTap={shouldReduceMotion ? {} : { scale: 0.98 }}
+                  whileHover={shouldReduceMotion ? {} : { scale: 1.01 }}
+                  className="mt-5 w-full sm:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md shadow-blue-200 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 >
                   Start Live Camera
-                </button>
+                </motion.button>
                 {cameraError && (
-                  <p className="mt-3 text-sm text-red-600">{cameraError}</p>
+                  <p className="mt-3 text-sm text-red-600" role="alert">{cameraError}</p>
                 )}
-              </div>
+              </motion.div>
             )}
 
             {/* Camera card */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-blue-50/30">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
-                    <svg
-                      className="w-5 h-5 text-blue-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.8}
-                        d="M3 7h2l2-3h10l2 3h2a2 2 0 012 2v9a2 2 0 01-2 2H3a2 2 0 01-2-2V9a2 2 0 012-2zM12 17a4 4 0 100-8 4 4 0 000 8z"
-                      />
-                    </svg>
+                  <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center shadow-sm shadow-blue-100">
+                    <Camera className="w-5 h-5 text-blue-600" aria-hidden="true" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-slate-800">
-                      Live Camera
-                    </p>
+                    <p className="text-sm font-semibold text-slate-800">Live Camera</p>
                     <p className="text-xs text-slate-500">
                       {mode === "live"
                         ? `Recording • ${fmtDuration(duration)}`
@@ -467,16 +524,18 @@ export default function BoxCount() {
                           ? "bg-emerald-100 text-emerald-700"
                           : "bg-amber-100 text-amber-700"
                       }`}
+                      aria-live="polite"
                     >
                       YOLO {yoloOnline ? "online" : "offline"}
                     </span>
                   )}
                   {mode === "live" && (
-                    <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-50 border border-red-200">
-                      <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                      <span className="text-xs font-bold text-red-600">
-                        LIVE
-                      </span>
+                    <span
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-50 border border-red-200"
+                      aria-label="Live recording in progress"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" aria-hidden="true" />
+                      <span className="text-xs font-bold text-red-600">LIVE</span>
                     </span>
                   )}
                 </div>
@@ -489,26 +548,16 @@ export default function BoxCount() {
                   playsInline
                   muted
                   className={`w-full h-full object-cover ${mode !== "live" ? "hidden" : ""}`}
+                  aria-label="Live camera feed"
                 />
                 <canvas
                   ref={overlayRef}
                   className="absolute inset-0 w-full h-full pointer-events-none"
+                  aria-hidden="true"
                 />
                 {mode !== "live" && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-300">
-                    <svg
-                      className="w-12 h-12 mb-3 opacity-60"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                      />
-                    </svg>
+                    <Video className="w-12 h-12 mb-3 opacity-60" aria-hidden="true" />
                     <p className="text-sm">
                       {mode === "saved"
                         ? "Session saved. Start another to verify."
@@ -517,7 +566,7 @@ export default function BoxCount() {
                   </div>
                 )}
                 {mode === "live" && (
-                  <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center gap-2">
+                  <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center gap-2" aria-live="polite" aria-atomic="true">
                     <span className="px-2.5 py-1 rounded-lg bg-black/60 text-white text-xs font-semibold">
                       {detections.length} YOLO box{detections.length === 1 ? "" : "es"}
                     </span>
@@ -536,22 +585,17 @@ export default function BoxCount() {
               <div className="px-5 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-3">
                 {mode === "live" ? (
                   <button
-                    onClick={stop}
+                    onClick={() => void stopSession()}
                     disabled={saveSessionMutation.isPending}
-                    className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl text-sm shadow-sm transition-colors disabled:bg-slate-300"
+                    aria-label="Stop recording and save session"
+                    className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl text-sm shadow-sm transition-colors disabled:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
                   >
-                    {saveSessionMutation.isPending
-                      ? "Saving…"
-                      : "Stop & Save Session"}
+                    {saveSessionMutation.isPending ? "Saving…" : "Stop & Save Session"}
                   </button>
                 ) : mode === "starting" ? (
-                  <span className="text-sm text-slate-500">
-                    Initialising camera + YOLO…
-                  </span>
+                  <span className="text-sm text-slate-500">Initialising camera + YOLO…</span>
                 ) : (
-                  <span className="text-sm text-slate-500">
-                    Configure above and click Start Live Camera.
-                  </span>
+                  <span className="text-sm text-slate-500">Configure above and click Start Live Camera.</span>
                 )}
                 <div className="flex items-center gap-3 text-xs text-slate-500">
                   <span>Frames: {frameCount}</span>
@@ -561,22 +605,14 @@ export default function BoxCount() {
 
             {/* Live counts */}
             {mode === "live" && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <StatTile
-                  label="Declared"
-                  value={declared || "—"}
-                  tone="neutral"
-                />
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4" aria-live="polite">
+                <StatTile label="Declared" value={declared || "—"} tone="neutral" />
                 <StatTile
                   label="Gemini count"
                   value={suspectedCount || "—"}
                   tone={mismatch ? "danger" : "ok"}
                 />
-                <StatTile
-                  label="YOLO objects"
-                  value={detections.length}
-                  tone="info"
-                />
+                <StatTile label="YOLO objects" value={detections.length} tone="info" />
                 <StatTile
                   label="Mismatch"
                   value={mismatchPct}
@@ -592,16 +628,20 @@ export default function BoxCount() {
           <aside className="lg:col-span-4 space-y-5">
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
               <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
-                <p className="text-sm font-semibold text-slate-800">
-                  Live AI Commentary
-                </p>
+                <p className="text-sm font-semibold text-slate-800">Live AI Commentary</p>
                 <p className="text-xs text-slate-500">
                   {log.length === 0
                     ? "Start a session to begin live commentary."
                     : `${log.length} entries • ${log.filter((e) => e.type === "alert").length} alerts`}
                 </p>
               </div>
-              <div className="max-h-[480px] overflow-y-auto p-3 space-y-2">
+              <div
+                className="max-h-[480px] overflow-y-auto p-3 space-y-2"
+                role="log"
+                aria-live="polite"
+                aria-atomic="false"
+                aria-label="Live AI commentary log"
+              >
                 {log.length === 0 ? (
                   <div className="px-3 py-10 text-center text-slate-400 text-sm">
                     Nothing observed yet.
@@ -630,23 +670,18 @@ export default function BoxCount() {
                         >
                           {e.type}
                         </span>
-                        <span className="text-[10px] text-slate-400">
-                          {e.ts}
-                        </span>
+                        <span className="text-[10px] text-slate-400">{e.ts}</span>
                       </div>
                       <p
                         className={`text-xs leading-relaxed ${
-                          e.type === "alert"
-                            ? "text-red-700"
-                            : "text-slate-700"
+                          e.type === "alert" ? "text-red-700" : "text-slate-700"
                         }`}
                       >
                         {e.text}
                       </p>
                       {e.suspectedCount !== undefined && (
                         <p className="text-[10px] text-slate-500 mt-1">
-                          Suspected: {e.suspectedCount} box
-                          {e.suspectedCount === 1 ? "" : "es"}
+                          Suspected: {e.suspectedCount} box{e.suspectedCount === 1 ? "" : "es"}
                         </p>
                       )}
                     </div>
@@ -655,10 +690,7 @@ export default function BoxCount() {
                 <div ref={logEndRef} />
               </div>
             </div>
-            <InsightsRail
-              draftId={draftId.trim() || undefined}
-              title="Verification Activity"
-            />
+            <InsightsRail draftId={draftId.trim() || undefined} title="Verification Activity" />
           </aside>
         </div>
 
@@ -666,28 +698,35 @@ export default function BoxCount() {
         <div className="mt-6 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-slate-800">
-                Verification History
-              </h2>
-              <p className="text-sm text-slate-500 mt-0.5">
-                Last 20 sessions for your account
-              </p>
+              <h2 className="text-lg font-bold text-slate-800">Verification History</h2>
+              <p className="text-sm text-slate-500 mt-0.5">Last {HISTORY_LIMIT} sessions for your account</p>
             </div>
             {historyQuery.isRefetching && (
-              <div className="w-5 h-5 border-2 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
+              <div
+                className="w-5 h-5 border-2 border-blue-200 border-t-blue-500 rounded-full animate-spin"
+                aria-label="Refreshing history"
+              />
             )}
           </div>
           <div className="divide-y divide-slate-100">
             {historyQuery.isLoading ? (
               <div className="flex items-center justify-center py-12">
-                <div className="w-8 h-8 border-2 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
+                <div className="w-8 h-8 border-2 border-blue-200 border-t-blue-500 rounded-full animate-spin" aria-label="Loading history" />
               </div>
             ) : historyQuery.error ? (
               <div className="px-6 py-8 text-center">
                 <p className="text-red-500 text-sm">Failed to load history.</p>
+                <button
+                  type="button"
+                  onClick={() => historyQuery.refetch().catch(() => void 0)}
+                  className="mt-2 text-xs text-blue-600 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-400 rounded"
+                >
+                  Retry
+                </button>
               </div>
             ) : !historyQuery.data || historyQuery.data.length === 0 ? (
               <div className="px-6 py-12 text-center">
+                <Camera className="w-10 h-10 text-slate-300 mx-auto mb-3" aria-hidden="true" />
                 <p className="text-slate-500 font-medium">No verifications yet</p>
                 <p className="text-slate-400 text-sm mt-1">
                   Run a live session above to populate history.
@@ -701,10 +740,9 @@ export default function BoxCount() {
                 >
                   <div
                     className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm ${
-                      item.mismatch
-                        ? "bg-red-100 text-red-600"
-                        : "bg-emerald-100 text-emerald-600"
+                      item.mismatch ? "bg-red-100 text-red-600" : "bg-emerald-100 text-emerald-600"
                     }`}
+                    aria-label={item.mismatch ? "Mismatch detected" : "Count verified"}
                   >
                     {item.mismatch ? "!" : "✓"}
                   </div>
@@ -713,37 +751,23 @@ export default function BoxCount() {
                       <span className="font-semibold text-slate-800 text-sm">
                         Declared: {item.declaredCount}
                       </span>
-                      <span
-                        className={`font-semibold text-sm ${
-                          item.mismatch ? "text-red-600" : "text-emerald-600"
-                        }`}
-                      >
+                      <span className={`font-semibold text-sm ${item.mismatch ? "text-red-600" : "text-emerald-600"}`}>
                         Detected: {item.detectedCount}
                       </span>
                       {item.mismatch && (
                         <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-semibold">
-                          {item.mismatchPct.toFixed(1)}% off
+                          {fmtPct(item.mismatchPct)} off
                         </span>
                       )}
                       <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 font-semibold">
-                        {(item.confidence * 100).toFixed(0)}% confidence
+                        {Math.round(item.confidence * 100)}% confidence
                       </span>
                     </div>
                     {item.notes && (
-                      <p className="text-xs text-slate-500 mt-1 truncate max-w-xl">
-                        {item.notes}
-                      </p>
+                      <p className="text-xs text-slate-500 mt-1 truncate max-w-xl">{item.notes}</p>
                     )}
                   </div>
-                  <div className="text-xs text-slate-400 flex-shrink-0">
-                    {new Date(item.createdAt).toLocaleString(undefined, {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </div>
+                  <div className="text-xs text-slate-400 flex-shrink-0">{fmtDate(item.createdAt)}</div>
                 </div>
               ))
             )}
@@ -754,6 +778,7 @@ export default function BoxCount() {
   );
 }
 
+// ─── StatTile ─────────────────────────────────────────────────────────────────
 function StatTile({
   label,
   value,
@@ -767,6 +792,7 @@ function StatTile({
   suffix?: string;
   decimals?: number;
 }) {
+  const shouldReduceMotion = useReducedMotion();
   const toneClass =
     tone === "danger"
       ? "text-red-600"
@@ -775,23 +801,25 @@ function StatTile({
         : tone === "info"
           ? "text-blue-600"
           : "text-slate-800";
+  const glowClass =
+    tone === "danger"
+      ? "shadow-red-100"
+      : tone === "ok"
+        ? "shadow-emerald-100"
+        : tone === "info"
+          ? "shadow-blue-100"
+          : "";
   const isNumber = typeof value === "number" && Number.isFinite(value);
   return (
     <motion.div
-      whileHover={{ y: -2 }}
+      whileHover={shouldReduceMotion ? {} : { y: -2 }}
       transition={{ duration: 0.15 }}
-      className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm"
+      className={`bg-white rounded-2xl border border-slate-200 p-4 shadow-sm ${glowClass}`}
     >
-      <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
-        {label}
-      </p>
+      <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{label}</p>
       <p className={`text-3xl font-bold mt-1 ${toneClass}`}>
         {isNumber ? (
-          <CountUp
-            value={value as number}
-            decimals={decimals ?? 0}
-            suffix={suffix}
-          />
+          <CountUp value={value as number} decimals={decimals ?? 0} suffix={suffix} />
         ) : (
           value
         )}

@@ -304,11 +304,14 @@ const Analysis: React.FC = () => {
     <div className="min-h-screen bg-gray-50 p-6">
       <Header title="Analysis" />
       {isLoading ? (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading analytics...</p>
+        <div className="max-w-7xl mx-auto mt-8 space-y-6 animate-pulse">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-white rounded-xl p-6 border border-gray-100 h-24" />
+            ))}
           </div>
+          <div className="bg-white rounded-xl p-6 border border-gray-100 h-12" />
+          <div className="bg-white rounded-xl p-6 border border-gray-100 h-64" />
         </div>
       ) : (
         <div className="max-w-7xl mx-auto">

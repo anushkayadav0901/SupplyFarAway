@@ -4,12 +4,31 @@ import { httpBatchLink } from "@trpc/client";
 import superjson from "superjson";
 import { trpc, trpcUrl } from "./trpc";
 
+// V4 / H5: query defaults — staleTime avoids hammering on every mount;
+// retry: 1 so a single transient failure doesn't cascade.
+const DEFAULT_STALE_TIME = 5_000; // ms
+const DEFAULT_RETRY = 1;
+
 interface TrpcProviderProps {
   children: React.ReactNode;
 }
 
 export function TrpcProvider({ children }: TrpcProviderProps) {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: DEFAULT_STALE_TIME,
+            retry: DEFAULT_RETRY,
+          },
+          mutations: {
+            retry: 0,
+          },
+        },
+      })
+  );
+
   const [trpcClient] = useState(() =>
     trpc.createClient({
       links: [

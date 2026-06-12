@@ -414,16 +414,28 @@ const CreateAccount = () => {
         type: "success",
         message: "Account Created with Google!",
       });
+      const nextPath = searchParams.get("next") || "/dashboard";
       setTimeout(() => {
-        navigate("/dashboard");
+        navigate(nextPath);
       }, 1500);
     }
   }, [searchParams, navigate]);
+
+  const isValidEmail = (email: string): boolean =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   // Memoize handleCreateAccount
   const handleCreateAccount = useCallback(() => {
     if (!firstName || !lastName || !emailAddress || !password) {
       setToastProps({ type: "warn", message: "Please fill in all fields" });
+      return;
+    }
+    if (!isValidEmail(emailAddress)) {
+      setToastProps({ type: "warn", message: "Please enter a valid email address" });
+      return;
+    }
+    if (password.length < 6) {
+      setToastProps({ type: "warn", message: "Password must be at least 6 characters" });
       return;
     }
 
@@ -528,10 +540,9 @@ const CreateAccount = () => {
             transition={{ duration: 1, delay: 0.3 }}
             className="z-20"
           >
-            <h1 className="text-5xl font-bold text-white mb-2 tracking-tight drop-shadow-lg">
-              Smart
+             <h1 className="text-5xl font-bold text-white mb-2 tracking-tight drop-shadow-lg">
               <span className="bg-gradient-to-r from-blue-300 to-emerald-300 bg-clip-text text-transparent">
-                Logix
+                Supply Chain
               </span>
             </h1>
             <motion.p
@@ -585,7 +596,7 @@ const CreateAccount = () => {
               transition={{ delay: 0.2, duration: 0.5 }}
               className="text-center text-neutral-600 mb-8"
             >
-              Join SupplyChain
+              Join Supply Chain
             </motion.p>
 
             <motion.div
@@ -597,12 +608,16 @@ const CreateAccount = () => {
               {/* First Name and Last Name Inputs */}
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="relative w-full sm:w-1/2">
+                  <label htmlFor="ca-firstname" className="sr-only">First Name</label>
                   <input
+                    id="ca-firstname"
                     type="text"
                     placeholder="First Name"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleCreateAccount()}
                     disabled={loading}
+                    autoComplete="given-name"
                     className="w-full px-4 py-3 pl-10 border border-neutral-300 rounded-xl text-neutral-700 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                   <svg
@@ -621,12 +636,16 @@ const CreateAccount = () => {
                   </svg>
                 </div>
                 <div className="relative w-full sm:w-1/2">
+                  <label htmlFor="ca-lastname" className="sr-only">Last Name</label>
                   <input
+                    id="ca-lastname"
                     type="text"
                     placeholder="Last Name"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleCreateAccount()}
                     disabled={loading}
+                    autoComplete="family-name"
                     className="w-full px-4 py-3 pl-10 border border-neutral-300 rounded-xl text-neutral-700 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                   <svg
@@ -648,12 +667,16 @@ const CreateAccount = () => {
 
               {/* Email Input */}
               <div className="relative">
+                <label htmlFor="ca-email" className="sr-only">Email Address</label>
                 <input
+                  id="ca-email"
                   type="email"
                   placeholder="Email Address"
                   value={emailAddress}
                   onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleCreateAccount()}
                   disabled={loading}
+                  autoComplete="email"
                   className="w-full px-4 py-3 pl-10 border border-neutral-300 rounded-xl text-neutral-700 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-60 disabled:cursor-not-allowed"
                 />
                 <svg
@@ -674,12 +697,16 @@ const CreateAccount = () => {
 
               {/* Password Input */}
               <div className="relative">
+                <label htmlFor="ca-password" className="sr-only">Password</label>
                 <input
+                  id="ca-password"
                   type={showPassword ? "text" : "password"}
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleCreateAccount()}
                   disabled={loading}
+                  autoComplete="new-password"
                   className="w-full px-4 py-3 pl-10 border border-neutral-300 rounded-xl text-neutral-700 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-60 disabled:cursor-not-allowed"
                 />
                 <svg

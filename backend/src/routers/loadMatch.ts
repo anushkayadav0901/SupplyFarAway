@@ -6,6 +6,16 @@ import { requireUserId } from "../lib/auth.js";
 import { LoadOfferModel } from "../models/LoadOffer.js";
 import { protectedProcedure, router } from "../trpc.js";
 
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+const MATCH_RESULT_CAP = 50;
+const PICKUP_DATE_WINDOW_DAYS = 2;
+const MAX_COMBINED_WEIGHT_KG = 5000;
+const MAX_ORIGIN_CITY_LENGTH = 100;
+const MAX_DESTINATION_CITY_LENGTH = 100;
+const MAX_NOTES_LENGTH = 500;
+
 export const loadMatchRouter = router({
   /**
    * Create a new load offer.
@@ -13,11 +23,11 @@ export const loadMatchRouter = router({
   createOffer: protectedProcedure
     .input(
       z.object({
-        originCity: z.string().min(1),
-        destinationCity: z.string().min(1),
-        weightKg: z.number().positive(),
-        pickupDate: z.string(),
-        notes: z.string().optional(),
+        originCity: z.string().min(1).max(MAX_ORIGIN_CITY_LENGTH).trim(),
+        destinationCity: z.string().min(1).max(MAX_DESTINATION_CITY_LENGTH).trim(),
+        weightKg: z.number().positive().max(MAX_COMBINED_WEIGHT_KG),
+        pickupDate: z.string().min(1),
+        notes: z.string().max(MAX_NOTES_LENGTH).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -85,11 +95,27 @@ export const loadMatchRouter = router({
         });
       }
 
-      const pickupDate = new Date(offer.pickupDate);
+      // Defensive null check — pickupDate must be a valid date
+      const rawPickupDate = offer.pickupDate;
+      if (!rawPickupDate) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Offer document is missing pickupDate",
+        });
+      }
+
+      const pickupDate = new Date(rawPickupDate);
+      if (Number.isNaN(pickupDate.getTime())) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Offer pickupDate is not a valid date",
+        });
+      }
+
       const minDate = new Date(pickupDate);
-      minDate.setDate(minDate.getDate() - 2);
+      minDate.setDate(minDate.getDate() - PICKUP_DATE_WINDOW_DAYS);
       const maxDate = new Date(pickupDate);
-      maxDate.setDate(maxDate.getDate() + 2);
+      maxDate.setDate(maxDate.getDate() + PICKUP_DATE_WINDOW_DAYS);
 
       const originLower = offer.originCity.toLowerCase();
       const destLower = offer.destinationCity.toLowerCase();
@@ -103,6 +129,11 @@ export const loadMatchRouter = router({
 
       const matches = candidates
         .filter((candidate) => {
+          // Defensive: skip candidates with missing fields
+          if (!candidate.originCity || !candidate.destinationCity || candidate.weightKg == null) {
+            return false;
+          }
+
           const candOriginLower = candidate.originCity.toLowerCase();
           const candDestLower = candidate.destinationCity.toLowerCase();
 
@@ -116,7 +147,7 @@ export const loadMatchRouter = router({
 
           const combinedWeight = offer.weightKg + candidate.weightKg;
 
-          return originMatch && destMatch && combinedWeight <= 5000;
+          return originMatch && destMatch && combinedWeight <= MAX_COMBINED_WEIGHT_KG;
         })
         .map((candidate) => {
           const candOriginLower = candidate.originCity.toLowerCase();
@@ -144,7 +175,9 @@ export const loadMatchRouter = router({
             similarityScore,
           };
         })
-        .sort((a, b) => b.similarityScore - a.similarityScore);
+        .sort((a, b) => b.similarityScore - a.similarityScore)
+        // Cap results to prevent unbounded response sizes
+        .slice(0, MATCH_RESULT_CAP);
 
       return { matches };
     }),

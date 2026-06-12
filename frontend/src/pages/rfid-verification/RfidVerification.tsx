@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { toast } from "react-toastify";
-import { Radio, Terminal, RefreshCcw } from "lucide-react";
+import { Radio, Terminal, RefreshCcw, Tag } from "lucide-react";
 
 import Header from "../../components/Header";
 import InsightsRail from "../../components/InsightsRail";
@@ -10,9 +10,13 @@ import DraftPicker from "../../components/DraftPicker";
 import CardSkeleton from "../../components/skeletons/CardSkeleton";
 import { trpc } from "../../lib/trpc";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+// ─── constants ────────────────────────────────────────────────────────────────
+const STREAM_TAG_DELAY_BASE_MS = 220;
+const STREAM_TAG_STEP_MS = 300;
+const MAX_STREAM_TAGS = 6;
+const HISTORY_LIMITS = [10, 20, 50] as const;
+
+// ─── types ────────────────────────────────────────────────────────────────────
 
 interface ScanResult {
   _id: string;
@@ -26,9 +30,33 @@ interface ScanResult {
   createdAt: Date | string;
 }
 
-// ---------------------------------------------------------------------------
-// Tag badge
-// ---------------------------------------------------------------------------
+// ─── helpers ──────────────────────────────────────────────────────────────────
+
+/** Trim whitespace, remove empty lines, deduplicate, preserve order. */
+function parseTags(raw: string): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const line of raw.split("\n")) {
+    const t = line.trim();
+    if (t.length > 0 && !seen.has(t)) {
+      seen.add(t);
+      result.push(t);
+    }
+  }
+  return result;
+}
+
+function fmtDate(d: Date | string): string {
+  return new Date(d).toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+// ─── TagBadge ─────────────────────────────────────────────────────────────────
 
 function TagBadge({
   tag,
@@ -38,49 +66,40 @@ function TagBadge({
   variant: "matched" | "missing" | "extra";
 }) {
   const colors: Record<typeof variant, string> = {
-    matched:
-      "bg-emerald-100 text-emerald-800 border border-emerald-200",
+    matched: "bg-emerald-100 text-emerald-800 border border-emerald-200",
     missing: "bg-red-100 text-red-800 border border-red-200",
     extra: "bg-amber-100 text-amber-800 border border-amber-200",
   };
   return (
-    <span
-      className={`inline-block px-2 py-0.5 rounded text-xs font-mono font-medium ${colors[variant]}`}
-    >
+    <span className={`inline-block px-2 py-0.5 rounded text-xs font-mono font-medium ${colors[variant]}`}>
       {tag}
     </span>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Antenna pulse animation
-// ---------------------------------------------------------------------------
+// ─── AntennaPulse ─────────────────────────────────────────────────────────────
 
 function AntennaPulse({ scanning }: { scanning: boolean }) {
+  const shouldReduceMotion = useReducedMotion();
   return (
-    <div className="relative w-32 h-32 flex items-center justify-center">
+    <div className="relative w-32 h-32 flex items-center justify-center" aria-hidden="true">
       {[0, 1, 2].map((i) => (
         <motion.div
           key={i}
           className="absolute inset-0 rounded-full border-2 border-blue-500/40"
           initial={{ scale: 0.4, opacity: 0 }}
           animate={
-            scanning
+            scanning && !shouldReduceMotion
               ? { scale: [0.4, 1.4], opacity: [0.7, 0] }
               : { scale: 0.4, opacity: 0 }
           }
-          transition={{
-            duration: 1.6,
-            ease: "easeOut",
-            repeat: scanning ? Infinity : 0,
-            delay: i * 0.5,
-          }}
+          transition={{ duration: 1.6, ease: "easeOut", repeat: scanning ? Infinity : 0, delay: i * 0.5 }}
         />
       ))}
       <div
         className={`w-16 h-16 rounded-full flex items-center justify-center text-white shadow-md ${
           scanning
-            ? "bg-gradient-to-br from-blue-500 to-blue-700"
+            ? "bg-gradient-to-br from-blue-500 to-blue-700 shadow-blue-200"
             : "bg-gradient-to-br from-slate-400 to-slate-600"
         }`}
       >
@@ -90,9 +109,7 @@ function AntennaPulse({ scanning }: { scanning: boolean }) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Match gauge
-// ---------------------------------------------------------------------------
+// ─── MatchGauge ───────────────────────────────────────────────────────────────
 
 function MatchGauge({ pct }: { pct: number }) {
   const color =
@@ -105,7 +122,7 @@ function MatchGauge({ pct }: { pct: number }) {
           <CountUp value={pct} decimals={1} suffix="%" />
         </span>
       </div>
-      <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+      <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
         <motion.div
           className={`h-full rounded-full ${color}`}
           initial={{ width: 0 }}
@@ -117,19 +134,18 @@ function MatchGauge({ pct }: { pct: number }) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// History card
-// ---------------------------------------------------------------------------
+// ─── HistoryCard ──────────────────────────────────────────────────────────────
 
 function HistoryCard({ item }: { item: ScanResult }) {
   const [open, setOpen] = useState(false);
-  const date = new Date(item.createdAt).toLocaleString();
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <button
-        className="w-full px-5 py-4 flex items-center justify-between gap-4 hover:bg-slate-50 transition-colors"
+        className="w-full px-5 py-4 flex items-center justify-between gap-4 hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-400"
         onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-label={`Scan from ${fmtDate(item.createdAt)}, ${item.matchPct.toFixed(1)}% match`}
       >
         <div className="flex items-center gap-3 min-w-0">
           <div
@@ -140,9 +156,10 @@ function HistoryCard({ item }: { item: ScanResult }) {
                   ? "bg-amber-500"
                   : "bg-red-500"
             }`}
+            aria-hidden="true"
           />
           <span className="text-sm font-medium text-slate-800 truncate">
-            {date}
+            {fmtDate(item.createdAt)}
           </span>
           {item.draftId && (
             <span className="text-xs text-slate-400 truncate hidden sm:inline">
@@ -151,23 +168,15 @@ function HistoryCard({ item }: { item: ScanResult }) {
           )}
         </div>
         <div className="flex items-center gap-4 flex-shrink-0">
-          <span className="text-sm font-bold text-slate-700">
-            {item.matchPct.toFixed(1)}%
-          </span>
+          <span className="text-sm font-bold text-slate-700">{item.matchPct.toFixed(1)}%</span>
           <svg
-            className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
-              open ? "rotate-180" : ""
-            }`}
+            className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
+            aria-hidden="true"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 9l-7 7-7-7"
-            />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </div>
       </button>
@@ -177,21 +186,15 @@ function HistoryCard({ item }: { item: ScanResult }) {
           <MatchGauge pct={item.matchPct} />
           <div className="grid grid-cols-3 gap-3 text-center">
             <div className="bg-emerald-50 rounded-lg p-3">
-              <p className="text-lg font-bold text-emerald-700">
-                {item.matched.length}
-              </p>
+              <p className="text-lg font-bold text-emerald-700">{item.matched.length}</p>
               <p className="text-xs text-emerald-600">Matched</p>
             </div>
             <div className="bg-red-50 rounded-lg p-3">
-              <p className="text-lg font-bold text-red-700">
-                {item.missing.length}
-              </p>
+              <p className="text-lg font-bold text-red-700">{item.missing.length}</p>
               <p className="text-xs text-red-600">Missing</p>
             </div>
             <div className="bg-amber-50 rounded-lg p-3">
-              <p className="text-lg font-bold text-amber-700">
-                {item.extra.length}
-              </p>
+              <p className="text-lg font-bold text-amber-700">{item.extra.length}</p>
               <p className="text-xs text-amber-600">Extra</p>
             </div>
           </div>
@@ -225,22 +228,21 @@ function HistoryCard({ item }: { item: ScanResult }) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
+// ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function RfidVerification() {
+  const shouldReduceMotion = useReducedMotion();
   const [manifestInput, setManifestInput] = useState("");
   const [scannedInput, setScannedInput] = useState("");
   const [draftId, setDraftId] = useState("");
   const [result, setResult] = useState<ScanResult | null>(null);
-  const [historyLimit, setHistoryLimit] = useState(20);
+  const [historyLimit, setHistoryLimit] = useState<typeof HISTORY_LIMITS[number]>(20);
 
-  // Simulated tag stream state
   const [streaming, setStreaming] = useState(false);
   const [streamLines, setStreamLines] = useState<string[]>([]);
   const streamRef = useRef<HTMLDivElement>(null);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const mountedRef = useRef(true);
 
   const verifyMutation = trpc.rfid.verify.useMutation({
     onError: (err) => {
@@ -253,28 +255,37 @@ export default function RfidVerification() {
     { refetchOnWindowFocus: false }
   );
 
-  const parseTags = (raw: string): string[] =>
-    raw
-      .split("\n")
-      .map((t) => t.trim())
-      .filter((t) => t.length > 0);
-
   useEffect(() => {
-    streamRef.current?.scrollTo({
-      top: streamRef.current.scrollHeight,
-      behavior: "smooth",
-    });
+    streamRef.current?.scrollTo({ top: streamRef.current.scrollHeight, behavior: "smooth" });
   }, [streamLines]);
 
+  // unmount — clear all pending timers
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
+      mountedRef.current = false;
       timersRef.current.forEach((t) => clearTimeout(t));
       timersRef.current = [];
     };
   }, []);
 
+  // keyboard: Escape cancels streaming
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && streaming) {
+        timersRef.current.forEach((t) => clearTimeout(t));
+        timersRef.current = [];
+        if (mountedRef.current) setStreaming(false);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [streaming]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Trim and dedup before submit
     const manifestTags = parseTags(manifestInput);
     const scannedTags = parseTags(scannedInput);
 
@@ -283,28 +294,31 @@ export default function RfidVerification() {
       return;
     }
 
-    // Simulated tag stream — show the antenna picking up tags before
-    // the real mutation fires. The simulated stream pulls a few tags
-    // from the scanned list so the visual matches what the API will see.
-    setStreamLines([]);
-    setStreaming(true);
-    const sample =
-      scannedTags.length > 0 ? scannedTags : manifestTags.slice(0, 6);
-    const tagsToStream = sample.slice(0, Math.min(6, sample.length));
+    // clear previous timers before starting new stream
     timersRef.current.forEach((t) => clearTimeout(t));
     timersRef.current = [];
+
+    setStreamLines([]);
+    setStreaming(true);
+
+    const sample = scannedTags.length > 0 ? scannedTags : manifestTags.slice(0, MAX_STREAM_TAGS);
+    const tagsToStream = sample.slice(0, MAX_STREAM_TAGS);
+
     tagsToStream.forEach((tag, i) => {
       const t = setTimeout(() => {
+        if (!mountedRef.current) return;
         setStreamLines((prev) => [
           ...prev,
           `${new Date().toLocaleTimeString()}  ▸ acquired  ${tag}`,
         ]);
-      }, 220 + i * 300);
+      }, STREAM_TAG_DELAY_BASE_MS + i * STREAM_TAG_STEP_MS);
       timersRef.current.push(t);
     });
 
-    const totalStreamMs = 220 + tagsToStream.length * 300 + 200;
+    const totalStreamMs =
+      STREAM_TAG_DELAY_BASE_MS + tagsToStream.length * STREAM_TAG_STEP_MS + 200;
     const finishTimer = setTimeout(async () => {
+      if (!mountedRef.current) return;
       setStreaming(false);
       try {
         const doc = await verifyMutation.mutateAsync({
@@ -312,8 +326,9 @@ export default function RfidVerification() {
           scannedTags,
           draftId: draftId.trim() || undefined,
         });
+        if (!mountedRef.current) return;
         setResult(doc as unknown as ScanResult);
-        historyQuery.refetch();
+        historyQuery.refetch().catch(() => void 0);
       } catch {
         // handled by onError above
       }
@@ -322,6 +337,9 @@ export default function RfidVerification() {
   };
 
   const submitting = streaming || verifyMutation.isPending;
+
+  // manifest tag count for inline preview
+  const manifestTagCount = parseTags(manifestInput).length;
 
   return (
     <div className="min-h-screen bg-[var(--color-neutral-100)]">
@@ -334,13 +352,11 @@ export default function RfidVerification() {
               <div className="flex flex-col sm:flex-row items-center gap-6">
                 <AntennaPulse scanning={streaming} />
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-lg font-semibold text-slate-800">
-                    Antenna Reader
-                  </h2>
+                  <h2 className="text-lg font-semibold text-slate-800">Antenna Reader</h2>
                   <p className="text-sm text-slate-500 mt-1">
-                    Paste manifest tags and field-scanned tags below. The
-                    reader streams discovered tags into the terminal, then the
-                    server resolves matched / missing / extra entries.
+                    Paste manifest tags and field-scanned tags below. The reader streams
+                    discovered tags into the terminal, then the server resolves matched /
+                    missing / extra entries.
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
                     <span
@@ -349,6 +365,7 @@ export default function RfidVerification() {
                           ? "bg-blue-100 text-blue-700"
                           : "bg-slate-100 text-slate-600"
                       }`}
+                      aria-live="polite"
                     >
                       {streaming ? "Reader active" : "Reader idle"}
                     </span>
@@ -363,10 +380,14 @@ export default function RfidVerification() {
               <div
                 ref={streamRef}
                 className="mt-5 h-32 overflow-y-auto bg-slate-950 rounded-xl px-4 py-3 font-mono text-[11px] text-emerald-300 border border-slate-800"
+                role="log"
+                aria-live="polite"
+                aria-atomic="false"
+                aria-label="Tag stream terminal"
               >
                 {streamLines.length === 0 ? (
                   <p className="text-slate-500">
-                    <Terminal className="inline w-3 h-3 mr-1" />
+                    <Terminal className="inline w-3 h-3 mr-1" aria-hidden="true" />
                     {streaming ? "listening…" : "no carrier"}
                   </p>
                 ) : (
@@ -374,7 +395,7 @@ export default function RfidVerification() {
                     {streamLines.map((line, i) => (
                       <motion.div
                         key={i}
-                        initial={{ opacity: 0, x: -6 }}
+                        initial={shouldReduceMotion ? {} : { opacity: 0, x: -6 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.18 }}
                       >
@@ -384,7 +405,10 @@ export default function RfidVerification() {
                   </AnimatePresence>
                 )}
                 {streaming && (
-                  <span className="inline-block w-2 h-3 bg-emerald-300 animate-pulse ml-0.5 align-middle" />
+                  <span
+                    className="inline-block w-2 h-3 bg-emerald-300 animate-pulse ml-0.5 align-middle"
+                    aria-hidden="true"
+                  />
                 )}
               </div>
             </div>
@@ -393,50 +417,58 @@ export default function RfidVerification() {
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-7">
               <div className="flex items-start justify-between gap-3 mb-1">
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-800">
-                    Scan Verification
-                  </h2>
+                  <h2 className="text-lg font-semibold text-slate-800">Scan Verification</h2>
                   <p className="text-sm text-slate-500 mt-1">
-                    Tags are matched line-by-line. Empty lines are ignored.
+                    Tags are matched line-by-line. Duplicates and whitespace are removed automatically.
                   </p>
                 </div>
                 <DraftPicker value={draftId} onSelect={setDraftId} />
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-5 mt-5">
+              <form
+                onSubmit={(e) => void handleSubmit(e)}
+                className="space-y-5 mt-5"
+              >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    <label htmlFor="manifestInput" className="block text-sm font-medium text-slate-700 mb-1.5">
                       Manifest Tags
-                      <span className="ml-1 text-xs text-slate-400 font-normal">
-                        (one per line)
-                      </span>
+                      <span className="ml-1 text-xs text-slate-400 font-normal">(one per line)</span>
+                      {manifestTagCount > 0 && (
+                        <span className="ml-2 text-xs font-semibold text-blue-600">
+                          {manifestTagCount} tag{manifestTagCount === 1 ? "" : "s"}
+                        </span>
+                      )}
                     </label>
                     <textarea
+                      id="manifestInput"
                       value={manifestInput}
                       onChange={(e) => setManifestInput(e.target.value)}
                       rows={8}
-                      placeholder={
-                        "E200001234567890\nE200001234567891\nE200001234567892"
-                      }
+                      placeholder={"E200001234567890\nE200001234567891\nE200001234567892"}
+                      aria-required="true"
                       className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none transition-colors"
                       required
                     />
+                    {/* Empty state hint */}
+                    {manifestInput.trim() === "" && (
+                      <p className="mt-1 text-xs text-amber-600 flex items-center gap-1">
+                        <Tag className="w-3 h-3" aria-hidden="true" />
+                        Enter at least one manifest tag to proceed.
+                      </p>
+                    )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    <label htmlFor="scannedInput" className="block text-sm font-medium text-slate-700 mb-1.5">
                       Scanned Tags
-                      <span className="ml-1 text-xs text-slate-400 font-normal">
-                        (one per line)
-                      </span>
+                      <span className="ml-1 text-xs text-slate-400 font-normal">(one per line)</span>
                     </label>
                     <textarea
+                      id="scannedInput"
                       value={scannedInput}
                       onChange={(e) => setScannedInput(e.target.value)}
                       rows={8}
-                      placeholder={
-                        "E200001234567890\nE200001234567891\nE200001234567899"
-                      }
+                      placeholder={"E200001234567890\nE200001234567891\nE200001234567899"}
                       className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none transition-colors"
                     />
                   </div>
@@ -444,13 +476,12 @@ export default function RfidVerification() {
 
                 <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
                   <div className="flex-1 max-w-sm">
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    <label htmlFor="draftIdInput" className="block text-sm font-medium text-slate-700 mb-1.5">
                       Draft ID
-                      <span className="ml-1 text-xs text-slate-400 font-normal">
-                        (optional)
-                      </span>
+                      <span className="ml-1 text-xs text-slate-400 font-normal">(optional)</span>
                     </label>
                     <input
+                      id="draftIdInput"
                       type="text"
                       value={draftId}
                       onChange={(e) => setDraftId(e.target.value)}
@@ -458,26 +489,43 @@ export default function RfidVerification() {
                       className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                     />
                   </div>
-                  <motion.button
-                    type="submit"
-                    whileTap={{ scale: 0.97 }}
-                    disabled={submitting}
-                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm font-semibold rounded-xl shadow transition-colors duration-200 flex items-center gap-2"
-                  >
-                    {streaming ? (
-                      <>
-                        <Radio className="w-4 h-4 animate-pulse" />
-                        Scanning…
-                      </>
-                    ) : verifyMutation.isPending ? (
-                      <>
-                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Resolving…
-                      </>
-                    ) : (
-                      "Scan & Verify"
+                  <div className="flex items-center gap-2">
+                    {streaming && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          timersRef.current.forEach((t) => clearTimeout(t));
+                          timersRef.current = [];
+                          setStreaming(false);
+                        }}
+                        aria-label="Cancel scanning"
+                        className="px-4 py-2.5 text-sm text-slate-600 hover:text-slate-800 font-medium rounded-xl border border-slate-200 hover:border-slate-300 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400"
+                      >
+                        Cancel
+                      </button>
                     )}
-                  </motion.button>
+                    <motion.button
+                      type="submit"
+                      whileTap={shouldReduceMotion ? {} : { scale: 0.97 }}
+                      disabled={submitting}
+                      aria-label="Scan and verify tags"
+                      className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm font-semibold rounded-xl shadow shadow-blue-200 transition-colors duration-200 flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    >
+                      {streaming ? (
+                        <>
+                          <Radio className="w-4 h-4 animate-pulse" aria-hidden="true" />
+                          Scanning…
+                        </>
+                      ) : verifyMutation.isPending ? (
+                        <>
+                          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true" />
+                          Resolving…
+                        </>
+                      ) : (
+                        "Scan & Verify"
+                      )}
+                    </motion.button>
+                  </div>
                 </div>
               </form>
             </div>
@@ -487,32 +535,23 @@ export default function RfidVerification() {
               {result && (
                 <motion.div
                   key="r"
-                  initial={{ opacity: 0, y: 6 }}
+                  initial={shouldReduceMotion ? {} : { opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 6 }}
                   className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-7 space-y-5"
+                  aria-labelledby="result-heading"
                 >
                   <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-slate-800">
+                    <h2 id="result-heading" className="text-lg font-semibold text-slate-800">
                       Verification Result
                     </h2>
                     <button
                       onClick={() => setResult(null)}
-                      className="text-slate-400 hover:text-slate-600 transition-colors"
+                      className="text-slate-400 hover:text-slate-600 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 rounded"
                       aria-label="Dismiss result"
                     >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </button>
                   </div>
@@ -524,48 +563,30 @@ export default function RfidVerification() {
                       <p className="text-2xl font-bold text-emerald-700">
                         <CountUp value={result.matched.length} />
                       </p>
-                      <p className="text-xs font-medium text-emerald-600 mt-0.5">
-                        Matched
-                      </p>
+                      <p className="text-xs font-medium text-emerald-600 mt-0.5">Matched</p>
                     </div>
                     <div className="bg-red-50 rounded-xl p-4">
                       <p className="text-2xl font-bold text-red-700">
                         <CountUp value={result.missing.length} />
                       </p>
-                      <p className="text-xs font-medium text-red-600 mt-0.5">
-                        Missing
-                      </p>
+                      <p className="text-xs font-medium text-red-600 mt-0.5">Missing</p>
                     </div>
                     <div className="bg-amber-50 rounded-xl p-4">
                       <p className="text-2xl font-bold text-amber-700">
                         <CountUp value={result.extra.length} />
                       </p>
-                      <p className="text-xs font-medium text-amber-600 mt-0.5">
-                        Extra
-                      </p>
+                      <p className="text-xs font-medium text-amber-600 mt-0.5">Extra</p>
                     </div>
                   </div>
 
                   {result.matched.length > 0 && (
-                    <ChipRail
-                      title={`Matched Tags (${result.matched.length})`}
-                      tags={result.matched}
-                      variant="matched"
-                    />
+                    <ChipRail title={`Matched Tags (${result.matched.length})`} tags={result.matched} variant="matched" />
                   )}
                   {result.missing.length > 0 && (
-                    <ChipRail
-                      title={`Missing Tags (${result.missing.length})`}
-                      tags={result.missing}
-                      variant="missing"
-                    />
+                    <ChipRail title={`Missing Tags (${result.missing.length})`} tags={result.missing} variant="missing" />
                   )}
                   {result.extra.length > 0 && (
-                    <ChipRail
-                      title={`Extra Tags (${result.extra.length})`}
-                      tags={result.extra}
-                      variant="extra"
-                    />
+                    <ChipRail title={`Extra Tags (${result.extra.length})`} tags={result.extra} variant="extra" />
                   )}
                 </motion.div>
               )}
@@ -575,34 +596,28 @@ export default function RfidVerification() {
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-7">
               <div className="flex items-center justify-between mb-5">
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-800">
-                    Scan History
-                  </h2>
-                  <p className="text-sm text-slate-500 mt-0.5">
-                    Recent RFID/NFC verification runs
-                  </p>
+                  <h2 className="text-lg font-semibold text-slate-800">Scan History</h2>
+                  <p className="text-sm text-slate-500 mt-0.5">Recent RFID/NFC verification runs</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="text-xs text-slate-500 font-medium">
-                    Show
-                  </label>
+                  <label htmlFor="historyLimit" className="text-xs text-slate-500 font-medium">Show</label>
                   <select
+                    id="historyLimit"
                     value={historyLimit}
-                    onChange={(e) => setHistoryLimit(Number(e.target.value))}
+                    onChange={(e) => setHistoryLimit(Number(e.target.value) as typeof HISTORY_LIMITS[number])}
                     className="text-sm border border-slate-200 rounded-lg px-2 py-1.5 bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    {[10, 20, 50].map((n) => (
-                      <option key={n} value={n}>
-                        {n}
-                      </option>
+                    {HISTORY_LIMITS.map((n) => (
+                      <option key={n} value={n}>{n}</option>
                     ))}
                   </select>
                   <button
                     type="button"
-                    onClick={() => historyQuery.refetch()}
-                    className="text-xs font-semibold text-slate-500 hover:text-slate-700 inline-flex items-center gap-1"
+                    onClick={() => historyQuery.refetch().catch(() => void 0)}
+                    aria-label="Refresh scan history"
+                    className="text-xs font-semibold text-slate-500 hover:text-slate-700 inline-flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-blue-400 rounded"
                   >
-                    <RefreshCcw className="w-3.5 h-3.5" />
+                    <RefreshCcw className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
                 </div>
               </div>
@@ -614,48 +629,42 @@ export default function RfidVerification() {
                   <CardSkeleton height={56} />
                 </div>
               ) : historyQuery.error ? (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-                  <p className="text-sm text-red-700 font-medium">
-                    Failed to load history.
-                  </p>
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4" role="alert">
+                  <p className="text-sm text-red-700 font-medium">Failed to load history.</p>
                   <button
                     type="button"
-                    onClick={() => historyQuery.refetch()}
-                    className="text-xs text-red-600 hover:text-red-700 underline mt-1"
+                    onClick={() => historyQuery.refetch().catch(() => void 0)}
+                    className="text-xs text-red-600 hover:text-red-700 underline mt-1 focus:outline-none focus:ring-2 focus:ring-red-400 rounded"
                   >
                     Retry
                   </button>
                 </div>
               ) : !historyQuery.data || historyQuery.data.length === 0 ? (
-                <div className="text-center py-10 text-slate-400">
-                  <Radio className="w-10 h-10 mx-auto mb-3 opacity-40" />
-                  <p className="text-sm">
-                    No scans yet. Run a verification above.
-                  </p>
+                <div className="text-center py-12 text-slate-400">
+                  <Radio className="w-10 h-10 mx-auto mb-3 opacity-40" aria-hidden="true" />
+                  <p className="text-sm font-medium text-slate-500">No scans yet</p>
+                  <p className="text-xs mt-1">Enter manifest tags above and run a verification.</p>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {(historyQuery.data as unknown as ScanResult[]).map(
-                    (item) => (
-                      <HistoryCard key={item._id} item={item} />
-                    )
-                  )}
+                  {(historyQuery.data as unknown as ScanResult[]).map((item) => (
+                    <HistoryCard key={item._id} item={item} />
+                  ))}
                 </div>
               )}
             </div>
           </div>
 
           <aside className="lg:col-span-4">
-            <InsightsRail
-              draftId={draftId.trim() || undefined}
-              title="Verification Activity"
-            />
+            <InsightsRail draftId={draftId.trim() || undefined} title="Verification Activity" />
           </aside>
         </div>
       </main>
     </div>
   );
 }
+
+// ─── ChipRail ─────────────────────────────────────────────────────────────────
 
 function ChipRail({
   title,
@@ -666,17 +675,16 @@ function ChipRail({
   tags: string[];
   variant: "matched" | "missing" | "extra";
 }) {
+  const shouldReduceMotion = useReducedMotion();
   return (
     <div>
-      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-        {title}
-      </p>
+      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">{title}</p>
       <div className="flex flex-wrap gap-1.5">
         <AnimatePresence initial>
           {tags.map((t, i) => (
             <motion.span
               key={`${t}-${i}`}
-              initial={{ opacity: 0, scale: 0.94 }}
+              initial={shouldReduceMotion ? {} : { opacity: 0, scale: 0.94 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.018, duration: 0.16 }}
             >

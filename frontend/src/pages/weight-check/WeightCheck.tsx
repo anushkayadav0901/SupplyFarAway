@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   Line,
   LineChart,
@@ -18,6 +18,17 @@ import DraftPicker from "../../components/DraftPicker";
 import CardSkeleton from "../../components/skeletons/CardSkeleton";
 import { trpc } from "../../lib/trpc";
 
+// ─── constants ────────────────────────────────────────────────────────────────
+const IDLE_TICK_MS = 500;
+const STREAM_TICK_MS = 180;
+const STREAM_STEPS = 20;
+const IDLE_BASELINE_KG = 50;
+const SERIES_WINDOW = 29;
+const DEFAULT_THRESHOLD_PCT = "5";
+const HISTORY_LIMIT = 20;
+
+// ─── types ────────────────────────────────────────────────────────────────────
+
 interface FormState {
   draftId: string;
   declaredWeightKg: string;
@@ -29,72 +40,98 @@ const initialForm: FormState = {
   draftId: "",
   declaredWeightKg: "",
   measuredWeightKg: "",
-  thresholdPct: "5",
+  thresholdPct: DEFAULT_THRESHOLD_PCT,
 };
 
-// Build a 30-sample idle drift baseline around a slowly moving setpoint.
+// ─── helpers ──────────────────────────────────────────────────────────────────
+
 function makeIdleSeries(): { t: number; kg: number }[] {
   const out: { t: number; kg: number }[] = [];
   for (let i = 0; i < 30; i++) {
     const drift = Math.sin(i * 0.35) * 0.4 + Math.cos(i * 0.7) * 0.15;
-    out.push({ t: i, kg: 50 + drift });
+    out.push({ t: i, kg: IDLE_BASELINE_KG + drift });
   }
   return out;
 }
 
+function fmtDate(d: Date | string): string {
+  return new Date(d).toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function fmtPct(n: number, decimals = 2): string {
+  return `${n.toFixed(decimals)}%`;
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export default function WeightCheck() {
+  const shouldReduceMotion = useReducedMotion();
   const [form, setForm] = useState<FormState>(initialForm);
   const [series, setSeries] = useState<{ t: number; kg: number }[]>(() =>
     makeIdleSeries()
   );
   const [streaming, setStreaming] = useState(false);
+
+  // Use refs for timer IDs — no requestAnimationFrame here since we use setInterval
+  // (recharts LineChart with isAnimationActive=false redraws fine on state updates)
   const idleTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const streamTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mountedRef = useRef(true);
 
   const utils = trpc.useUtils();
 
   const submitMutation = trpc.weightCheck.submit.useMutation({
     onSuccess: () => {
       toast.success("Weight check submitted.");
-      utils.weightCheck.history.invalidate();
+      utils.weightCheck.history.invalidate().catch(() => void 0);
     },
     onError: (err) => {
       toast.error(err.message || "Failed to submit weight check.");
     },
   });
 
-  const historyQuery = trpc.weightCheck.history.useQuery({ limit: 20 });
+  const historyQuery = trpc.weightCheck.history.useQuery({ limit: HISTORY_LIMIT });
 
-  // Idle drift loop so the chart always feels alive even when no measurement
-  // is happening.
+  // unmount cleanup
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (idleTimerRef.current) clearInterval(idleTimerRef.current);
+      if (streamTimerRef.current) clearInterval(streamTimerRef.current);
+      idleTimerRef.current = null;
+      streamTimerRef.current = null;
+    };
+  }, []);
+
+  // Idle drift loop — paused while streaming
   useEffect(() => {
     if (streaming) return;
     idleTimerRef.current = setInterval(() => {
+      if (!mountedRef.current) return;
       setSeries((prev) => {
-        const last = prev.length > 0 ? prev[prev.length - 1].kg : 50;
+        const last = prev.length > 0 ? prev[prev.length - 1].kg : IDLE_BASELINE_KG;
         const target =
           parseFloat(form.measuredWeightKg) ||
           parseFloat(form.declaredWeightKg) ||
-          50;
-        const drift =
-          (Math.random() - 0.5) * 0.3 + (target - last) * 0.005;
+          IDLE_BASELINE_KG;
+        const drift = (Math.random() - 0.5) * 0.3 + (target - last) * 0.005;
         const nextKg = last + drift;
         const nextT = (prev[prev.length - 1]?.t ?? 0) + 1;
-        const next = [...prev.slice(-29), { t: nextT, kg: nextKg }];
-        return next;
+        return [...prev.slice(-SERIES_WINDOW), { t: nextT, kg: nextKg }];
       });
-    }, 500);
+    }, IDLE_TICK_MS);
     return () => {
       if (idleTimerRef.current) clearInterval(idleTimerRef.current);
+      idleTimerRef.current = null;
     };
   }, [streaming, form.measuredWeightKg, form.declaredWeightKg]);
-
-  useEffect(() => {
-    return () => {
-      if (idleTimerRef.current) clearInterval(idleTimerRef.current);
-      if (streamTimerRef.current) clearInterval(streamTimerRef.current);
-    };
-  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -102,39 +139,42 @@ export default function WeightCheck() {
 
   const runStream = (declared: number, measured: number): Promise<void> => {
     return new Promise((resolve) => {
+      if (!mountedRef.current) { resolve(); return; }
       setStreaming(true);
       if (idleTimerRef.current) {
         clearInterval(idleTimerRef.current);
         idleTimerRef.current = null;
       }
-      // Drift from declared toward measured over ~4 seconds (20 samples)
       let step = 0;
-      const totalSteps = 20;
       streamTimerRef.current = setInterval(() => {
+        if (!mountedRef.current) {
+          if (streamTimerRef.current) clearInterval(streamTimerRef.current);
+          streamTimerRef.current = null;
+          resolve();
+          return;
+        }
         step++;
-        const progress = step / totalSteps;
+        const progress = step / STREAM_STEPS;
         const eased = 1 - Math.pow(1 - progress, 2);
         const target = declared + (measured - declared) * eased;
         const noise = (Math.random() - 0.5) * 0.25;
         const value = target + noise;
         setSeries((prev) => {
           const nextT = (prev[prev.length - 1]?.t ?? 0) + 1;
-          return [...prev.slice(-29), { t: nextT, kg: value }];
+          return [...prev.slice(-SERIES_WINDOW), { t: nextT, kg: value }];
         });
-        if (step >= totalSteps) {
-          if (streamTimerRef.current) {
-            clearInterval(streamTimerRef.current);
-            streamTimerRef.current = null;
-          }
+        if (step >= STREAM_STEPS) {
+          if (streamTimerRef.current) clearInterval(streamTimerRef.current);
+          streamTimerRef.current = null;
           // Final settle to measured
           setSeries((prev) => {
             const nextT = (prev[prev.length - 1]?.t ?? 0) + 1;
-            return [...prev.slice(-29), { t: nextT, kg: measured }];
+            return [...prev.slice(-SERIES_WINDOW), { t: nextT, kg: measured }];
           });
-          setStreaming(false);
+          if (mountedRef.current) setStreaming(false);
           resolve();
         }
-      }, 180);
+      }, STREAM_TICK_MS);
     });
   };
 
@@ -145,12 +185,13 @@ export default function WeightCheck() {
     const measured = parseFloat(form.measuredWeightKg);
     const threshold = parseFloat(form.thresholdPct);
 
+    // UI-layer validation (negative weight rejected here too, not just Zod)
     if (isNaN(declared) || declared <= 0) {
       toast.error("Declared weight must be a positive number.");
       return;
     }
     if (isNaN(measured) || measured < 0) {
-      toast.error("Measured weight must be a non-negative number.");
+      toast.error("Measured weight cannot be negative.");
       return;
     }
     if (isNaN(threshold) || threshold < 0) {
@@ -159,6 +200,7 @@ export default function WeightCheck() {
     }
 
     await runStream(declared, measured);
+    if (!mountedRef.current) return;
 
     submitMutation.mutate({
       ...(form.draftId.trim() ? { draftId: form.draftId.trim() } : {}),
@@ -168,6 +210,19 @@ export default function WeightCheck() {
     });
   };
 
+  // keyboard: Escape cancels streaming
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && streaming) {
+        if (streamTimerRef.current) clearInterval(streamTimerRef.current);
+        streamTimerRef.current = null;
+        if (mountedRef.current) setStreaming(false);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [streaming]);
+
   const latestResult = submitMutation.data;
   const declaredFloat = parseFloat(form.declaredWeightKg);
   const measuredFloat = parseFloat(form.measuredWeightKg);
@@ -175,7 +230,6 @@ export default function WeightCheck() {
     !isNaN(declaredFloat) && !isNaN(measuredFloat) && declaredFloat > 0
       ? ((measuredFloat - declaredFloat) / declaredFloat) * 100
       : 0;
-  // Constrain needle to ±25%
   const needleAngle = Math.max(-90, Math.min(90, (livePct / 25) * 90));
 
   const chartMin = Math.min(...series.map((p) => p.kg)) - 1;
@@ -187,18 +241,15 @@ export default function WeightCheck() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-8 space-y-6">
-            {/* Sensor Stream */}
+            {/* Sensor Stream chart */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Activity
-                    className={`w-4 h-4 ${
-                      streaming ? "text-blue-600" : "text-slate-500"
-                    }`}
+                    className={`w-4 h-4 ${streaming ? "text-blue-600" : "text-slate-500"}`}
+                    aria-hidden="true"
                   />
-                  <h2 className="text-base font-semibold text-slate-800">
-                    Load Sensor Stream
-                  </h2>
+                  <h2 className="text-base font-semibold text-slate-800">Load Sensor Stream</h2>
                 </div>
                 <span
                   className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -206,16 +257,14 @@ export default function WeightCheck() {
                       ? "bg-blue-100 text-blue-700"
                       : "bg-emerald-100 text-emerald-700"
                   }`}
+                  aria-live="polite"
                 >
                   {streaming ? "STREAMING" : "STABLE"}
                 </span>
               </div>
               <div className="h-44 -mx-2">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={series}
-                    margin={{ top: 6, right: 12, left: 12, bottom: 4 }}
-                  >
+                  <LineChart data={series} margin={{ top: 6, right: 12, left: 12, bottom: 4 }}>
                     <XAxis dataKey="t" hide />
                     <YAxis
                       domain={[chartMin, chartMax]}
@@ -226,15 +275,8 @@ export default function WeightCheck() {
                       tickFormatter={(v) => `${(v as number).toFixed(1)}`}
                     />
                     <Tooltip
-                      contentStyle={{
-                        borderRadius: 8,
-                        fontSize: 12,
-                        border: "1px solid #e2e8f0",
-                      }}
-                      formatter={(v: number) => [
-                        `${v.toFixed(2)} kg`,
-                        "reading",
-                      ]}
+                      contentStyle={{ borderRadius: 8, fontSize: 12, border: "1px solid #e2e8f0" }}
+                      formatter={(v: number) => [`${v.toFixed(2)} kg`, "reading"]}
                       labelFormatter={() => ""}
                     />
                     <Line
@@ -255,34 +297,30 @@ export default function WeightCheck() {
             </div>
 
             {/* Form */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+            <div
+              className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8"
+              aria-labelledby="submit-heading"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-xl font-bold text-slate-800">
+                  <h2 id="submit-heading" className="text-xl font-bold text-slate-800">
                     Submit Weight Check
                   </h2>
                   <p className="text-sm text-slate-500 mt-1">
-                    Enter the declared and sensor-measured weights to detect
-                    deviations.
+                    Enter the declared and sensor-measured weights to detect deviations.
                   </p>
                 </div>
                 <DraftPicker
                   value={form.draftId}
-                  onSelect={(id) =>
-                    setForm((prev) => ({ ...prev, draftId: id }))
-                  }
+                  onSelect={(id) => setForm((prev) => ({ ...prev, draftId: id }))}
                 />
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-5 mt-5">
+              <form onSubmit={(e) => void handleSubmit(e)} className="space-y-5 mt-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="flex flex-col gap-1">
-                    <label
-                      className="text-sm font-semibold text-slate-600"
-                      htmlFor="declaredWeightKg"
-                    >
-                      Declared Weight (kg){" "}
-                      <span className="text-red-500">*</span>
+                    <label className="text-sm font-semibold text-slate-600" htmlFor="declaredWeightKg">
+                      Declared Weight (kg) <span className="text-red-500" aria-hidden="true">*</span>
                     </label>
                     <input
                       id="declaredWeightKg"
@@ -291,6 +329,7 @@ export default function WeightCheck() {
                       min="0.001"
                       step="0.001"
                       required
+                      aria-required="true"
                       placeholder="e.g. 100.00"
                       value={form.declaredWeightKg}
                       onChange={handleChange}
@@ -299,12 +338,8 @@ export default function WeightCheck() {
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <label
-                      className="text-sm font-semibold text-slate-600"
-                      htmlFor="measuredWeightKg"
-                    >
-                      Measured Weight (kg){" "}
-                      <span className="text-red-500">*</span>
+                    <label className="text-sm font-semibold text-slate-600" htmlFor="measuredWeightKg">
+                      Measured Weight (kg) <span className="text-red-500" aria-hidden="true">*</span>
                     </label>
                     <input
                       id="measuredWeightKg"
@@ -313,6 +348,7 @@ export default function WeightCheck() {
                       min="0"
                       step="0.001"
                       required
+                      aria-required="true"
                       placeholder="e.g. 103.50"
                       value={form.measuredWeightKg}
                       onChange={handleChange}
@@ -321,10 +357,7 @@ export default function WeightCheck() {
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <label
-                      className="text-sm font-semibold text-slate-600"
-                      htmlFor="thresholdPct"
-                    >
+                    <label className="text-sm font-semibold text-slate-600" htmlFor="thresholdPct">
                       Deviation Threshold (%)
                     </label>
                     <input
@@ -333,7 +366,7 @@ export default function WeightCheck() {
                       type="number"
                       min="0"
                       step="0.1"
-                      placeholder="Default: 5"
+                      placeholder={`Default: ${DEFAULT_THRESHOLD_PCT}`}
                       value={form.thresholdPct}
                       onChange={handleChange}
                       className="px-4 py-3 border-2 border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
@@ -341,14 +374,9 @@ export default function WeightCheck() {
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <label
-                      className="text-sm font-semibold text-slate-600"
-                      htmlFor="draftId"
-                    >
+                    <label className="text-sm font-semibold text-slate-600" htmlFor="draftId">
                       Draft ID{" "}
-                      <span className="text-slate-400 font-normal">
-                        (optional)
-                      </span>
+                      <span className="text-slate-400 font-normal">(optional)</span>
                     </label>
                     <input
                       id="draftId"
@@ -362,26 +390,40 @@ export default function WeightCheck() {
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-2">
+                <div className="flex justify-end items-center gap-3 pt-2">
+                  {streaming && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (streamTimerRef.current) clearInterval(streamTimerRef.current);
+                        streamTimerRef.current = null;
+                        setStreaming(false);
+                      }}
+                      aria-label="Cancel streaming"
+                      className="px-6 py-3 text-sm font-medium text-slate-600 hover:text-slate-800 rounded-xl border border-slate-200 hover:border-slate-300 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400"
+                    >
+                      Cancel
+                    </button>
+                  )}
                   <motion.button
                     type="submit"
-                    whileTap={{ scale: 0.97 }}
+                    whileTap={shouldReduceMotion ? {} : { scale: 0.97 }}
                     disabled={submitMutation.isPending || streaming}
-                    className="px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold rounded-xl shadow-sm transition-colors duration-150 disabled:cursor-not-allowed flex items-center gap-2"
+                    className="px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold rounded-xl shadow-sm shadow-blue-200 transition-colors duration-150 disabled:cursor-not-allowed flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
                     {streaming ? (
                       <>
-                        <Activity className="w-4 h-4 animate-pulse" />
+                        <Activity className="w-4 h-4 animate-pulse" aria-hidden="true" />
                         Streaming…
                       </>
                     ) : submitMutation.isPending ? (
                       <>
-                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true" />
                         Saving…
                       </>
                     ) : (
                       <>
-                        <Scale className="w-4 h-4" />
+                        <Scale className="w-4 h-4" aria-hidden="true" />
                         Stream & Verify
                       </>
                     )}
@@ -390,12 +432,12 @@ export default function WeightCheck() {
               </form>
             </div>
 
-            {/* Scale needle / Result Banner */}
+            {/* Scale needle / Result banner */}
             <AnimatePresence>
               {latestResult && (
                 <motion.div
                   key="r"
-                  initial={{ opacity: 0, y: 6 }}
+                  initial={shouldReduceMotion ? {} : { opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 6 }}
                   className={`rounded-2xl border-2 p-6 flex flex-col sm:flex-row items-start sm:items-center gap-6 shadow-sm ${
@@ -403,40 +445,27 @@ export default function WeightCheck() {
                       ? "bg-red-50 border-red-300"
                       : "bg-emerald-50 border-emerald-300"
                   }`}
+                  role="status"
+                  aria-live="polite"
                 >
-                  <ScaleNeedle
-                    pct={latestResult.deviationPct}
-                    flagged={latestResult.flagged}
-                  />
+                  <ScaleNeedle pct={latestResult.deviationPct} flagged={latestResult.flagged} />
                   <div className="flex-1">
-                    <p
-                      className={`text-lg font-bold ${
-                        latestResult.flagged
-                          ? "text-red-700"
-                          : "text-emerald-700"
-                      }`}
-                    >
-                      {latestResult.flagged
-                        ? "Weight Deviation Flagged"
-                        : "Weight Within Tolerance"}
+                    <p className={`text-lg font-bold ${latestResult.flagged ? "text-red-700" : "text-emerald-700"}`}>
+                      {latestResult.flagged ? "Weight Deviation Flagged" : "Weight Within Tolerance"}
                     </p>
                     <p className="text-sm text-slate-700 mt-1">
                       Declared:{" "}
-                      <strong>
-                        {latestResult.declaredWeightKg.toFixed(3)} kg
-                      </strong>
+                      <strong>{latestResult.declaredWeightKg.toFixed(3)} kg</strong>
                       {" · "}
                       Measured:{" "}
-                      <strong>
-                        {latestResult.measuredWeightKg.toFixed(3)} kg
-                      </strong>
+                      <strong>{latestResult.measuredWeightKg.toFixed(3)} kg</strong>
                       {" · "}
                       Deviation:{" "}
                       <strong>
                         {latestResult.deviationKg >= 0 ? "+" : ""}
                         {latestResult.deviationKg.toFixed(3)} kg
                       </strong>{" "}
-                      ({latestResult.deviationPct.toFixed(2)}% vs threshold{" "}
+                      ({fmtPct(latestResult.deviationPct)} vs threshold{" "}
                       {latestResult.thresholdPct}%)
                     </p>
                   </div>
@@ -444,49 +473,46 @@ export default function WeightCheck() {
               )}
             </AnimatePresence>
 
-            {/* Live deviation preview when no result yet */}
-            {!latestResult &&
-              !isNaN(declaredFloat) &&
-              !isNaN(measuredFloat) && (
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 flex items-center gap-6 shadow-sm">
-                  <ScaleNeedle
-                    pct={livePct}
-                    angle={needleAngle}
-                    flagged={Math.abs(livePct) > parseFloat(form.thresholdPct)}
-                  />
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-slate-700">
-                      Predicted deviation
-                    </p>
-                    <p className="text-2xl font-bold text-slate-800 mt-1">
-                      <CountUp value={livePct} decimals={2} suffix="%" />
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Threshold:{" "}
-                      {parseFloat(form.thresholdPct).toFixed(1)}% — Click
-                      "Stream & Verify" to record the reading.
-                    </p>
-                  </div>
+            {/* Live deviation preview */}
+            {!latestResult && !isNaN(declaredFloat) && !isNaN(measuredFloat) && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 flex items-center gap-6 shadow-sm">
+                <ScaleNeedle
+                  pct={livePct}
+                  angle={needleAngle}
+                  flagged={Math.abs(livePct) > parseFloat(form.thresholdPct)}
+                />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-slate-700">Predicted deviation</p>
+                  <p className="text-2xl font-bold text-slate-800 mt-1">
+                    <CountUp value={livePct} decimals={2} suffix="%" />
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Threshold: {parseFloat(form.thresholdPct).toFixed(1)}% — Click
+                    "Stream &amp; Verify" to record the reading.
+                  </p>
                 </div>
-              )}
+              </div>
+            )}
 
             {/* History */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+            <div
+              className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8"
+              aria-labelledby="history-heading"
+            >
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h2 className="text-xl font-bold text-slate-800">
+                  <h2 id="history-heading" className="text-xl font-bold text-slate-800">
                     Check History
                   </h2>
-                  <p className="text-sm text-slate-500">
-                    Last 20 weight checks for your account.
-                  </p>
+                  <p className="text-sm text-slate-500">Last {HISTORY_LIMIT} weight checks for your account.</p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => historyQuery.refetch()}
-                  className="text-xs font-semibold text-slate-500 hover:text-slate-700 inline-flex items-center gap-1"
+                  onClick={() => historyQuery.refetch().catch(() => void 0)}
+                  aria-label="Refresh check history"
+                  className="text-xs font-semibold text-slate-500 hover:text-slate-700 inline-flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-blue-400 rounded"
                 >
-                  <RefreshCcw className="w-3.5 h-3.5" />
+                  <RefreshCcw className="w-3.5 h-3.5" aria-hidden="true" />
                   Refresh
                 </button>
               </div>
@@ -498,21 +524,23 @@ export default function WeightCheck() {
                   <CardSkeleton height={56} />
                 </div>
               ) : historyQuery.isError ? (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4" role="alert">
                   <p className="text-sm text-red-700 font-medium">
                     Failed to load history: {historyQuery.error.message}
                   </p>
                   <button
                     type="button"
-                    onClick={() => historyQuery.refetch()}
-                    className="text-xs text-red-600 hover:text-red-700 underline mt-1"
+                    onClick={() => historyQuery.refetch().catch(() => void 0)}
+                    className="text-xs text-red-600 hover:text-red-700 underline mt-1 focus:outline-none focus:ring-2 focus:ring-red-400 rounded"
                   >
                     Retry
                   </button>
                 </div>
               ) : !historyQuery.data || historyQuery.data.length === 0 ? (
-                <div className="py-10 text-center text-slate-400 text-sm">
-                  No weight checks yet. Submit your first check above.
+                <div className="py-12 text-center text-slate-400">
+                  <Scale className="w-10 h-10 mx-auto mb-3 opacity-40" aria-hidden="true" />
+                  <p className="text-sm font-medium text-slate-500">No weight checks yet</p>
+                  <p className="text-xs mt-1">Submit your first check above.</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -535,17 +563,7 @@ export default function WeightCheck() {
                           className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
                         >
                           <td className="py-3 pr-4 text-slate-500 whitespace-nowrap">
-                            {new Date(
-                              record.createdAt as Date
-                            ).toLocaleDateString()}{" "}
-                            <span className="text-xs text-slate-400">
-                              {new Date(
-                                record.createdAt as Date
-                              ).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </span>
+                            {fmtDate(record.createdAt as Date)}
                           </td>
                           <td className="py-3 pr-4 text-right font-medium">
                             {record.declaredWeightKg.toFixed(3)}
@@ -566,7 +584,7 @@ export default function WeightCheck() {
                             {record.deviationKg.toFixed(3)}
                           </td>
                           <td className="py-3 pr-4 text-right">
-                            {record.deviationPct.toFixed(2)}%
+                            {fmtPct(record.deviationPct)}
                           </td>
                           <td className="py-3 pr-4 text-right text-slate-400">
                             {record.thresholdPct}%
@@ -592,10 +610,7 @@ export default function WeightCheck() {
           </div>
 
           <aside className="lg:col-span-4">
-            <InsightsRail
-              draftId={form.draftId.trim() || undefined}
-              title="Verification Activity"
-            />
+            <InsightsRail draftId={form.draftId.trim() || undefined} title="Verification Activity" />
           </aside>
         </div>
       </main>
@@ -603,9 +618,7 @@ export default function WeightCheck() {
   );
 }
 
-// ---------------------------------------------------------------------------
-// ScaleNeedle — semi-circle gauge with animated needle
-// ---------------------------------------------------------------------------
+// ─── ScaleNeedle ──────────────────────────────────────────────────────────────
 
 function ScaleNeedle({
   pct,
@@ -616,11 +629,15 @@ function ScaleNeedle({
   angle?: number;
   flagged: boolean;
 }) {
+  const shouldReduceMotion = useReducedMotion();
   const a = angle ?? Math.max(-90, Math.min(90, (pct / 25) * 90));
   const color = flagged ? "#ef4444" : "#10b981";
   return (
-    <div className="relative w-36 h-24 flex-shrink-0">
-      <svg viewBox="0 0 200 120" className="w-full h-full">
+    <div
+      className="relative w-36 h-24 flex-shrink-0"
+      aria-label={`Deviation: ${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%`}
+    >
+      <svg viewBox="0 0 200 120" className="w-full h-full" aria-hidden="true">
         {/* Arc */}
         <path
           d="M 20 110 A 80 80 0 0 1 180 110"
@@ -637,15 +654,7 @@ function ScaleNeedle({
           const x2 = 100 + Math.cos(rad) * 82;
           const y2 = 110 + Math.sin(rad) * 82;
           return (
-            <line
-              key={tick}
-              x1={x1}
-              y1={y1}
-              x2={x2}
-              y2={y2}
-              stroke="#cbd5e1"
-              strokeWidth="2"
-            />
+            <line key={tick} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#cbd5e1" strokeWidth="2" />
           );
         })}
         {/* Needle */}
@@ -660,7 +669,11 @@ function ScaleNeedle({
           initial={false}
           animate={{ rotate: a }}
           style={{ originX: "100px", originY: "110px" }}
-          transition={{ type: "spring", stiffness: 110, damping: 14 }}
+          transition={
+            shouldReduceMotion
+              ? { duration: 0 }
+              : { type: "spring", stiffness: 110, damping: 14 }
+          }
         />
         <circle cx="100" cy="110" r="6" fill={color} />
       </svg>

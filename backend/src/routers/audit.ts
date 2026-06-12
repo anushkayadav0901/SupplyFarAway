@@ -1,8 +1,17 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { requireUserId } from "../lib/auth.js";
 import { AuditEventModel } from "../models/AuditEvent.js";
 import { protectedProcedure, router } from "../trpc.js";
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+const MAX_PAYLOAD_BYTES = 4096; // 4 KB — prevent log bloat
+const MAX_EVENT_TYPE_LENGTH = 100;
+const MAX_SUMMARY_LENGTH = 500;
+const MAX_DRAFT_ID_LENGTH = 100;
 
 export const auditRouter = router({
   /**
@@ -11,20 +20,31 @@ export const auditRouter = router({
   append: protectedProcedure
     .input(
       z.object({
-        draftId: z.string(),
-        eventType: z.string().min(1),
+        draftId: z.string().min(1).max(MAX_DRAFT_ID_LENGTH),
+        eventType: z.string().min(1).max(MAX_EVENT_TYPE_LENGTH),
         payload: z.record(z.string(), z.unknown()).optional(),
-        summary: z.string().min(1),
+        summary: z.string().min(1).max(MAX_SUMMARY_LENGTH),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const userId = requireUserId(ctx);
 
+      const payloadToStore = input.payload ?? {};
+
+      // H7 / extra directive: cap payload size to prevent log bloat
+      const serialized = JSON.stringify(payloadToStore);
+      if (serialized.length > MAX_PAYLOAD_BYTES) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Audit payload exceeds maximum allowed size of ${MAX_PAYLOAD_BYTES} bytes`,
+        });
+      }
+
       const event = await AuditEventModel.create({
         userId,
         draftId: input.draftId,
         eventType: input.eventType,
-        payload: input.payload ?? {},
+        payload: payloadToStore,
         summary: input.summary,
         createdAt: new Date(),
       });

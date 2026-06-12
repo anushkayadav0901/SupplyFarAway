@@ -18,7 +18,7 @@ const Header = ({ title, page = "dashboard" }: HeaderProps) => {
   const resolvedTitle =
     title && title.trim().length > 0
       ? title
-      : resolvePageTitle(location.pathname) || "SupplyChain";
+      : resolvePageTitle(location.pathname) || "Supply Chain";
 
   return (
     <motion.header

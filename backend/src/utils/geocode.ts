@@ -1,92 +1,180 @@
 import axios from "axios";
 
+// ---------------------------------------------------------------------------
+// Named constants
+// ---------------------------------------------------------------------------
+
+/** Milliseconds before an upstream geocoding request is aborted. */
+const GEOCODE_TIMEOUT_MS = 8_000;
+
+/** Milliseconds before an upstream Routes API request is aborted. */
+const ROUTES_TIMEOUT_MS = 12_000;
+
+/** How many times to retry a failed geocode before propagating the error. */
+const GEOCODE_MAX_RETRIES = 2;
+
+/** Base delay (ms) between geocode retries — doubles on each attempt. */
+const GEOCODE_RETRY_BASE_MS = 500;
+
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 export interface LatLng {
   lat: number;
   lng: number;
 }
 
-export async function geocodeAddress(address: string): Promise<LatLng> {
-  try {
-    const response = await axios.get(
-      "https://maps.googleapis.com/maps/api/geocode/json",
-      {
-        params: { address, key: GOOGLE_API_KEY },
-      }
-    );
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
 
-    if (response.data.status === "OK" && response.data.results.length > 0) {
-      const location = response.data.results[0].geometry.location;
-      return { lat: location.lat, lng: location.lng };
-    }
-
-    console.error(
-      `Geocoding failed for address: ${address}, Status: ${response.data.status}, Error message: ${
-        response.data.error_message || "No message"
-      }`
-    );
-    throw new Error(`Geocoding failed for address: ${address}`);
-  } catch (error) {
-    console.error("Geocoding error:", error);
-    throw error;
-  }
+/**
+ * Sleep for `ms` milliseconds. Used for exponential-backoff retry.
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Single geocode attempt — does NOT retry.
+ */
+async function geocodeOnce(address: string): Promise<LatLng> {
+  const response = await axios.get<{
+    status: string;
+    error_message?: string;
+    results: Array<{ geometry: { location: { lat: number; lng: number } } }>;
+  }>("https://maps.googleapis.com/maps/api/geocode/json", {
+    params: { address, key: GOOGLE_API_KEY },
+    timeout: GEOCODE_TIMEOUT_MS,
+  });
+
+  if (response.data.status === "OK" && response.data.results.length > 0) {
+    const location = response.data.results[0].geometry.location;
+    return { lat: location.lat, lng: location.lng };
+  }
+
+  const apiStatus = response.data.status;
+  const apiMsg = response.data.error_message ?? "No error message";
+  console.error(
+    `[geocode] Geocoding failed for "${address}" — status: ${apiStatus}, message: ${apiMsg}`,
+  );
+  throw new Error(
+    `Geocoding failed for address "${address}" (status: ${apiStatus})`,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/**
+ * Geocode a human-readable address to lat/lng coordinates.
+ * Retries up to GEOCODE_MAX_RETRIES times with exponential back-off before
+ * propagating the error.
+ */
+export async function geocodeAddress(address: string): Promise<LatLng> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= GEOCODE_MAX_RETRIES; attempt++) {
+    try {
+      return await geocodeOnce(address);
+    } catch (err) {
+      lastError = err;
+      if (attempt < GEOCODE_MAX_RETRIES) {
+        const delayMs = GEOCODE_RETRY_BASE_MS * Math.pow(2, attempt);
+        console.warn(
+          `[geocode] Attempt ${attempt + 1} failed for "${address}", retrying in ${delayMs} ms`,
+        );
+        await sleep(delayMs);
+      }
+    }
+  }
+  console.error("[geocode] All retry attempts exhausted for:", address);
+  throw lastError;
+}
+
+/**
+ * Compute a driving route through the given ordered waypoints and return the
+ * encoded polyline for map rendering.
+ *
+ * Requires at least 2 waypoints (origin + destination).
+ */
 export async function getDirections(waypoints: string[]): Promise<string> {
+  if (waypoints.length < 2) {
+    throw new Error("[geocode] getDirections requires at least 2 waypoints");
+  }
+
+  let waypointsLatLng: LatLng[];
   try {
-    const waypointsLatLng = await Promise.all(waypoints.map(geocodeAddress));
-    const routesApiUrl =
-      "https://routes.googleapis.com/directions/v2:computeRoutes";
+    waypointsLatLng = await Promise.all(waypoints.map(geocodeAddress));
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[geocode] Failed to geocode one or more waypoints:", message);
+    throw err;
+  }
 
-    const requestData: Record<string, unknown> = {
-      origin: {
-        location: {
-          latLng: {
-            latitude: waypointsLatLng[0].lat,
-            longitude: waypointsLatLng[0].lng,
-          },
+  const routesApiUrl =
+    "https://routes.googleapis.com/directions/v2:computeRoutes";
+
+  const requestData: Record<string, unknown> = {
+    origin: {
+      location: {
+        latLng: {
+          latitude: waypointsLatLng[0].lat,
+          longitude: waypointsLatLng[0].lng,
         },
       },
-      destination: {
-        location: {
-          latLng: {
-            latitude: waypointsLatLng[waypointsLatLng.length - 1].lat,
-            longitude: waypointsLatLng[waypointsLatLng.length - 1].lng,
-          },
+    },
+    destination: {
+      location: {
+        latLng: {
+          latitude: waypointsLatLng[waypointsLatLng.length - 1].lat,
+          longitude: waypointsLatLng[waypointsLatLng.length - 1].lng,
         },
       },
-      travelMode: "DRIVE",
-      routingPreference: "TRAFFIC_AWARE",
-      computeAlternativeRoutes: false,
-      routeModifiers: {
-        avoidTolls: false,
-        avoidHighways: false,
-        avoidFerries: false,
+    },
+    travelMode: "DRIVE",
+    routingPreference: "TRAFFIC_AWARE",
+    computeAlternativeRoutes: false,
+    routeModifiers: {
+      avoidTolls: false,
+      avoidHighways: false,
+      avoidFerries: false,
+    },
+    languageCode: "en-US",
+    units: "IMPERIAL",
+  };
+
+  if (waypointsLatLng.length > 2) {
+    requestData.intermediates = waypointsLatLng.slice(1, -1).map((point) => ({
+      location: {
+        latLng: { latitude: point.lat, longitude: point.lng },
       },
-      languageCode: "en-US",
-      units: "IMPERIAL",
-    };
+    }));
+  }
 
-    if (waypointsLatLng.length > 2) {
-      requestData.intermediates = waypointsLatLng.slice(1, -1).map((point) => ({
-        location: { latLng: { latitude: point.lat, longitude: point.lng } },
-      }));
-    }
+  const headers = {
+    "Content-Type": "application/json",
+    "X-Goog-Api-Key": GOOGLE_API_KEY ?? "",
+    "X-Goog-FieldMask": "routes.polyline.encodedPolyline",
+  };
 
-    const headers = {
-      "Content-Type": "application/json",
-      "X-Goog-Api-Key": GOOGLE_API_KEY ?? "",
-      "X-Goog-FieldMask": "routes.polyline.encodedPolyline",
-    };
+  try {
+    const response = await axios.post<{
+      routes?: Array<{ polyline: { encodedPolyline: string } }>;
+    }>(routesApiUrl, requestData, { headers, timeout: ROUTES_TIMEOUT_MS });
 
-    const response = await axios.post(routesApiUrl, requestData, { headers });
     if (!response.data.routes || response.data.routes.length === 0) {
-      throw new Error("No routes found");
+      console.error("[geocode] Routes API returned no routes for waypoints:", waypoints);
+      throw new Error("No routes found for the given waypoints");
     }
-    return response.data.routes[0].polyline.encodedPolyline as string;
-  } catch (error) {
-    console.error("Error getting directions:", error);
-    throw error;
+
+    return response.data.routes[0].polyline.encodedPolyline;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[geocode] Routes API request failed:", message);
+    throw err;
   }
 }

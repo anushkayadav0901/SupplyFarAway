@@ -9,6 +9,29 @@ import { AuditEventModel } from "../models/AuditEvent.js";
 import { ShipmentDiffModel } from "../models/ShipmentDiff.js";
 import { protectedProcedure, router } from "../trpc.js";
 
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+/** 10 MB in base64 characters (10 * 1024 * 1024 * 4/3 ≈ 13,981,013) */
+const MAX_IMAGE_BASE64_CHARS = 13_981_013;
+/** Maximum characters to include in error log snippets to avoid log explosion */
+const ERR_SNIPPET_LEN = 240;
+/** riskScore threshold above which a high-severity AnomalyReport is emitted */
+const ANOMALY_RISK_THRESHOLD = 70;
+/** Risk score range bounds */
+const RISK_SCORE_MIN = 0;
+const RISK_SCORE_MAX = 100;
+/** Tampering probability range bounds */
+const TAMPERING_PROB_MIN = 0;
+const TAMPERING_PROB_MAX = 1;
+/** Maximum length for MIME type string */
+const MAX_MIME_LEN = 100;
+/** Maximum length for auto-generated anomaly summary */
+const ANOMALY_SUMMARY_MAX = 600;
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 async function writeAudit(
   userId: mongoose.Types.ObjectId,
   draftId: string | undefined,
@@ -30,6 +53,17 @@ async function writeAudit(
   }
 }
 
+function clampRiskScore(value: unknown): number {
+  return Math.min(RISK_SCORE_MAX, Math.max(RISK_SCORE_MIN, Number(value ?? 0)));
+}
+
+function clampTamperingProb(value: unknown): number {
+  return Math.min(TAMPERING_PROB_MAX, Math.max(TAMPERING_PROB_MIN, Number(value ?? 0)));
+}
+
+// ---------------------------------------------------------------------------
+// Router
+// ---------------------------------------------------------------------------
 export const shipmentDiffRouter = router({
   /**
    * POST shipmentDiff.compare
@@ -37,10 +71,14 @@ export const shipmentDiffRouter = router({
   compare: protectedProcedure
     .input(
       z.object({
-        draftId: z.string().optional(),
-        beforeImageBase64: z.string().min(10),
-        afterImageBase64: z.string().min(10),
-        mimeType: z.string().default("image/jpeg"),
+        draftId: z.string().max(100).optional(),
+        beforeImageBase64: z.string().min(10).max(MAX_IMAGE_BASE64_CHARS, {
+          message: "Before-image exceeds 10 MB limit",
+        }),
+        afterImageBase64: z.string().min(10).max(MAX_IMAGE_BASE64_CHARS, {
+          message: "After-image exceeds 10 MB limit",
+        }),
+        mimeType: z.string().min(1).max(MAX_MIME_LEN).default("image/jpeg"),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -80,7 +118,7 @@ export const shipmentDiffRouter = router({
       } catch (err) {
         throw new TRPCError({
           code: "BAD_GATEWAY",
-          message: `Gemini API failed: ${(err as Error)?.message ?? "unknown"}`,
+          message: `Gemini API failed: ${String((err as Error)?.message ?? "unknown").slice(0, ERR_SNIPPET_LEN)}`,
         });
       }
 
@@ -99,19 +137,16 @@ export const shipmentDiffRouter = router({
           throw new Error("No JSON object found in response");
         }
         const cleanText = rawText.slice(jsonStart, jsonEnd).trim();
-        parsed = JSON.parse(cleanText);
+        parsed = JSON.parse(cleanText) as typeof parsed;
       } catch {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to parse Gemini response. Raw snippet: ${rawText.slice(0, 200)}`,
+          message: `Failed to parse Gemini response. Raw snippet: ${rawText.slice(0, ERR_SNIPPET_LEN)}`,
         });
       }
 
-      const riskScore = Math.min(100, Math.max(0, Number(parsed.riskScore ?? 0)));
-      const tamperingProbability = Math.min(
-        1,
-        Math.max(0, Number(parsed.tamperingProbability ?? 0)),
-      );
+      const riskScore = clampRiskScore(parsed.riskScore);
+      const tamperingProbability = clampTamperingProb(parsed.tamperingProbability);
 
       const doc = await ShipmentDiffModel.create({
         userId,
@@ -137,8 +172,8 @@ export const shipmentDiffRouter = router({
         },
       );
 
-      // Cross-feature linkage: emit high-severity AnomalyReport when riskScore > 70.
-      if (riskScore > 70) {
+      // Cross-feature linkage: emit high-severity AnomalyReport when riskScore > ANOMALY_RISK_THRESHOLD.
+      if (riskScore > ANOMALY_RISK_THRESHOLD) {
         try {
           await AnomalyReportModel.create({
             userId,
@@ -153,7 +188,7 @@ export const shipmentDiffRouter = router({
             flags: ["shipment-diff-high-risk"],
             severity: "high",
             riskScore,
-            summary: `Shipment diff risk ${riskScore}: ${parsed.summary ?? parsed.damageDescription ?? ""}`.slice(0, 600),
+            summary: `Shipment diff risk ${riskScore}: ${parsed.summary ?? parsed.damageDescription ?? ""}`.slice(0, ANOMALY_SUMMARY_MAX),
             createdAt: new Date(),
           });
         } catch (err) {

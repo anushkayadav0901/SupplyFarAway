@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   FaUserCircle,
   FaSignOutAlt,
@@ -363,10 +363,12 @@ const Profile: React.FC = () => {
     navigate(`/${path}/${userId}`);
   };
 
+  const prefersReducedMotion = useReducedMotion();
+
   const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.2, ease: "easeOut" } },
-    exit: { opacity: 0, transition: { duration: 0.15, ease: "easeIn" } },
+    hidden: { opacity: prefersReducedMotion ? 1 : 0 },
+    visible: { opacity: 1, transition: { duration: prefersReducedMotion ? 0 : 0.2, ease: "easeOut" } },
+    exit: { opacity: prefersReducedMotion ? 1 : 0, transition: { duration: prefersReducedMotion ? 0 : 0.15, ease: "easeIn" } },
   };
 
   return (

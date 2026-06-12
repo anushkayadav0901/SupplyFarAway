@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   Area,
   AreaChart,
@@ -27,10 +27,19 @@ import CardSkeleton from "../../components/skeletons/CardSkeleton";
 import { trpc } from "../../lib/trpc";
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Constants
 // ---------------------------------------------------------------------------
 
-function formatDate(date: Date | string): string {
+/** How long the pulse glow lasts on a metric card after an increase. */
+const PULSE_DURATION_MS = 1200;
+/** Maximum number of recent events rendered in the list. */
+const MAX_EVENTS_DISPLAY = 200;
+
+// ---------------------------------------------------------------------------
+// Formatting helpers (V7)
+// ---------------------------------------------------------------------------
+
+function fmtDateTime(date: Date | string): string {
   const d = typeof date === "string" ? new Date(date) : date;
   return d.toLocaleString(undefined, {
     year: "numeric",
@@ -40,6 +49,14 @@ function formatDate(date: Date | string): string {
     minute: "2-digit",
   });
 }
+
+function fmtPct(value: number, decimals = 0): string {
+  return `${value.toFixed(decimals)}%`;
+}
+
+// ---------------------------------------------------------------------------
+// Subcomponents
+// ---------------------------------------------------------------------------
 
 function RiskBadge({ score }: { score: number }) {
   let color = "bg-emerald-100 text-emerald-700";
@@ -54,6 +71,7 @@ function RiskBadge({ score }: { score: number }) {
   return (
     <span
       className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${color}`}
+      aria-label={`Risk level: ${label} (${fmtPct(score * 100, 0)})`}
     >
       <span
         className={`w-1.5 h-1.5 rounded-full ${
@@ -63,8 +81,9 @@ function RiskBadge({ score }: { score: number }) {
               ? "bg-amber-500"
               : "bg-emerald-500"
         }`}
+        aria-hidden="true"
       />
-      {label} ({(score * 100).toFixed(0)}%)
+      {label} ({fmtPct(score * 100, 0)})
     </span>
   );
 }
@@ -89,7 +108,7 @@ function EventTypePill({ type }: { type: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// MetricCard
+// MetricCard (C3: pulse-on-increase via previous-value ref)
 // ---------------------------------------------------------------------------
 
 interface MetricCardProps {
@@ -101,7 +120,7 @@ interface MetricCardProps {
   subtext?: string;
   accent?: "red" | "amber" | "blue" | "emerald" | "purple" | "cyan";
   icon: React.ReactNode;
-  /** When true, pulse the card on changes (used when the metric just grew). */
+  /** When true, pulse the card (value just increased). */
   pulse?: boolean;
 }
 
@@ -116,6 +135,7 @@ function MetricCard({
   icon,
   pulse,
 }: MetricCardProps) {
+  const prefersReduced = useReducedMotion();
   const accentMap: Record<string, string> = {
     red: "from-red-500 to-red-600",
     amber: "from-amber-500 to-amber-600",
@@ -128,9 +148,9 @@ function MetricCard({
 
   return (
     <motion.div
-      whileHover={{ y: -2 }}
+      whileHover={prefersReduced ? undefined : { y: -2 }}
       animate={
-        pulse
+        pulse && !prefersReduced
           ? {
               boxShadow: [
                 "0 0 0 0 rgba(59,130,246,0)",
@@ -147,12 +167,13 @@ function MetricCard({
         <span className="text-sm font-medium text-slate-500">{label}</span>
         <div
           className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white shadow-md`}
+          aria-hidden="true"
         >
           {icon}
         </div>
       </div>
       <div>
-        <p className="text-3xl font-bold text-slate-900">
+        <p className="text-3xl font-bold text-slate-900" aria-label={`${label}: ${display ?? value}`}>
           {display ?? (
             <CountUp value={value} decimals={decimals} suffix={suffix} />
           )}
@@ -164,14 +185,71 @@ function MetricCard({
 }
 
 // ---------------------------------------------------------------------------
+// EventRow — memoized for long list stability (V9)
+// ---------------------------------------------------------------------------
+
+interface EventRowItem {
+  type: string;
+  riskScore: number;
+  createdAt: Date | string;
+  summary: string;
+}
+
+const EventRow = (function () {
+  const Row = function ({
+    event,
+    idx,
+    prefersReduced,
+  }: {
+    event: EventRowItem;
+    idx: number;
+    prefersReduced: boolean | null;
+  }) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, x: prefersReduced ? 0 : -6 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: prefersReduced ? 0 : Math.min(idx * 0.02, 0.2) }}
+        className="px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-3 hover:bg-slate-50 transition-colors"
+      >
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <EventTypePill type={event.type} />
+          <p className="text-sm text-slate-700 truncate flex-1">{event.summary}</p>
+        </div>
+        <div className="flex items-center gap-4 flex-shrink-0">
+          <RiskBadge score={event.riskScore} />
+          <span className="text-xs text-slate-400 whitespace-nowrap">
+            {fmtDateTime(event.createdAt)}
+          </span>
+        </div>
+      </motion.div>
+    );
+  };
+  Row.displayName = "EventRow";
+  return Row;
+})();
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
 export default function FraudDashboard() {
+  const prefersReduced = useReducedMotion();
+  const [showAllEvents, setShowAllEvents] = useState(false);
+
   const { data, isLoading, isError, error, refetch, isRefetching } =
     trpc.fraud.summary.useQuery(undefined, {
       retry: 1,
-      refetchOnWindowFocus: false,
+      // Respect document visibility — react-query's refetchOnWindowFocus handles
+      // the tab-focus case; we add refetchInterval gated on document.hidden.
+      refetchOnWindowFocus: true,
+      refetchInterval: (query) => {
+        // 6s interval, but pause when tab is hidden (C3 polling)
+        if (typeof document !== "undefined" && document.hidden) return false;
+        // Back off after errors
+        if (query.state.status === "error") return false;
+        return 6000;
+      },
     });
 
   const handleRefresh = () => {
@@ -186,45 +264,36 @@ export default function FraudDashboard() {
     totalRfidMissing: 0,
     weightFlagged: 0,
     anomalyHighSeverity: 0,
-    recentEvents: [] as {
-      type: string;
-      riskScore: number;
-      createdAt: Date | string;
-      summary: string;
-    }[],
+    recentEvents: [] as EventRowItem[],
   };
 
-  const recentEvents = summary.recentEvents as {
-    type: string;
-    riskScore: number;
-    createdAt: Date | string;
-    summary: string;
-  }[];
+  const recentEvents = summary.recentEvents as EventRowItem[];
 
-  const overallRiskScore =
-    recentEvents.length > 0
-      ? recentEvents.reduce((acc, e) => acc + e.riskScore, 0) /
-        recentEvents.length
-      : 0;
+  const overallRiskScore = useMemo(
+    () =>
+      recentEvents.length > 0
+        ? recentEvents.reduce((acc, e) => acc + e.riskScore, 0) / recentEvents.length
+        : 0,
+    [recentEvents]
+  );
 
   // Build a 30-point series from recentEvents (or pad with zeros)
   const series = useMemo(() => {
     const last30 = recentEvents.slice(0, 30).reverse();
     if (last30.length === 0) {
-      return Array.from({ length: 12 }).map((_, i) => ({
-        i,
-        risk: 0,
-      }));
+      return Array.from({ length: 12 }).map((_, i) => ({ i, risk: 0 }));
     }
     return last30.map((e, i) => ({ i, risk: e.riskScore * 100 }));
   }, [recentEvents]);
 
-  // Pulse logic — track previous tile values, set pulse=true briefly when increased
-  const prevValuesRef = useRef<{ [k: string]: number }>({});
+  // ---------------------------------------------------------------------------
+  // Pulse logic — previous-value ref to detect delta increases (C3, extra directive)
+  // ---------------------------------------------------------------------------
+  const prevValuesRef = useRef<Record<string, number>>({});
   const [pulseMap, setPulseMap] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    const current = {
+    const current: Record<string, number> = {
       boxCountMismatches: summary.boxCountMismatches,
       totalRfidMissing: summary.totalRfidMissing,
       weightFlagged: summary.weightFlagged,
@@ -234,7 +303,7 @@ export default function FraudDashboard() {
     const prev = prevValuesRef.current;
     const nextPulse: Record<string, boolean> = {};
     let dirty = false;
-    for (const k of Object.keys(current) as (keyof typeof current)[]) {
+    for (const k of Object.keys(current)) {
       if (prev[k] !== undefined && current[k] > prev[k]) {
         nextPulse[k] = true;
         dirty = true;
@@ -243,7 +312,7 @@ export default function FraudDashboard() {
     prevValuesRef.current = current;
     if (dirty) {
       setPulseMap(nextPulse);
-      const t = setTimeout(() => setPulseMap({}), 1200);
+      const t = setTimeout(() => setPulseMap({}), PULSE_DURATION_MS);
       return () => clearTimeout(t);
     }
   }, [
@@ -253,6 +322,12 @@ export default function FraudDashboard() {
     summary.anomalyHighSeverity,
     recentEvents.length,
   ]);
+
+  // Cap events list (extra directive)
+  const displayedEvents = showAllEvents
+    ? recentEvents
+    : recentEvents.slice(0, MAX_EVENTS_DISPLAY);
+  const hasMoreEvents = recentEvents.length > MAX_EVENTS_DISPLAY;
 
   return (
     <div className="min-h-screen bg-[var(--color-neutral-100,#f5f5f5)]">
@@ -275,19 +350,27 @@ export default function FraudDashboard() {
               <button
                 onClick={handleRefresh}
                 disabled={isLoading || isRefetching}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-50"
+                aria-label="Refresh risk data"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               >
                 <RefreshCcw
                   className={`w-4 h-4 ${isRefetching ? "animate-spin" : ""}`}
+                  aria-hidden="true"
                 />
                 Refresh
               </button>
             </div>
 
-            {/* Error banner */}
+            {/* Error banner (V3) */}
             {isError && (
-              <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <div
+                className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3"
+                role="alert"
+              >
+                <AlertTriangle
+                  className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5"
+                  aria-hidden="true"
+                />
                 <div>
                   <p className="text-sm font-medium text-red-800">
                     Could not load risk data
@@ -298,7 +381,8 @@ export default function FraudDashboard() {
                   </p>
                   <button
                     onClick={handleRefresh}
-                    className="text-xs text-red-600 hover:text-red-700 underline mt-1"
+                    className="text-xs text-red-600 hover:text-red-700 underline mt-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 rounded"
+                    aria-label="Retry loading risk data"
                   >
                     Retry
                   </button>
@@ -306,7 +390,7 @@ export default function FraudDashboard() {
               </div>
             )}
 
-            {/* Skeleton */}
+            {/* Loading skeleton (V1) */}
             {isLoading && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {Array.from({ length: 6 }).map((_, i) => (
@@ -317,10 +401,11 @@ export default function FraudDashboard() {
 
             {!isLoading && (
               <>
-                {/* Overall risk banner */}
+                {/* Overall risk banner (C2) */}
                 <motion.div
-                  initial={{ opacity: 0, y: 6 }}
+                  initial={{ opacity: 0, y: prefersReduced ? 0 : 6 }}
                   animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
                   className={`rounded-2xl p-5 flex items-center gap-4 shadow-sm ${
                     overallRiskScore >= 0.7
                       ? "bg-gradient-to-r from-red-500 to-red-600 text-white"
@@ -328,8 +413,14 @@ export default function FraudDashboard() {
                         ? "bg-gradient-to-r from-amber-500 to-amber-600 text-white"
                         : "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white"
                   }`}
+                  role="status"
+                  aria-live="polite"
+                  aria-label={`Overall account risk score: ${fmtPct(overallRiskScore * 100, 1)}`}
                 >
-                  <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                  <div
+                    className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0"
+                    aria-hidden="true"
+                  >
                     <ShieldCheck className="w-6 h-6 text-white" />
                   </div>
                   <div>
@@ -353,11 +444,14 @@ export default function FraudDashboard() {
                   </div>
                 </motion.div>
 
-                {/* Risk pulse chart */}
-                <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
+                {/* Risk pulse chart (C2) */}
+                <section
+                  className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6"
+                  aria-label="Risk pulse chart"
+                >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <Activity className="w-4 h-4 text-blue-600" />
+                      <Activity className="w-4 h-4 text-blue-600" aria-hidden="true" />
                       <h2 className="text-base font-semibold text-slate-800">
                         Risk Pulse
                       </h2>
@@ -366,7 +460,7 @@ export default function FraudDashboard() {
                       LAST 30
                     </span>
                   </div>
-                  <div className="h-40 -mx-2">
+                  <div className="h-40 -mx-2" aria-hidden="true">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart
                         data={series}
@@ -406,10 +500,7 @@ export default function FraudDashboard() {
                             fontSize: 12,
                             border: "1px solid #e2e8f0",
                           }}
-                          formatter={(v: number) => [
-                            `${v.toFixed(1)}%`,
-                            "risk",
-                          ]}
+                          formatter={(v: number) => [fmtPct(v, 1), "risk"]}
                           labelFormatter={() => ""}
                         />
                         <Area
@@ -418,7 +509,7 @@ export default function FraudDashboard() {
                           stroke="#3b82f6"
                           strokeWidth={2}
                           fill="url(#riskGrad)"
-                          isAnimationActive
+                          isAnimationActive={!prefersReduced}
                           animationDuration={500}
                         />
                       </AreaChart>
@@ -432,9 +523,7 @@ export default function FraudDashboard() {
                     label="Box Count Mismatches"
                     value={summary.boxCountMismatches}
                     subtext="Expected vs actual box count discrepancies"
-                    accent={
-                      summary.boxCountMismatches > 0 ? "red" : "emerald"
-                    }
+                    accent={summary.boxCountMismatches > 0 ? "red" : "emerald"}
                     icon={<Box className="w-5 h-5" />}
                     pulse={pulseMap.boxCountMismatches}
                   />
@@ -473,9 +562,7 @@ export default function FraudDashboard() {
                     label="High-Severity Anomalies"
                     value={summary.anomalyHighSeverity}
                     subtext="Anomaly reports with high or critical severity"
-                    accent={
-                      summary.anomalyHighSeverity > 0 ? "red" : "emerald"
-                    }
+                    accent={summary.anomalyHighSeverity > 0 ? "red" : "emerald"}
                     icon={<AlertTriangle className="w-5 h-5" />}
                     pulse={pulseMap.anomalyHighSeverity}
                   />
@@ -501,9 +588,13 @@ export default function FraudDashboard() {
                   </div>
 
                   {recentEvents.length === 0 ? (
+                    /* Empty state (V2) */
                     <div className="px-6 py-12 text-center">
                       <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-50 flex items-center justify-center mb-4">
-                        <ShieldCheck className="w-7 h-7 text-emerald-500" />
+                        <ShieldCheck
+                          className="w-7 h-7 text-emerald-500"
+                          aria-hidden="true"
+                        />
                       </div>
                       <p className="text-sm font-medium text-slate-700">
                         No events found
@@ -516,31 +607,27 @@ export default function FraudDashboard() {
                   ) : (
                     <div className="divide-y divide-slate-100">
                       <AnimatePresence initial>
-                        {recentEvents.map((event, idx) => (
-                          <motion.div
+                        {displayedEvents.map((event, idx) => (
+                          <EventRow
                             key={idx}
-                            initial={{ opacity: 0, x: -6 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{
-                              delay: Math.min(idx * 0.02, 0.2),
-                            }}
-                            className="px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-3 hover:bg-slate-50 transition-colors"
-                          >
-                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                              <EventTypePill type={event.type} />
-                              <p className="text-sm text-slate-700 truncate flex-1">
-                                {event.summary}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-4 flex-shrink-0">
-                              <RiskBadge score={event.riskScore} />
-                              <span className="text-xs text-slate-400 whitespace-nowrap">
-                                {formatDate(event.createdAt)}
-                              </span>
-                            </div>
-                          </motion.div>
+                            event={event}
+                            idx={idx}
+                            prefersReduced={prefersReduced}
+                          />
                         ))}
                       </AnimatePresence>
+                      {/* Show more affordance (extra directive) */}
+                      {hasMoreEvents && !showAllEvents && (
+                        <div className="px-6 py-4 text-center border-t border-slate-100">
+                          <button
+                            type="button"
+                            onClick={() => setShowAllEvents(true)}
+                            className="text-sm font-semibold text-blue-600 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                          >
+                            Show {recentEvents.length - MAX_EVENTS_DISPLAY} more events
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

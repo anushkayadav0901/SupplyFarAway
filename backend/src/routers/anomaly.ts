@@ -8,6 +8,24 @@ import { AnomalyReportModel } from "../models/AnomalyReport.js";
 import { AuditEventModel } from "../models/AuditEvent.js";
 import { protectedProcedure, router } from "../trpc.js";
 
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+/** Maximum characters to include in error log snippets to avoid log explosion */
+const ERR_SNIPPET_LEN = 240;
+/** Maximum string length for city names */
+const MAX_CITY_LEN = 200;
+/** Maximum string length for extra notes */
+const MAX_NOTES_LEN = 2000;
+/** Upper bound for riskScore returned by AI */
+const RISK_SCORE_MIN = 0;
+const RISK_SCORE_MAX = 100;
+/** Valid severity values */
+const VALID_SEVERITIES = ["low", "medium", "high"] as const;
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 async function writeAudit(
   userId: mongoose.Types.ObjectId,
   draftId: string | undefined,
@@ -29,6 +47,13 @@ async function writeAudit(
   }
 }
 
+function clampRiskScore(value: unknown): number {
+  return Math.min(RISK_SCORE_MAX, Math.max(RISK_SCORE_MIN, Math.round(Number(value ?? 0))));
+}
+
+// ---------------------------------------------------------------------------
+// Router
+// ---------------------------------------------------------------------------
 export const anomalyRouter = router({
   /**
    * mutation: analyze
@@ -36,15 +61,15 @@ export const anomalyRouter = router({
   analyze: protectedProcedure
     .input(
       z.object({
-        draftId: z.string().optional(),
+        draftId: z.string().max(100).optional(),
         declaredWeightKg: z.number().nonnegative(),
         measuredWeightKg: z.number().nonnegative(),
         declaredCount: z.number().int().nonnegative(),
         detectedCount: z.number().int().nonnegative(),
-        originCity: z.string(),
-        destinationCity: z.string(),
+        originCity: z.string().min(1).max(MAX_CITY_LEN),
+        destinationCity: z.string().min(1).max(MAX_CITY_LEN),
         routeDeviationKm: z.number().nonnegative().default(0),
-        extraNotes: z.string().optional(),
+        extraNotes: z.string().max(MAX_NOTES_LEN).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -119,7 +144,7 @@ Rules for severity:
       } catch (err) {
         throw new TRPCError({
           code: "BAD_GATEWAY",
-          message: `Gemini API call failed: ${(err as Error).message}`,
+          message: `Gemini API call failed: ${String((err as Error)?.message ?? "unknown").slice(0, ERR_SNIPPET_LEN)}`,
         });
       }
 
@@ -139,25 +164,28 @@ Rules for severity:
           throw new Error("No JSON object found in response");
         }
         const cleanJson = rawText.slice(jsonStart, jsonEnd).trim();
-        parsed = JSON.parse(cleanJson);
+        parsed = JSON.parse(cleanJson) as typeof parsed;
       } catch {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to parse Gemini response as JSON. Raw response snippet: ${rawText.slice(0, 200)}`,
+          message: `Failed to parse Gemini response as JSON. Raw response snippet: ${rawText.slice(0, ERR_SNIPPET_LEN)}`,
         });
       }
 
       if (
         !Array.isArray(parsed.flags) ||
-        !["low", "medium", "high"].includes(parsed.severity) ||
+        !VALID_SEVERITIES.includes(parsed.severity) ||
         typeof parsed.riskScore !== "number" ||
         typeof parsed.summary !== "string"
       ) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Gemini response has unexpected shape. Raw: ${rawText.slice(0, 200)}`,
+          message: `Gemini response has unexpected shape. Raw: ${rawText.slice(0, ERR_SNIPPET_LEN)}`,
         });
       }
+
+      // Clamp riskScore to valid range even if AI returns out-of-bounds value.
+      const riskScore = clampRiskScore(parsed.riskScore);
 
       const report = await AnomalyReportModel.create({
         userId,
@@ -171,7 +199,7 @@ Rules for severity:
         routeDeviationKm,
         flags: parsed.flags,
         severity: parsed.severity,
-        riskScore: parsed.riskScore,
+        riskScore,
         summary: parsed.summary,
         createdAt: new Date(),
       });
@@ -180,10 +208,10 @@ Rules for severity:
         userId,
         draftId,
         "anomaly-analyze",
-        `Anomaly analysis: severity ${parsed.severity}, risk ${parsed.riskScore}`,
+        `Anomaly analysis: severity ${parsed.severity}, risk ${riskScore}`,
         {
           severity: parsed.severity,
-          riskScore: parsed.riskScore,
+          riskScore,
           flags: parsed.flags,
           resultId: String(report._id),
         },

@@ -11,6 +11,7 @@ const GoogleLogin = () => {
   return (
     <button
       onClick={handleGoogleLogin}
+      aria-label="Sign in with Google"
       className="w-full bg-[#4285f4] text-white py-3 rounded-custom font-semibold hover:bg-[#357abd] transition-colors flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4285f4] focus-visible:ring-offset-2"
     >
       <svg

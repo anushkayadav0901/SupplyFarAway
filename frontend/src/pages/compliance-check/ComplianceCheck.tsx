@@ -23,10 +23,20 @@ type ToastProps = { type: string; message: string } | null;
 
 type FormData = typeof initialFormData;
 
+const SESSION_KEY = "compliance-form-draft";
+
 const ComplianceForm: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [formData, setFormData] = useState<FormData>(initialFormData);
+
+  // Restore form state from sessionStorage to survive accidental tab switches
+  const [formData, setFormData] = useState<FormData>(() => {
+    try {
+      const saved = sessionStorage.getItem(SESSION_KEY);
+      if (saved) return JSON.parse(saved) as FormData;
+    } catch {}
+    return initialFormData;
+  });
   const [activeTab, setActiveTab] = useState<string>("ShipmentDetails");
   const [loading, setLoading] = useState<boolean>(false);
   const [response, setResponse] = useState<Record<string, unknown> | null>(null);
@@ -35,6 +45,19 @@ const ComplianceForm: React.FC = () => {
   const [draftIdToFetch, setDraftIdToFetch] = useState<string | null>(null);
 
   const isButtonDisabled = loading || responseReceived;
+
+  // Persist form state to sessionStorage so tab switches don't lose data
+  useEffect(() => {
+    if (!responseReceived) {
+      try {
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(formData));
+      } catch {}
+    } else {
+      try {
+        sessionStorage.removeItem(SESSION_KEY);
+      } catch {}
+    }
+  }, [formData, responseReceived]);
 
   // tRPC query to fetch draft by ID (enabled only when draftIdToFetch is set)
   const { data: draftData, isError: isDraftError, error: draftError } = trpc.inventory.getDraftById.useQuery(
@@ -630,10 +653,13 @@ const ComplianceForm: React.FC = () => {
                     fontSize="small"
                   />
                 </Tooltip>
-                <label className="text-sm font-medium text-tertiary-500">
+                <label
+                  htmlFor={`field-${activeTab}-${fieldData.field}`}
+                  className="text-sm font-medium text-tertiary-500"
+                >
                   {fieldData.field}{" "}
                   {fieldData.mandatory && (
-                    <span className="text-red-500">*</span>
+                    <span className="text-red-500" aria-label="required">*</span>
                   )}
                 </label>
               </div>

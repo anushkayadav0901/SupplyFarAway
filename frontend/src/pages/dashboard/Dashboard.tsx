@@ -770,7 +770,7 @@ function MovexDashboard() {
               
               {/* Copyright */}
               <p className="text-gray-500 text-sm font-medium">
-                © {new Date().getFullYear()} SmartLogix. All rights reserved.
+                © {new Date().getFullYear()} Supply Chain. All rights reserved.
               </p>
             </motion.div>
           </div>

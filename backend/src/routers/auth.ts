@@ -1,33 +1,85 @@
+// External
 import { TRPCError } from "@trpc/server";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
 
+// Internal
 import { requireUserId } from "../lib/auth.js";
+
+// Models
 import { DraftModel } from "../models/Draft.js";
 import { ProductAnalysisModel } from "../models/ProductAnalysis.js";
 import { SaveRouteModel } from "../models/SaveRoute.js";
 import { UserModel } from "../models/User.js";
+
+// Schemas
 import {
   CompanyAddressSchema,
   UserLoginSchema,
 } from "../schemas/user.js";
+
+// tRPC helpers
 import { protectedProcedure, publicProcedure, router } from "../trpc.js";
 
-const JWT_SECRET = process.env.JWT_SECRET ?? "";
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/** JWT token validity window. */
 const TOKEN_EXPIRY = "1h";
+
+/** bcrypt work factor. */
+const BCRYPT_ROUNDS = 10;
+
+/**
+ * Maximum lengths for user-facing string inputs (H1).
+ * These prevent excessive DB writes and obvious fuzzing.
+ */
+const MAX_NAME_LENGTH = 100;
+const MAX_PASSWORD_LENGTH = 128;
+const MAX_PHONE_LENGTH = 30;
+const MAX_COMPANY_NAME_LENGTH = 200;
+const MAX_TAX_ID_LENGTH = 50;
+const MAX_ADDRESS_FIELD_LENGTH = 200;
+
+// ---------------------------------------------------------------------------
+// Helper: sign a JWT — validates secret presence at call time as a safety net.
+// Never include the token or secret in error messages.
+// ---------------------------------------------------------------------------
+function signToken(payload: Record<string, unknown>): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Authentication service misconfigured",
+    });
+  }
+  return jwt.sign(payload, secret, { expiresIn: TOKEN_EXPIRY });
+}
+
+// ---------------------------------------------------------------------------
+// Router
+// ---------------------------------------------------------------------------
 
 export const authRouter = router({
   /**
    * POST /createAccount → auth.createAccount
+   * Public: account creation endpoint — must remain public.
+   *
+   * Rate-limiting hook: mount express-rate-limit before tRPC for this path
+   * in backend/src/index.ts to prevent bulk account creation.
    */
   createAccount: publicProcedure
     .input(
       z.object({
-        firstName: z.string().min(1),
-        lastName: z.string().optional(),
-        emailAddress: z.string().email(),
-        password: z.string().min(1),
+        firstName: z.string().min(1).max(MAX_NAME_LENGTH).trim(),
+        lastName: z.string().max(MAX_NAME_LENGTH).trim().optional(),
+        emailAddress: z.string().email().max(254).toLowerCase().trim(),
+        password: z
+          .string()
+          .min(8, "Password must be at least 8 characters")
+          .max(MAX_PASSWORD_LENGTH),
       }),
     )
     .mutation(async ({ input }) => {
@@ -48,7 +100,7 @@ export const authRouter = router({
         });
       }
 
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
       const newUser = await UserModel.create({
         firstName,
         lastName,
@@ -56,21 +108,30 @@ export const authRouter = router({
         password: hashedPassword,
       });
 
-      const token = jwt.sign(
-        { id: newUser._id, email: newUser.emailAddress },
-        JWT_SECRET,
-        { expiresIn: TOKEN_EXPIRY },
-      );
+      const token = signToken({
+        id: String(newUser._id),
+        email: newUser.emailAddress,
+      });
 
+      // H8: do not return the hashed password or internal fields.
       return {
         message: "Account created successfully",
         token,
-        user: newUser,
+        user: {
+          id: newUser._id,
+          firstName: newUser.firstName,
+          lastName: newUser.lastName,
+          emailAddress: newUser.emailAddress,
+        },
       };
     }),
 
   /**
    * POST /loginUser → auth.loginUser
+   * Public: login endpoint — must remain public.
+   *
+   * Rate-limiting hook: mount express-rate-limit before tRPC for this path
+   * in backend/src/index.ts to prevent brute-force attacks.
    */
   loginUser: publicProcedure
     .input(UserLoginSchema)
@@ -79,9 +140,10 @@ export const authRouter = router({
 
       const user = await UserModel.findOne({ emailAddress });
       if (!user) {
+        // Use a generic message to avoid user enumeration.
         throw new TRPCError({
           code: "UNAUTHORIZED",
-          message: "User not found!",
+          message: "Invalid credentials",
         });
       }
 
@@ -89,7 +151,7 @@ export const authRouter = router({
         throw new TRPCError({
           code: "UNAUTHORIZED",
           message:
-            "User registered through Google sign-in. Please sign in with Google.",
+            "This account uses Google sign-in. Please sign in with Google.",
         });
       }
 
@@ -97,25 +159,32 @@ export const authRouter = router({
       if (!matchPassword) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
-          message: "Invalid credentials!",
+          message: "Invalid credentials",
         });
       }
 
-      const token = jwt.sign(
-        { id: user._id, email: user.emailAddress },
-        JWT_SECRET,
-        { expiresIn: TOKEN_EXPIRY },
-      );
+      const token = signToken({
+        id: String(user._id),
+        email: user.emailAddress,
+      });
 
+      // H8: do not return the hashed password or internal fields.
       return {
-        message: "Logged in successfully!",
+        message: "Logged in successfully",
         token,
-        user,
+        user: {
+          id: user._id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          emailAddress: user.emailAddress,
+          profilePhoto: user.profilePhoto,
+        },
       };
     }),
 
   /**
    * GET /protectedRoute → auth.getMe
+   * Protected: returns the authenticated user's profile.
    */
   getMe: protectedProcedure.query(async ({ ctx }) => {
     const userId = requireUserId(ctx);
@@ -134,7 +203,7 @@ export const authRouter = router({
         profilePhoto: user.profilePhoto,
         phoneNumber: user.phoneNumber,
         companyName: user.companyName,
-        companyAddress: user.companyAddress || {},
+        companyAddress: user.companyAddress ?? {},
         taxId: user.taxId,
       },
     };
@@ -142,12 +211,13 @@ export const authRouter = router({
 
   /**
    * PUT /api/user/update-username → auth.updateUsername
+   * Protected: updates the authenticated user's name.
    */
   updateUsername: protectedProcedure
     .input(
       z.object({
-        firstName: z.string().min(1),
-        lastName: z.string().optional(),
+        firstName: z.string().min(1).max(MAX_NAME_LENGTH).trim(),
+        lastName: z.string().max(MAX_NAME_LENGTH).trim().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -175,13 +245,15 @@ export const authRouter = router({
 
   /**
    * PUT /api/user/update-password → auth.updatePassword
+   * Protected: updates the authenticated user's password.
    */
   updatePassword: protectedProcedure
     .input(
       z.object({
         newPassword: z
           .string()
-          .min(6, "Password must be at least 6 characters long"),
+          .min(8, "Password must be at least 8 characters long")
+          .max(MAX_PASSWORD_LENGTH),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -197,11 +269,11 @@ export const authRouter = router({
         throw new TRPCError({
           code: "FORBIDDEN",
           message:
-            "You are authorized by Google. Password changes are not allowed for this account",
+            "This account uses Google sign-in. Password changes are not allowed.",
         });
       }
 
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
       await UserModel.findByIdAndUpdate(
         userId,
         { password: hashedPassword },
@@ -213,14 +285,19 @@ export const authRouter = router({
 
   /**
    * PUT /api/user/update-profile → auth.updateProfile
+   * Protected: updates the authenticated user's business profile.
    */
   updateProfile: protectedProcedure
     .input(
       z.object({
-        phoneNumber: z.string().min(1, "Phone number is required"),
-        companyName: z.string().optional(),
+        phoneNumber: z
+          .string()
+          .min(1, "Phone number is required")
+          .max(MAX_PHONE_LENGTH)
+          .trim(),
+        companyName: z.string().max(MAX_COMPANY_NAME_LENGTH).trim().optional(),
         companyAddress: CompanyAddressSchema.optional(),
-        taxId: z.string().optional(),
+        taxId: z.string().max(MAX_TAX_ID_LENGTH).trim().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -248,6 +325,8 @@ export const authRouter = router({
         }
       }
 
+      // H4: verify the document exists and belongs to the authenticated user
+      // before updating (findByIdAndUpdate with the user's own ID ensures ownership).
       const user = await UserModel.findById(userId);
 
       if (user) {
@@ -266,7 +345,7 @@ export const authRouter = router({
           user: {
             phoneNumber: updatedUser.phoneNumber,
             companyName: updatedUser.companyName,
-            companyAddress: updatedUser.companyAddress || {},
+            companyAddress: updatedUser.companyAddress ?? {},
             taxId: updatedUser.taxId,
           },
         };
@@ -286,7 +365,7 @@ export const authRouter = router({
           user: {
             phoneNumber: savedUser.phoneNumber,
             companyName: savedUser.companyName,
-            companyAddress: savedUser.companyAddress || {},
+            companyAddress: savedUser.companyAddress ?? {},
             taxId: savedUser.taxId,
           },
         };
@@ -295,10 +374,12 @@ export const authRouter = router({
 
   /**
    * DELETE /api/user/delete-account → auth.deleteAccount
+   * Protected: deletes the authenticated user's account and all associated data.
    */
   deleteAccount: protectedProcedure.mutation(async ({ ctx }) => {
     const userId = requireUserId(ctx);
 
+    // H4: all deletes are scoped by the authenticated user's ID.
     await UserModel.findByIdAndDelete(userId);
     await DraftModel.deleteMany({ userId });
     await SaveRouteModel.deleteMany({ userId });

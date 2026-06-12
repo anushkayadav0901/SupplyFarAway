@@ -13,11 +13,11 @@ import { protectedProcedure, publicProcedure, router } from "../trpc.js";
 // ---------------------------------------------------------------------------
 
 const CreateDraftInputSchema = z.object({
-  originCountry: z.string().min(1),
-  destinationCountry: z.string().min(1),
-  hsCode: z.string().min(1),
-  productDescription: z.string().min(1),
-  weight: z.number().positive(),
+  originCountry: z.string().min(1).max(100),
+  destinationCountry: z.string().min(1).max(100),
+  hsCode: z.string().min(1).max(20),
+  productDescription: z.string().min(1).max(1000),
+  weight: z.number().positive().max(1_000_000),
   perishable: z.boolean().optional(),
   hazardous: z.boolean().optional(),
 });
@@ -53,14 +53,14 @@ const DeleteDraftInputSchema = z.object({
 });
 
 const GetNewsInputSchema = z.object({
-  search: z.string().optional(),
+  search: z.string().max(500).optional(),
   page: z.number().int().min(1).max(4).default(1),
   searchMode: z.enum(["direct", "summarized"]).default("direct"),
 });
 
 const SummarizeArticleInputSchema = z.object({
-  content: z.string().min(1),
-  url: z.string().min(1),
+  content: z.string().min(1).max(20000),
+  url: z.string().min(1).max(2000).url(),
 });
 
 // ---------------------------------------------------------------------------

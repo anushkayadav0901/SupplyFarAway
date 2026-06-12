@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Button,
   TextField,
@@ -11,7 +11,7 @@ import {
   IconButton,
 } from "@mui/material";
 import { FaTimes } from "react-icons/fa";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import MapIcon from "@mui/icons-material/Map";
 import SaveIcon from "@mui/icons-material/Save";
 import Co2Icon from "@mui/icons-material/Co2";
@@ -104,6 +104,7 @@ const RouteOptimization: React.FC = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
+  const prefersReducedMotion = useReducedMotion();
 
   // tRPC mutations / queries
   const generateRoutesMutation = trpc.logistics.generateRoutes.useMutation();
@@ -620,8 +621,28 @@ const RouteOptimization: React.FC = () => {
               </div>
             </div>
 
+            {/* Progress affordance — shows which steps are complete */}
+            {!showResults && (
+              <div className="flex items-center justify-center gap-2 mt-6 mb-2" aria-label="Form completion steps">
+                {[
+                  { label: "Origin", filled: !!from.trim() },
+                  { label: "Destination", filled: !!to.trim() },
+                  { label: "Description", filled: !!description.trim() },
+                  { label: "Package", filled: !!packageData.quantity },
+                ].map((step, idx) => (
+                  <div key={step.label} className="flex items-center gap-1">
+                    <div
+                      className={`w-2.5 h-2.5 rounded-full transition-colors duration-150 ${step.filled ? "bg-blue-600" : "bg-gray-300"}`}
+                      title={step.label}
+                    />
+                    {idx < 3 && <div className="w-6 h-px bg-gray-200" />}
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Submit Button */}
-            <div className="mt-8 flex justify-center">
+            <div className="mt-4 flex justify-center">
               <button
                 type="submit"
                 disabled={loading || showResults}

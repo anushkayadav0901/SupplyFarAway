@@ -7,6 +7,15 @@ import { AuditEventModel } from "../models/AuditEvent.js";
 import { TrackingPingModel } from "../models/TrackingPing.js";
 import { protectedProcedure, router } from "../trpc.js";
 
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+const LAT_MIN = -90;
+const LAT_MAX = 90;
+const LNG_MIN = -180;
+const LNG_MAX = 180;
+const MAX_SPEED_KMH = 200; // reject physically impossible speeds
+
 /**
  * Haversine formula: returns distance in kilometres between two lat/lng points.
  */
@@ -58,19 +67,21 @@ export const trackingRouter = router({
   ping: protectedProcedure
     .input(
       z.object({
-        draftId: z.string(),
-        lat: z.number(),
-        lng: z.number(),
-        speedKmh: z.number().nonnegative().default(40),
-        destinationLat: z.number(),
-        destinationLng: z.number(),
+        draftId: z.string().min(1),
+        lat: z.number().min(LAT_MIN).max(LAT_MAX),
+        lng: z.number().min(LNG_MIN).max(LNG_MAX),
+        speedKmh: z.number().nonnegative().max(MAX_SPEED_KMH).default(40),
+        destinationLat: z.number().min(LAT_MIN).max(LAT_MAX),
+        destinationLng: z.number().min(LNG_MIN).max(LNG_MAX),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const userId = requireUserId(ctx);
 
-      const { draftId, lat, lng, speedKmh, destinationLat, destinationLng } =
-        input;
+      const { draftId, lat, lng, destinationLat, destinationLng } = input;
+
+      // Clamp speed to max allowed (defence-in-depth beyond Zod validation)
+      const speedKmh = Math.min(input.speedKmh, MAX_SPEED_KMH);
 
       const distanceKm = haversineKm(lat, lng, destinationLat, destinationLng);
       const effectiveSpeed = Math.max(speedKmh, 1);

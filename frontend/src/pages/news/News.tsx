@@ -79,14 +79,16 @@ const News: React.FC = () => {
     data: newsData,
     isLoading: loading,
     isFetching: tableLoading,
+    isError: newsIsError,
     error: newsError,
+    refetch: refetchNews,
   } = trpc.inventory.getNews.useQuery({
     search: searchQuery || undefined,
     page: activeDate + 1,
     searchMode,
   });
 
-  // Handle news fetch errors
+  // Handle news fetch errors via toast
   useEffect(() => {
     if (newsError) {
       setToastProps({
@@ -219,7 +221,7 @@ const News: React.FC = () => {
         <TableRow className="hover:bg-gray-50 transition-colors duration-150">
           <TableCell>
             <IconButton
-              aria-label="expand row"
+              aria-label={open ? "Collapse article details" : "Expand article details"}
               size="small"
               onClick={() => onRowToggle(article)}
             >
@@ -334,6 +336,7 @@ const News: React.FC = () => {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setTempSearchQuery(e.target.value)
                     }
+                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                     placeholder=" "
                     className="peer w-full pl-12 pr-4 py-4 bg-white border-2 border-gray-200 rounded-xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150 hover:border-gray-300"
                   />
@@ -439,7 +442,21 @@ const News: React.FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {loading || tableLoading ? (
+                {newsIsError ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8">
+                      <div className="flex flex-col items-center gap-3">
+                        <p className="text-red-600 font-medium">Failed to load news articles.</p>
+                        <button
+                          onClick={() => void refetchNews()}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                        >
+                          Retry
+                        </button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : loading || tableLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
                       <TableCell><div className="w-6 h-6 rounded bg-gray-200 animate-pulse" /></TableCell>
