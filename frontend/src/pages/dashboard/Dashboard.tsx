@@ -31,8 +31,12 @@ import ThemeToggle from "../../components/ThemeToggle";
 import FeatureCarousel from "./FeatureCarousel";
 import AppleStyleSideBackground from "./EnhancedBackground";
 import AboutSection from "./AboutSection";
-import LiveStatsSection from "./LiveStatsSection";
+// LiveStatsSection is preserved but no longer rendered here — the
+// DashboardHero now surfaces the same metrics with live tRPC data.
 import Button from "./Button";
+import DashboardHero from "./DashboardHero";
+import OperationsTicker from "../../components/OperationsTicker";
+import FeatureGroupGrid from "../../components/FeatureGroupGrid";
 import { trpc } from "../../lib/trpc";
 
 interface Feature {
@@ -558,61 +562,36 @@ function MovexDashboard() {
           </div>
         </section>
 
-        {/* New Features Grid */}
-        <section className="py-16 sm:py-24 px-4 sm:px-6 relative z-10" id="features">
-          <div className="max-w-6xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              viewport={{ once: true }}
-              className="text-center mb-12"
-            >
-              <span className="inline-block px-4 py-2 bg-emerald-100 text-emerald-700 rounded-full text-sm font-semibold mb-4">
-                New Features
-              </span>
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
-                Verification & Intelligence Suite
-              </h2>
-              <p className="text-lg text-gray-600 mt-4 max-w-2xl mx-auto">
-                AI-powered tools to verify, track, and protect every shipment
-              </p>
-            </motion.div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {newFeatures.map((feat, idx) => (
-                <motion.button
-                  key={feat.route}
-                  onClick={() => navigate(feat.route)}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.05, duration: 0.4 }}
-                  viewport={{ once: true }}
-                  whileHover={{ scale: 1.02, y: -3 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="group text-left bg-white border border-gray-200 hover:border-blue-300 rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-200 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-                >
-                  <div className="flex items-center gap-4 mb-3">
-                    <div className="w-11 h-11 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center group-hover:bg-blue-50 transition-colors duration-200">
-                      {feat.icon}
-                    </div>
-                    <h3 className="font-bold text-gray-900 text-base leading-tight">
-                      {feat.title}
-                    </h3>
-                  </div>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    {feat.desc}
-                  </p>
-                </motion.button>
-              ))}
-            </div>
+        {/* Live Network Hero — trust gauge, operations tiles, ticker */}
+        <section className="py-12 sm:py-16 px-4 sm:px-6 relative z-10" id="network">
+          <div className="max-w-7xl mx-auto space-y-6">
+            <DashboardHero />
+            <OperationsTicker />
           </div>
         </section>
 
-        {/* About Section */}
+        {/* Grouped Feature Navigation */}
+        <section className="py-10 sm:py-14 px-0 relative z-10" id="features">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center mb-6">
+            <span className="inline-block px-4 py-1.5 bg-blue-50 text-blue-700 rounded-full text-xs font-semibold uppercase tracking-wider ring-1 ring-blue-100">
+              Feature Suite
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mt-3">
+              Built for verifiable logistics
+            </h2>
+            <p className="text-base text-gray-600 mt-2 max-w-2xl mx-auto">
+              Verification, intelligence and operations grouped by what you're trying
+              to do.
+            </p>
+          </div>
+          <FeatureGroupGrid />
+        </section>
+
+        {/* About Section (retained) */}
         <AboutSection />
 
-        {/* Live Supply Chain Command Center */}
-        <LiveStatsSection />
+        {/* LiveStatsSection retained in repo, hidden from dashboard render — the
+            hero tiles above expose the same metrics with live tRPC data. */}
 
         {/* Problems We Solve Section - Enhanced Design */}
         <section

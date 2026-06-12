@@ -1,8 +1,11 @@
-import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
-import { router, protectedProcedure } from "../trpc.js";
+import { z } from "zod";
+
+import { requireUserId } from "../lib/auth.js";
+import { AuditEventModel } from "../models/AuditEvent.js";
 import { TrackingPingModel } from "../models/TrackingPing.js";
+import { protectedProcedure, router } from "../trpc.js";
 
 /**
  * Haversine formula: returns distance in kilometres between two lat/lng points.
@@ -11,7 +14,7 @@ function haversineKm(
   lat1: number,
   lng1: number,
   lat2: number,
-  lng2: number
+  lng2: number,
 ): number {
   const R = 6371; // Earth radius in km
   const toRad = (deg: number) => (deg * Math.PI) / 180;
@@ -27,10 +30,30 @@ function haversineKm(
   return R * c;
 }
 
+async function writeAudit(
+  userId: mongoose.Types.ObjectId,
+  draftId: string | undefined,
+  eventType: string,
+  summary: string,
+  payload: Record<string, unknown>,
+): Promise<void> {
+  try {
+    await AuditEventModel.create({
+      userId,
+      draftId: draftId ?? "n/a",
+      eventType,
+      payload,
+      summary,
+      createdAt: new Date(),
+    });
+  } catch (err) {
+    console.error(`[audit] failed to write ${eventType}:`, (err as Error)?.message);
+  }
+}
+
 export const trackingRouter = router({
   /**
    * mutation: ping
-   * Driver posts a geolocation update. Computes distance + ETA and persists.
    */
   ping: protectedProcedure
     .input(
@@ -41,10 +64,10 @@ export const trackingRouter = router({
         speedKmh: z.number().nonnegative().default(40),
         destinationLat: z.number(),
         destinationLng: z.number(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.user.id ?? ctx.user._id;
+      const userId = requireUserId(ctx);
 
       const { draftId, lat, lng, speedKmh, destinationLat, destinationLng } =
         input;
@@ -54,7 +77,7 @@ export const trackingRouter = router({
       const etaMinutes = (distanceKm / effectiveSpeed) * 60;
 
       const ping = await TrackingPingModel.create({
-        userId: new mongoose.Types.ObjectId(userId as string),
+        userId,
         draftId,
         lat,
         lng,
@@ -66,16 +89,30 @@ export const trackingRouter = router({
         createdAt: new Date(),
       });
 
+      await writeAudit(
+        userId,
+        draftId,
+        "tracking-ping",
+        `Tracking ping: ${distanceKm.toFixed(1)} km to destination`,
+        {
+          lat,
+          lng,
+          distanceKm,
+          etaMinutes,
+          pingId: String(ping._id),
+        },
+      );
+
       return ping;
     }),
 
   /**
    * query: latest
-   * Returns the most recent TrackingPing for the given draftId.
    */
   latest: protectedProcedure
     .input(z.object({ draftId: z.string() }))
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
+      requireUserId(ctx);
       const ping = await TrackingPingModel.findOne({ draftId: input.draftId })
         .sort({ createdAt: -1 })
         .lean();
@@ -92,22 +129,21 @@ export const trackingRouter = router({
 
   /**
    * query: history
-   * Returns the last N TrackingPing docs for draftId, oldest first.
    */
   history: protectedProcedure
     .input(
       z.object({
         draftId: z.string(),
         limit: z.number().int().positive().max(200).default(50),
-      })
+      }),
     )
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
+      requireUserId(ctx);
       const pings = await TrackingPingModel.find({ draftId: input.draftId })
         .sort({ createdAt: -1 })
         .limit(input.limit)
         .lean();
 
-      // Reverse so oldest is first
       return pings.reverse();
     }),
 });

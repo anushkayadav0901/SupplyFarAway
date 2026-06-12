@@ -2,15 +2,17 @@ import { TRPCError } from "@trpc/server";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
-import { router, publicProcedure, protectedProcedure } from "../trpc.js";
-import { UserModel } from "../models/User.js";
+
+import { requireUserId } from "../lib/auth.js";
 import { DraftModel } from "../models/Draft.js";
-import { SaveRouteModel } from "../models/SaveRoute.js";
 import { ProductAnalysisModel } from "../models/ProductAnalysis.js";
+import { SaveRouteModel } from "../models/SaveRoute.js";
+import { UserModel } from "../models/User.js";
 import {
-  UserLoginSchema,
   CompanyAddressSchema,
+  UserLoginSchema,
 } from "../schemas/user.js";
+import { protectedProcedure, publicProcedure, router } from "../trpc.js";
 
 const JWT_SECRET = process.env.JWT_SECRET ?? "";
 const TOKEN_EXPIRY = "1h";
@@ -18,7 +20,6 @@ const TOKEN_EXPIRY = "1h";
 export const authRouter = router({
   /**
    * POST /createAccount → auth.createAccount
-   * Creates a new user account with email/password.
    */
   createAccount: publicProcedure
     .input(
@@ -27,7 +28,7 @@ export const authRouter = router({
         lastName: z.string().optional(),
         emailAddress: z.string().email(),
         password: z.string().min(1),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       const { firstName, lastName, emailAddress, password } = input;
@@ -58,7 +59,7 @@ export const authRouter = router({
       const token = jwt.sign(
         { id: newUser._id, email: newUser.emailAddress },
         JWT_SECRET,
-        { expiresIn: TOKEN_EXPIRY }
+        { expiresIn: TOKEN_EXPIRY },
       );
 
       return {
@@ -70,7 +71,6 @@ export const authRouter = router({
 
   /**
    * POST /loginUser → auth.loginUser
-   * Authenticates a user and returns a JWT.
    */
   loginUser: publicProcedure
     .input(UserLoginSchema)
@@ -104,7 +104,7 @@ export const authRouter = router({
       const token = jwt.sign(
         { id: user._id, email: user.emailAddress },
         JWT_SECRET,
-        { expiresIn: TOKEN_EXPIRY }
+        { expiresIn: TOKEN_EXPIRY },
       );
 
       return {
@@ -116,10 +116,9 @@ export const authRouter = router({
 
   /**
    * GET /protectedRoute → auth.getMe
-   * Returns the authenticated user's profile (minus password).
    */
   getMe: protectedProcedure.query(async ({ ctx }) => {
-    const userId = ctx.user.id ?? ctx.user._id;
+    const userId = requireUserId(ctx);
     const user = await UserModel.findById(userId).select("-password");
     if (!user) {
       throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
@@ -149,16 +148,16 @@ export const authRouter = router({
       z.object({
         firstName: z.string().min(1),
         lastName: z.string().optional(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.user.id ?? ctx.user._id;
+      const userId = requireUserId(ctx);
       const { firstName, lastName } = input;
 
       const updatedUser = await UserModel.findByIdAndUpdate(
         userId,
         { firstName, lastName },
-        { new: true }
+        { new: true },
       );
 
       if (!updatedUser) {
@@ -180,11 +179,13 @@ export const authRouter = router({
   updatePassword: protectedProcedure
     .input(
       z.object({
-        newPassword: z.string().min(6, "Password must be at least 6 characters long"),
-      })
+        newPassword: z
+          .string()
+          .min(6, "Password must be at least 6 characters long"),
+      }),
     )
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.user.id ?? ctx.user._id;
+      const userId = requireUserId(ctx);
       const { newPassword } = input;
 
       const user = await UserModel.findById(userId);
@@ -204,7 +205,7 @@ export const authRouter = router({
       await UserModel.findByIdAndUpdate(
         userId,
         { password: hashedPassword },
-        { new: true }
+        { new: true },
       );
 
       return { message: "Password updated successfully" };
@@ -220,10 +221,10 @@ export const authRouter = router({
         companyName: z.string().optional(),
         companyAddress: CompanyAddressSchema.optional(),
         taxId: z.string().optional(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.user.id ?? ctx.user._id;
+      const userId = requireUserId(ctx);
       const { phoneNumber, companyName, companyAddress, taxId } = input;
 
       const updateData: Record<string, unknown> = {};
@@ -247,13 +248,13 @@ export const authRouter = router({
         }
       }
 
-      let user = await UserModel.findById(userId);
+      const user = await UserModel.findById(userId);
 
       if (user) {
         const updatedUser = await UserModel.findByIdAndUpdate(
           userId,
           { $set: updateData },
-          { new: true, runValidators: true }
+          { new: true, runValidators: true },
         );
 
         if (!updatedUser) {
@@ -270,13 +271,14 @@ export const authRouter = router({
           },
         };
       } else {
-        // User does not exist — create new (mirrors legacy behavior)
         const newUserData = {
           ...updateData,
           createdAt: new Date(),
         };
 
-        const newUser = new UserModel(newUserData as Parameters<typeof UserModel.create>[0]);
+        const newUser = new UserModel(
+          newUserData as Parameters<typeof UserModel.create>[0],
+        );
         const savedUser = await newUser.save();
 
         return {
@@ -293,10 +295,9 @@ export const authRouter = router({
 
   /**
    * DELETE /api/user/delete-account → auth.deleteAccount
-   * Deletes the user and all associated data.
    */
   deleteAccount: protectedProcedure.mutation(async ({ ctx }) => {
-    const userId = ctx.user.id ?? ctx.user._id;
+    const userId = requireUserId(ctx);
 
     await UserModel.findByIdAndDelete(userId);
     await DraftModel.deleteMany({ userId });

@@ -1,15 +1,24 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Global, css } from "@emotion/react";
+import Breadcrumb, { resolvePageTitle } from "./Breadcrumb";
 
 interface HeaderProps {
   title?: string;
   page?: string;
 }
 
-const Header = ({ title = "SupplyChain", page = "dashboard" }: HeaderProps) => {
+const Header = ({ title, page = "dashboard" }: HeaderProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Smart title resolution: if caller passes empty string or omits the prop,
+  // derive it from the URL. Otherwise honour whatever the page passed in.
+  const resolvedTitle =
+    title && title.trim().length > 0
+      ? title
+      : resolvePageTitle(location.pathname) || "SupplyChain";
 
   return (
     <motion.header
@@ -116,6 +125,11 @@ const Header = ({ title = "SupplyChain", page = "dashboard" }: HeaderProps) => {
         </svg>
       </div>
 
+      {/* Breadcrumb row */}
+      <div className="relative px-4 sm:px-6 mb-3">
+        <Breadcrumb currentLabel={title && title.trim().length > 0 ? title : undefined} />
+      </div>
+
       {/* Main Content */}
       <div className="relative px-4 sm:px-6 flex items-center justify-between gap-3">
         <motion.div
@@ -176,7 +190,7 @@ const Header = ({ title = "SupplyChain", page = "dashboard" }: HeaderProps) => {
             className="text-xl sm:text-3xl font-bold text-white tracking-tight drop-shadow-sm"
             style={{ fontFamily: "var(--font-sans)" }}
           >
-            {title}
+            {resolvedTitle}
           </motion.h1>
 
           {/* Subtle accent line */}
@@ -227,13 +241,11 @@ const Header = ({ title = "SupplyChain", page = "dashboard" }: HeaderProps) => {
               </motion.button>
             </>
           )}
-          {/* Quick nav links to key new features */}
+          {/* Quick nav links to key features */}
           <div className="hidden sm:flex items-center gap-2">
             {[
-              { label: "Box Count", path: "/box-count" },
-              { label: "Shipment Diff", path: "/shipment-diff" },
+              { label: "Trust Center", path: "/trust-center" },
               { label: "Live Tracking", path: "/live-tracking" },
-              { label: "Load Match", path: "/load-aggregation" },
               { label: "Fraud", path: "/fraud-dashboard" },
             ].map((link) => (
               <motion.button

@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
-import mongoose from "mongoose";
-import { router, protectedProcedure } from "../trpc.js";
+
+import { requireUserId } from "../lib/auth.js";
 import { AuditEventModel } from "../models/AuditEvent.js";
+import { protectedProcedure, router } from "../trpc.js";
 
 export const auditRouter = router({
   /**
@@ -15,13 +15,13 @@ export const auditRouter = router({
         eventType: z.string().min(1),
         payload: z.record(z.string(), z.unknown()).optional(),
         summary: z.string().min(1),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.user.id ?? ctx.user._id;
+      const userId = requireUserId(ctx);
 
       const event = await AuditEventModel.create({
-        userId: new mongoose.Types.ObjectId(userId as string),
+        userId,
         draftId: input.draftId,
         eventType: input.eventType,
         payload: input.payload ?? {},
@@ -39,11 +39,12 @@ export const auditRouter = router({
     .input(
       z.object({
         draftId: z.string(),
-      })
+      }),
     )
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
+      requireUserId(ctx);
       const events = await AuditEventModel.find({ draftId: input.draftId }).sort(
-        { createdAt: 1 }
+        { createdAt: 1 },
       );
       return events;
     }),
@@ -55,14 +56,12 @@ export const auditRouter = router({
     .input(
       z.object({
         limit: z.number().int().positive().max(100).default(30),
-      })
+      }),
     )
     .query(async ({ ctx, input }) => {
-      const userId = ctx.user.id ?? ctx.user._id;
+      const userId = requireUserId(ctx);
 
-      const events = await AuditEventModel.find({
-        userId: new mongoose.Types.ObjectId(userId as string),
-      })
+      const events = await AuditEventModel.find({ userId })
         .sort({ createdAt: -1 })
         .limit(input.limit);
 

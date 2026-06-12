@@ -1,9 +1,34 @@
-import { z } from "zod";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { router, protectedProcedure } from "../trpc.js";
+import { z } from "zod";
+
+import { requireUserId } from "../lib/auth.js";
+import { AnomalyReportModel } from "../models/AnomalyReport.js";
+import { AuditEventModel } from "../models/AuditEvent.js";
 import { BoxCountResultModel } from "../models/BoxCountResult.js";
+import { protectedProcedure, router } from "../trpc.js";
+
+async function writeAudit(
+  userId: mongoose.Types.ObjectId,
+  draftId: string | undefined,
+  eventType: string,
+  summary: string,
+  payload: Record<string, unknown>,
+): Promise<void> {
+  try {
+    await AuditEventModel.create({
+      userId,
+      draftId: draftId ?? "n/a",
+      eventType,
+      payload,
+      summary,
+      createdAt: new Date(),
+    });
+  } catch (err) {
+    console.error(`[audit] failed to write ${eventType}:`, (err as Error)?.message);
+  }
+}
 
 export const boxCountRouter = router({
   /**
@@ -18,28 +43,42 @@ export const boxCountRouter = router({
         declaredCount: z.number().int().positive(),
         imageBase64: z.string().min(10),
         mimeType: z.string().default("image/jpeg"),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.user.id ?? ctx.user._id;
+      const userId = requireUserId(ctx);
 
-      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
+      if (!process.env.GOOGLE_API_KEY) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "GOOGLE_API_KEY is not configured",
+        });
+      }
+
+      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
       const prompt =
         'Count the number of distinct boxes/packages visible in this image. Respond ONLY with a JSON object {"count": number, "confidence": number (0-1), "notes": string}';
 
-      const result = await model.generateContent([
-        prompt,
-        {
-          inlineData: {
-            data: input.imageBase64,
-            mimeType: input.mimeType,
+      let rawText: string;
+      try {
+        const result = await model.generateContent([
+          prompt,
+          {
+            inlineData: {
+              data: input.imageBase64,
+              mimeType: input.mimeType,
+            },
           },
-        },
-      ]);
-
-      const rawText = result.response.text();
+        ]);
+        rawText = result.response.text();
+      } catch (err) {
+        throw new TRPCError({
+          code: "BAD_GATEWAY",
+          message: `Gemini API failed: ${(err as Error)?.message ?? "unknown"}`,
+        });
+      }
 
       let parsed: { count: number; confidence: number; notes: string };
       try {
@@ -54,15 +93,15 @@ export const boxCountRouter = router({
           confidence: number;
           notes: string;
         };
-      } catch (_err) {
+      } catch {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: `Failed to parse Gemini response as JSON. Raw text: ${rawText.slice(0, 300)}`,
         });
       }
 
-      const detectedCount = Math.round(parsed.count ?? 0);
-      const confidence = parsed.confidence ?? 0;
+      const detectedCount = Math.max(0, Math.round(parsed.count ?? 0));
+      const confidence = Math.min(1, Math.max(0, parsed.confidence ?? 0));
       const notes = parsed.notes ?? "";
 
       const diff = Math.abs(detectedCount - input.declaredCount);
@@ -70,17 +109,8 @@ export const boxCountRouter = router({
       const mismatchPct =
         input.declaredCount > 0 ? (diff / input.declaredCount) * 100 : 0;
 
-      if (!mongoose.Types.ObjectId.isValid(String(userId))) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Invalid userId format",
-        });
-      }
-
-      const validatedUserId = new mongoose.Types.ObjectId(String(userId));
-
       const doc = await BoxCountResultModel.create({
-        userId: validatedUserId,
+        userId,
         draftId: input.draftId,
         declaredCount: input.declaredCount,
         detectedCount,
@@ -91,15 +121,24 @@ export const boxCountRouter = router({
         createdAt: new Date(),
       });
 
+      await writeAudit(
+        userId,
+        input.draftId,
+        "box-count-verify",
+        `Box count verify: declared ${input.declaredCount}, detected ${detectedCount}`,
+        {
+          declaredCount: input.declaredCount,
+          detectedCount,
+          mismatchPct,
+          resultId: String(doc._id),
+        },
+      );
+
       return doc;
     }),
 
   /**
    * Mutation: liveCommentary
-   * Single-frame fast commentary for the live camera. Combines a YOLO class-count
-   * snapshot (from the browser's /yolo/detect call) with a Gemini multimodal pass
-   * over the same frame. Returns one short natural-language line plus a
-   * suspected box count and risk level.
    */
   liveCommentary: protectedProcedure
     .input(
@@ -108,10 +147,18 @@ export const boxCountRouter = router({
         mimeType: z.string().default("image/jpeg"),
         manifestCount: z.number().int().nonnegative().optional(),
         yoloClassCounts: z.record(z.string(), z.number()).optional(),
-      })
+      }),
     )
-    .mutation(async ({ input }) => {
-      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
+    .mutation(async ({ ctx, input }) => {
+      requireUserId(ctx);
+
+      if (!process.env.GOOGLE_API_KEY) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "GOOGLE_API_KEY is not configured",
+        });
+      }
+      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
       const yoloSummary = input.yoloClassCounts
@@ -132,11 +179,19 @@ Respond ONLY with strict JSON:
   "alert": <true if you see anything suspicious — damage, tampering, mismatch with manifest, missing items>
 }`;
 
-      const result = await model.generateContent([
-        prompt,
-        { inlineData: { data: input.imageBase64, mimeType: input.mimeType } },
-      ]);
-      const rawText = result.response.text();
+      let rawText: string;
+      try {
+        const result = await model.generateContent([
+          prompt,
+          { inlineData: { data: input.imageBase64, mimeType: input.mimeType } },
+        ]);
+        rawText = result.response.text();
+      } catch (err) {
+        throw new TRPCError({
+          code: "BAD_GATEWAY",
+          message: `Gemini commentary failed: ${(err as Error)?.message ?? "unknown"}`,
+        });
+      }
 
       try {
         const jsonStart = rawText.indexOf("{");
@@ -156,7 +211,7 @@ Respond ONLY with strict JSON:
           riskLevel: (parsed.riskLevel ?? "low") as "low" | "medium" | "high",
           alert: Boolean(parsed.alert),
         };
-      } catch (_err) {
+      } catch {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: `Failed to parse Gemini commentary. Raw text: ${rawText.slice(0, 240)}`,
@@ -166,9 +221,8 @@ Respond ONLY with strict JSON:
 
   /**
    * Mutation: saveSession
-   * Persist the aggregate result of a live monitoring session as a
-   * BoxCountResult document (so it shows up in history alongside single
-   * uploads).
+   * Persist the aggregate result of a live monitoring session.
+   * Emits an AnomalyReport stub when mismatchPct > 20.
    */
   saveSession: protectedProcedure
     .input(
@@ -178,23 +232,18 @@ Respond ONLY with strict JSON:
         detectedCount: z.number().int().nonnegative(),
         confidence: z.number().min(0).max(1).default(0.85),
         notes: z.string().default(""),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.user.id ?? ctx.user._id;
-      if (!mongoose.Types.ObjectId.isValid(String(userId))) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Invalid userId format",
-        });
-      }
+      const userId = requireUserId(ctx);
+
       const diff = Math.abs(input.detectedCount - input.declaredCount);
       const mismatch = diff > 0;
       const mismatchPct =
         input.declaredCount > 0 ? (diff / input.declaredCount) * 100 : 0;
 
       const doc = await BoxCountResultModel.create({
-        userId: new mongoose.Types.ObjectId(String(userId)),
+        userId,
         draftId: input.draftId,
         declaredCount: input.declaredCount,
         detectedCount: input.detectedCount,
@@ -204,21 +253,61 @@ Respond ONLY with strict JSON:
         notes: input.notes,
         createdAt: new Date(),
       });
+
+      await writeAudit(
+        userId,
+        input.draftId,
+        "box-count-save-session",
+        `Box count session: declared ${input.declaredCount}, detected ${input.detectedCount}`,
+        {
+          declaredCount: input.declaredCount,
+          detectedCount: input.detectedCount,
+          mismatchPct,
+          resultId: String(doc._id),
+        },
+      );
+
+      // Cross-feature linkage: emit AnomalyReport stub on large mismatch.
+      if (mismatchPct > 20) {
+        try {
+          await AnomalyReportModel.create({
+            userId,
+            draftId: input.draftId,
+            declaredWeightKg: 0,
+            measuredWeightKg: 0,
+            declaredCount: input.declaredCount,
+            detectedCount: input.detectedCount,
+            originCity: "n/a",
+            destinationCity: "n/a",
+            routeDeviationKm: 0,
+            flags: ["box-count-mismatch"],
+            severity: "medium",
+            riskScore: Math.min(100, Math.round(mismatchPct)),
+            summary: `Box count mismatch ${mismatchPct.toFixed(1)}% (declared ${input.declaredCount}, detected ${input.detectedCount}).`,
+            createdAt: new Date(),
+          });
+        } catch (err) {
+          console.error(
+            "[boxCount.saveSession] anomaly emit failed:",
+            (err as Error)?.message,
+          );
+        }
+      }
+
       return doc;
     }),
 
   /**
    * Query: history
-   * Return the last N BoxCountResult docs for the authenticated user, newest first.
    */
   history: protectedProcedure
     .input(
       z.object({
         limit: z.number().int().positive().max(50).default(20),
-      })
+      }),
     )
     .query(async ({ ctx, input }) => {
-      const userId = ctx.user.id ?? ctx.user._id;
+      const userId = requireUserId(ctx);
 
       const results = await BoxCountResultModel.find({ userId })
         .sort({ createdAt: -1 })

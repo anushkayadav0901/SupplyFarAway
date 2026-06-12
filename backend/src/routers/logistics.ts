@@ -14,11 +14,12 @@ import mongoose from "mongoose";
 import axios from "axios";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-import { router, publicProcedure, protectedProcedure } from "../trpc.js";
+import { requireUserId } from "../lib/auth.js";
+import { countryOptions } from "../lib/routeConstants.js";
 import { DraftModel } from "../models/Draft.js";
 import { SaveRouteModel } from "../models/SaveRoute.js";
-import { getDirections, geocodeAddress } from "../utils/geocode.js";
-import { countryOptions } from "../lib/routeConstants.js";
+import { protectedProcedure, publicProcedure, router } from "../trpc.js";
+import { geocodeAddress, getDirections } from "../utils/geocode.js";
 
 // ---------------------------------------------------------------------------
 // Inline Zod schemas
@@ -288,7 +289,7 @@ JSON format:
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const userId = (ctx.user.id ?? ctx.user._id) as string;
+      const userId = requireUserId(ctx);
       const { routes: routesData, draftId } = input;
 
       const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY ?? "");
@@ -406,9 +407,6 @@ JSON format:
         if (!mongoose.Types.ObjectId.isValid(draftId)) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid draftId format" });
         }
-        if (!mongoose.Types.ObjectId.isValid(userId)) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid userId format" });
-        }
 
         draft = await DraftModel.findOneAndUpdate(
           { _id: draftId, userId },
@@ -474,15 +472,10 @@ JSON format:
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const userId = (ctx.user.id ?? ctx.user._id) as string;
-
-      if (!mongoose.Types.ObjectId.isValid(userId)) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid userId format" });
-      }
-      const validatedUserId = new mongoose.Types.ObjectId(userId);
+      const userId = requireUserId(ctx);
 
       const saveRoute = await SaveRouteModel.create({
-        userId: validatedUserId,
+        userId,
         formData: {
           from: input.formData.from,
           to: input.formData.to,
@@ -503,7 +496,7 @@ JSON format:
   // Fetch all saved routes for the authenticated user.
   // -------------------------------------------------------------------------
   getRouteHistory: protectedProcedure.query(async ({ ctx }) => {
-    const userId = (ctx.user.id ?? ctx.user._id) as string;
+    const userId = requireUserId(ctx);
     const routeHistory = await SaveRouteModel.find({ userId }).sort({ timestamp: -1 });
     return { routeHistory };
   }),
@@ -515,7 +508,7 @@ JSON format:
   deleteRouteRecord: protectedProcedure
     .input(z.object({ recordId: z.string() }))
     .mutation(async ({ input, ctx }) => {
-      const userId = (ctx.user.id ?? ctx.user._id) as string;
+      const userId = requireUserId(ctx);
 
       const record = await SaveRouteModel.findOneAndDelete({
         _id: input.recordId,
@@ -552,7 +545,7 @@ JSON format:
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const userId = (ctx.user.id ?? ctx.user._id) as string;
+      const userId = requireUserId(ctx);
       const {
         origin,
         destination,
@@ -741,9 +734,6 @@ ${legLines}
         if (!mongoose.Types.ObjectId.isValid(draftId)) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid draftId format" });
         }
-        if (!mongoose.Types.ObjectId.isValid(userId)) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid userId format" });
-        }
 
         draft = await DraftModel.findOneAndUpdate(
           { _id: draftId, userId },
@@ -823,13 +813,8 @@ ${legLines}
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const userId = (ctx.user.id ?? ctx.user._id) as string;
+      const userId = requireUserId(ctx);
       const { draftId, routeData, formData } = input;
-
-      if (!mongoose.Types.ObjectId.isValid(userId)) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid userId format" });
-      }
-      const validatedUserId = new mongoose.Types.ObjectId(userId);
 
       // Validate distanceByLeg
       for (let i = 0; i < routeData.distanceByLeg.length; i++) {
@@ -928,7 +913,7 @@ ${legLines}
       };
 
       const draft = await DraftModel.create({
-        userId: validatedUserId,
+        userId,
         formData: {
           ShipmentDetails: {
             "Origin Country": originResult.countryCode,

@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
+import { motion } from "framer-motion";
 import Header from "../../components/Header";
+import InsightsRail from "../../components/InsightsRail";
+import CountUp from "../../components/CountUp";
+import DraftPicker from "../../components/DraftPicker";
 import { trpc } from "../../lib/trpc";
 
 interface YoloDetection {
@@ -393,12 +397,15 @@ export default function BoxCount() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1">
-                      Draft ID{" "}
-                      <span className="text-slate-400 font-normal">
-                        (optional)
-                      </span>
-                    </label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-sm font-semibold text-slate-700">
+                        Draft ID{" "}
+                        <span className="text-slate-400 font-normal">
+                          (optional)
+                        </span>
+                      </label>
+                      <DraftPicker value={draftId} onSelect={setDraftId} />
+                    </div>
                     <input
                       type="text"
                       value={draftId}
@@ -555,7 +562,11 @@ export default function BoxCount() {
             {/* Live counts */}
             {mode === "live" && (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <StatTile label="Declared" value={declared || "—"} tone="neutral" />
+                <StatTile
+                  label="Declared"
+                  value={declared || "—"}
+                  tone="neutral"
+                />
                 <StatTile
                   label="Gemini count"
                   value={suspectedCount || "—"}
@@ -563,21 +574,23 @@ export default function BoxCount() {
                 />
                 <StatTile
                   label="YOLO objects"
-                  value={detections.length || "—"}
+                  value={detections.length}
                   tone="info"
                 />
                 <StatTile
                   label="Mismatch"
-                  value={`${mismatchPct.toFixed(1)}%`}
+                  value={mismatchPct}
+                  decimals={1}
+                  suffix="%"
                   tone={mismatch ? "danger" : "ok"}
                 />
               </div>
             )}
           </div>
 
-          {/* Right column: live commentary log */}
-          <aside className="lg:col-span-4">
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden lg:sticky lg:top-4">
+          {/* Right column: live commentary log + insights rail */}
+          <aside className="lg:col-span-4 space-y-5">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
               <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
                 <p className="text-sm font-semibold text-slate-800">
                   Live AI Commentary
@@ -642,6 +655,10 @@ export default function BoxCount() {
                 <div ref={logEndRef} />
               </div>
             </div>
+            <InsightsRail
+              draftId={draftId.trim() || undefined}
+              title="Verification Activity"
+            />
           </aside>
         </div>
 
@@ -741,10 +758,14 @@ function StatTile({
   label,
   value,
   tone,
+  suffix,
+  decimals,
 }: {
   label: string;
   value: number | string;
   tone: "neutral" | "ok" | "danger" | "info";
+  suffix?: string;
+  decimals?: number;
 }) {
   const toneClass =
     tone === "danger"
@@ -754,12 +775,27 @@ function StatTile({
         : tone === "info"
           ? "text-blue-600"
           : "text-slate-800";
+  const isNumber = typeof value === "number" && Number.isFinite(value);
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+    <motion.div
+      whileHover={{ y: -2 }}
+      transition={{ duration: 0.15 }}
+      className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm"
+    >
       <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
         {label}
       </p>
-      <p className={`text-3xl font-bold mt-1 ${toneClass}`}>{value}</p>
-    </div>
+      <p className={`text-3xl font-bold mt-1 ${toneClass}`}>
+        {isNumber ? (
+          <CountUp
+            value={value as number}
+            decimals={decimals ?? 0}
+            suffix={suffix}
+          />
+        ) : (
+          value
+        )}
+      </p>
+    </motion.div>
   );
 }

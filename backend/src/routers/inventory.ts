@@ -1,15 +1,15 @@
-import { z } from "zod";
-import { TRPCError } from "@trpc/server";
-import mongoose from "mongoose";
-import axios from "axios";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { TRPCError } from "@trpc/server";
+import axios from "axios";
+import { z } from "zod";
 
-import { router, publicProcedure, protectedProcedure } from "../trpc.js";
+import { assertObjectId, requireUserId } from "../lib/auth.js";
 import { DraftModel } from "../models/Draft.js";
 import { NewsHistoryModel } from "../models/NewsHistory.js";
+import { protectedProcedure, publicProcedure, router } from "../trpc.js";
 
 // ---------------------------------------------------------------------------
-// Local input schemas (procedure-specific shapes)
+// Local input schemas
 // ---------------------------------------------------------------------------
 
 const CreateDraftInputSchema = z.object({
@@ -24,9 +24,6 @@ const CreateDraftInputSchema = z.object({
 
 const UpdateDraftInputSchema = z.object({
   id: z.string().min(1),
-  // The legacy handler does Object.assign(draft, updateData), so accept any
-  // extra fields via passthrough on a loose object — but we keep the known
-  // typed fields for IDE discoverability.
   updateData: z.record(z.string(), z.unknown()),
 });
 
@@ -67,34 +64,18 @@ const SummarizeArticleInputSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
-// Helper
-// ---------------------------------------------------------------------------
-
-function assertValidObjectId(id: string, label: string): void {
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: `Invalid ${label} format`,
-    });
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Router
 // ---------------------------------------------------------------------------
 
 export const inventoryRouter = router({
-  // POST /api/drafts — create a new draft
+  // POST /api/drafts
   createDraft: protectedProcedure
     .input(CreateDraftInputSchema)
     .mutation(async ({ ctx, input }) => {
-      const userId = (ctx.user.id ?? ctx.user._id) as string;
-      assertValidObjectId(userId, "userId");
-
-      const validatedUserId = new mongoose.Types.ObjectId(userId);
+      const userId = requireUserId(ctx);
 
       const draft = await DraftModel.create({
-        userId: validatedUserId,
+        userId,
         formData: {
           ShipmentDetails: {
             "Origin Country": input.originCountry,
@@ -121,13 +102,12 @@ export const inventoryRouter = router({
       };
     }),
 
-  // PUT /api/drafts/:id — update a draft
+  // PUT /api/drafts/:id
   updateDraft: protectedProcedure
     .input(UpdateDraftInputSchema)
     .mutation(async ({ ctx, input }) => {
-      const userId = (ctx.user.id ?? ctx.user._id) as string;
-      assertValidObjectId(input.id, "draftId");
-      assertValidObjectId(userId, "userId");
+      const userId = requireUserId(ctx);
+      assertObjectId(input.id, "draftId");
 
       const draft = await DraftModel.findOne({ _id: input.id, userId });
       if (!draft) {
@@ -146,15 +126,13 @@ export const inventoryRouter = router({
       };
     }),
 
-  // GET /api/drafts?tab=... — list drafts with optional tab filter
+  // GET /api/drafts?tab=...
   getDrafts: protectedProcedure
     .input(GetDraftsInputSchema)
     .query(async ({ ctx, input }) => {
-      const userId = (ctx.user.id ?? ctx.user._id) as string;
-      assertValidObjectId(userId, "userId");
+      const userId = requireUserId(ctx);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const query: Record<string, any> = { userId };
+      const query: Record<string, unknown> = { userId };
 
       if (input.tab) {
         switch (input.tab) {
@@ -193,14 +171,14 @@ export const inventoryRouter = router({
       };
     }),
 
-  // GET /api/drafts/user/:userId — drafts by explicit userId with status filters
+  // GET /api/drafts/user/:userId
   getDraftsByUser: protectedProcedure
     .input(GetDraftsByUserInputSchema)
-    .query(async ({ input }) => {
-      assertValidObjectId(input.userId, "userId");
+    .query(async ({ ctx, input }) => {
+      requireUserId(ctx);
+      assertObjectId(input.userId, "userId");
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const query: Record<string, any> = { userId: input.userId };
+      const query: Record<string, unknown> = { userId: input.userId };
       if (input.complianceStatus === "done")
         query["statuses.compliance"] = "compliant";
       if (input.routeOptimizationStatus === "done")
@@ -210,13 +188,12 @@ export const inventoryRouter = router({
       return { drafts };
     }),
 
-  // GET /api/drafts/:id — single draft
+  // GET /api/drafts/:id
   getDraftById: protectedProcedure
     .input(GetDraftByIdInputSchema)
     .query(async ({ ctx, input }) => {
-      const userId = (ctx.user.id ?? ctx.user._id) as string;
-      assertValidObjectId(input.id, "draftId");
-      assertValidObjectId(userId, "userId");
+      const userId = requireUserId(ctx);
+      assertObjectId(input.id, "draftId");
 
       const draft = await DraftModel.findOne({ _id: input.id, userId });
       if (!draft) {
@@ -232,13 +209,12 @@ export const inventoryRouter = router({
       };
     }),
 
-  // DELETE /api/drafts/:id — delete a draft
+  // DELETE /api/drafts/:id
   deleteDraft: protectedProcedure
     .input(DeleteDraftInputSchema)
     .mutation(async ({ ctx, input }) => {
-      const userId = (ctx.user.id ?? ctx.user._id) as string;
-      assertValidObjectId(input.id, "draftId");
-      assertValidObjectId(userId, "userId");
+      const userId = requireUserId(ctx);
+      assertObjectId(input.id, "draftId");
 
       const deletedDraft = await DraftModel.findOneAndDelete({
         _id: input.id,
@@ -255,7 +231,7 @@ export const inventoryRouter = router({
       return { message: "Draft deleted successfully" };
     }),
 
-  // GET /news — fetch trade-disruption news with optional search & pagination
+  // GET /news
   getNews: publicProcedure
     .input(GetNewsInputSchema)
     .query(async ({ input }) => {
@@ -267,16 +243,16 @@ export const inventoryRouter = router({
         Date.UTC(
           today.getUTCFullYear(),
           today.getUTCMonth(),
-          today.getUTCDate() - pageNum
-        )
+          today.getUTCDate() - pageNum,
+        ),
       );
       const formattedDate = targetDate.toISOString().split("T")[0];
       const fromDate = new Date(
         Date.UTC(
           today.getUTCFullYear(),
           today.getUTCMonth(),
-          today.getUTCDate() - 4
-        )
+          today.getUTCDate() - 4,
+        ),
       )
         .toISOString()
         .split("T")[0];
@@ -284,8 +260,8 @@ export const inventoryRouter = router({
         Date.UTC(
           today.getUTCFullYear(),
           today.getUTCMonth(),
-          today.getUTCDate() - 1
-        )
+          today.getUTCDate() - 1,
+        ),
       )
         .toISOString()
         .split("T")[0];
@@ -302,9 +278,13 @@ export const inventoryRouter = router({
 
       if (search) {
         if (searchMode === "summarized") {
-          const genAI = new GoogleGenerativeAI(
-            process.env.GOOGLE_API_KEY as string
-          );
+          if (!process.env.GOOGLE_API_KEY) {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: "GOOGLE_API_KEY is not configured",
+            });
+          }
+          const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
           const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
           const prompt = `
 Summarize the following user query into 1 to 2 high-impact keywords or proper nouns for news search.
@@ -317,13 +297,19 @@ Example: "What happened with the US-China trade war tariffs in 2024?" → ("us c
 Query: "${search}"
 Return only the keywords.
 `;
-          const result = await model.generateContent(prompt);
-          finalQuery = result.response.text();
+          try {
+            const result = await model.generateContent(prompt);
+            finalQuery = result.response.text();
+          } catch (err) {
+            throw new TRPCError({
+              code: "BAD_GATEWAY",
+              message: `Gemini summarization failed: ${(err as Error)?.message ?? "unknown"}`,
+            });
+          }
         } else {
           finalQuery = search;
         }
       } else {
-        // No search term — try cache first
         const cachedNews = await NewsHistoryModel.findOne({
           date: formattedDate,
           query: "default",
@@ -359,9 +345,17 @@ Return only the keywords.
         to: formattedDate,
       };
 
-      const response = await axios.get("https://newsapi.org/v2/everything", {
-        params: apiParams,
-      });
+      let response;
+      try {
+        response = await axios.get("https://newsapi.org/v2/everything", {
+          params: apiParams,
+        });
+      } catch (err) {
+        throw new TRPCError({
+          code: "BAD_GATEWAY",
+          message: `News API failed: ${(err as Error)?.message ?? "unknown"}`,
+        });
+      }
 
       articles = (
         response.data.articles as Array<{
@@ -388,7 +382,7 @@ Return only the keywords.
             articles,
             timestamp: new Date(),
           },
-          { upsert: true }
+          { upsert: true },
         );
       }
 
@@ -406,15 +400,19 @@ Return only the keywords.
       };
     }),
 
-  // POST /summarize — summarize a news article with Gemini
+  // POST /summarize
   summarizeArticle: publicProcedure
     .input(SummarizeArticleInputSchema)
     .mutation(async ({ input }) => {
       const { content, url } = input;
 
-      const genAI = new GoogleGenerativeAI(
-        process.env.GOOGLE_API_KEY as string
-      );
+      if (!process.env.GOOGLE_API_KEY) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "GOOGLE_API_KEY is not configured",
+        });
+      }
+      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
       const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
 
       const prompt = `
@@ -424,16 +422,22 @@ Return only the keywords.
       Then, provide actionable suggestions in a third-person paragraph for logistics providers to mitigate the impact of this event on their shipments.
       **Carefully analyze the article's content for direct or indirect mentions of shipping interruptions, regional disruptions, or supply chain impacts.**
 
-      If the article explicitly details or strongly implies an impact on shipments in a specific region (e.g., road closures, port delays, political instability affecting trade, severe weather in a shipping lane, health-related travel restrictions), then provide specific, concise suggestions. Each suggestion should be 2-3 lines max and include the affected region. Examples:
-      - "Logistics providers may consider delaying shipments to [Affected Region] due to [reason, e.g., severe flooding causing road closures] to avoid prolonged transit times and potential damage."
-      - "For shipments destined for [Affected Region], it is advisable to explore alternative routes or modes of transport, such as [e.g., air freight instead of sea], to bypass [reason, e.g., port congestion]."
-      - "Providers with existing shipments in [Affected Region] should advise clients of potential delays and monitor the situation closely, as [reason, e.g., ongoing protests] may cause further disruptions."
+      If the article explicitly details or strongly implies an impact on shipments in a specific region (e.g., road closures, port delays, political instability affecting trade, severe weather in a shipping lane, health-related travel restrictions), then provide specific, concise suggestions. Each suggestion should be 2-3 lines max and include the affected region.
 
       If the article does NOT genuinely indicate any direct or indirect impact on shipping, supply chains, or trade in any identifiable region, state: "Logistics providers should note that based on current information, this event is not expected to impact shipments in any region. You may proceed with your logistics operations as planned."
     `;
 
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
+      let text: string;
+      try {
+        const result = await model.generateContent(prompt);
+        text = result.response.text();
+      } catch (err) {
+        throw new TRPCError({
+          code: "BAD_GATEWAY",
+          message: `Gemini summarization failed: ${(err as Error)?.message ?? "unknown"}`,
+        });
+      }
+
       const [summary, suggestions] = text.split("\n\n");
 
       return {

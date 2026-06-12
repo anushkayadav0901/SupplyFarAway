@@ -1,6 +1,13 @@
-import { useState, useRef } from "react";
+import { useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
+import { Image, RefreshCcw, Upload, X } from "lucide-react";
+
 import Header from "../../components/Header";
+import InsightsRail from "../../components/InsightsRail";
+import CountUp from "../../components/CountUp";
+import DraftPicker from "../../components/DraftPicker";
+import CardSkeleton from "../../components/skeletons/CardSkeleton";
 import { trpc } from "../../lib/trpc";
 
 // ---------------------------------------------------------------------------
@@ -12,7 +19,6 @@ function readFileAsBase64(file: File): Promise<string> {
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
-      // Strip the data URL prefix: "data:<mime>;base64,"
       const base64 = result.split(",")[1];
       resolve(base64);
     };
@@ -27,6 +33,12 @@ function riskColor(score: number): string {
   return "text-emerald-600";
 }
 
+function riskStrokeColor(score: number): string {
+  if (score >= 70) return "#ef4444";
+  if (score >= 40) return "#f59e0b";
+  return "#10b981";
+}
+
 function riskBadgeColor(score: number): string {
   if (score >= 70) return "bg-red-100 text-red-700 border-red-200";
   if (score >= 40) return "bg-amber-100 text-amber-700 border-amber-200";
@@ -37,6 +49,115 @@ function riskLabel(score: number): string {
   if (score >= 70) return "High Risk";
   if (score >= 40) return "Medium Risk";
   return "Low Risk";
+}
+
+// ---------------------------------------------------------------------------
+// Risk Gauge — animated circular SVG
+// ---------------------------------------------------------------------------
+
+function RiskGauge({ score }: { score: number }) {
+  const radius = 64;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference * (1 - Math.min(100, Math.max(0, score)) / 100);
+  return (
+    <div className="relative w-44 h-44">
+      <svg viewBox="0 0 160 160" className="w-full h-full -rotate-90">
+        <circle
+          cx="80"
+          cy="80"
+          r={radius}
+          stroke="#e2e8f0"
+          strokeWidth="10"
+          fill="none"
+        />
+        <motion.circle
+          cx="80"
+          cy="80"
+          r={radius}
+          stroke={riskStrokeColor(score)}
+          strokeWidth="10"
+          strokeLinecap="round"
+          fill="none"
+          strokeDasharray={circumference}
+          initial={{ strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset: offset }}
+          transition={{ duration: 0.9, ease: "easeOut" }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <p
+          className={`text-4xl font-extrabold tabular-nums ${riskColor(score)}`}
+        >
+          <CountUp value={score} />
+        </p>
+        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mt-1">
+          Risk Score
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Scanning image card with scan-line overlay during analysis
+// ---------------------------------------------------------------------------
+
+function ScanImage({
+  label,
+  preview,
+  scanning,
+  onPick,
+}: {
+  label: string;
+  preview: string;
+  scanning: boolean;
+  onPick: () => void;
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-semibold text-slate-700 mb-2">
+        {label}
+      </label>
+      <div
+        onClick={onPick}
+        className="relative cursor-pointer border-2 border-dashed border-slate-200 hover:border-blue-400 rounded-xl overflow-hidden transition-colors bg-slate-50"
+        style={{ minHeight: 200 }}
+      >
+        {preview ? (
+          <img
+            src={preview}
+            alt={`${label} preview`}
+            className="w-full h-56 object-cover"
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center h-56 text-slate-400 gap-2 px-4">
+            <Upload className="w-7 h-7" />
+            <span className="text-sm text-center">
+              Click to upload {label.toLowerCase()}
+            </span>
+          </div>
+        )}
+        {scanning && preview && (
+          <>
+            <motion.div
+              className="absolute left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-blue-500 to-transparent shadow-[0_0_18px_4px_rgba(59,130,246,0.55)]"
+              initial={{ top: 0 }}
+              animate={{ top: ["0%", "100%", "0%"] }}
+              transition={{
+                duration: 2.2,
+                ease: "easeInOut",
+                repeat: Infinity,
+              }}
+            />
+            <div className="absolute inset-0 ring-2 ring-blue-400/40 pointer-events-none" />
+            <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-blue-600 text-white text-[10px] font-bold tracking-wider">
+              SCANNING
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -98,7 +219,7 @@ export default function ShipmentDiff() {
       });
 
       historyQuery.refetch();
-      toast.success("Comparison complete!");
+      toast.success("Comparison complete.");
     } catch {
       // handled by onError above
     }
@@ -111,226 +232,305 @@ export default function ShipmentDiff() {
     <div className="min-h-screen bg-[var(--color-neutral-100)]">
       <Header title="Damage & Tampering Diff" />
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-6">
-
-        {/* Upload Form */}
-        <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-1">Compare Shipment Photos</h2>
-          <p className="text-sm text-gray-500 mb-6">
-            Upload a photo taken before loading and one taken upon delivery. AI will estimate
-            damage, missing items, and tampering probability.
-          </p>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Draft ID (optional) */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Draft ID <span className="text-gray-400 font-normal">(optional)</span>
-              </label>
-              <input
-                type="text"
-                value={draftId}
-                onChange={(e) => setDraftId(e.target.value)}
-                placeholder="Link to an existing draft"
-                className="w-full sm:w-80 px-4 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              />
-            </div>
-
-            {/* Image uploads side-by-side */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {/* Before image */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Before Loading
-                </label>
-                <div
-                  onClick={() => beforeInputRef.current?.click()}
-                  className="cursor-pointer border-2 border-dashed border-gray-300 hover:border-blue-400 rounded-xl overflow-hidden transition-colors"
-                  style={{ minHeight: 180 }}
-                >
-                  {beforePreview ? (
-                    <img
-                      src={beforePreview}
-                      alt="Before loading preview"
-                      className="w-full h-48 object-cover"
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-48 text-gray-400 gap-2 px-4">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 16v1a2 2 0 002 2h14a2 2 0 002-2v-1M16 10l-4-4m0 0l-4 4m4-4v12" />
-                      </svg>
-                      <span className="text-sm text-center">Click to upload before-loading photo</span>
-                    </div>
-                  )}
-                </div>
-                <input
-                  ref={beforeInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => handleFileChange(e, "before")}
-                />
-                {beforeFile && (
-                  <p className="mt-1 text-xs text-gray-500 truncate">{beforeFile.name}</p>
-                )}
-              </div>
-
-              {/* After image */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  After Delivery
-                </label>
-                <div
-                  onClick={() => afterInputRef.current?.click()}
-                  className="cursor-pointer border-2 border-dashed border-gray-300 hover:border-blue-400 rounded-xl overflow-hidden transition-colors"
-                  style={{ minHeight: 180 }}
-                >
-                  {afterPreview ? (
-                    <img
-                      src={afterPreview}
-                      alt="After delivery preview"
-                      className="w-full h-48 object-cover"
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-48 text-gray-400 gap-2 px-4">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 16v1a2 2 0 002 2h14a2 2 0 002-2v-1M16 10l-4-4m0 0l-4 4m4-4v12" />
-                      </svg>
-                      <span className="text-sm text-center">Click to upload after-delivery photo</span>
-                    </div>
-                  )}
-                </div>
-                <input
-                  ref={afterInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => handleFileChange(e, "after")}
-                />
-                {afterFile && (
-                  <p className="mt-1 text-xs text-gray-500 truncate">{afterFile.name}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={isLoading || !beforeFile || !afterFile}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-sm transition-colors text-sm focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-              >
-                {isLoading ? (
-                  <>
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  "Run Diff Analysis"
-                )}
-              </button>
-            </div>
-          </form>
-        </section>
-
-        {/* Latest Result */}
-        {result && (
-          <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8">
-            <div className="flex items-start justify-between gap-4 mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">Analysis Result</h2>
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${riskBadgeColor(result.riskScore)}`}>
-                {riskLabel(result.riskScore)}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-              <div className="bg-gray-50 rounded-xl p-4 text-center">
-                <p className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">Risk Score</p>
-                <p className={`text-4xl font-bold ${riskColor(result.riskScore)}`}>{result.riskScore}</p>
-                <p className="text-xs text-gray-400 mt-1">out of 100</p>
-              </div>
-              <div className="bg-gray-50 rounded-xl p-4 text-center">
-                <p className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">Tampering Probability</p>
-                <p className={`text-4xl font-bold ${riskColor(result.tamperingProbability * 100)}`}>
-                  {Math.round(result.tamperingProbability * 100)}%
-                </p>
-              </div>
-              <div className="bg-gray-50 rounded-xl p-4 text-center">
-                <p className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">Missing Items</p>
-                <p className="text-4xl font-bold text-gray-800">{result.missingItems.length}</p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-700 mb-1">Summary</h3>
-                <p className="text-sm text-gray-600 leading-relaxed">{result.summary}</p>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-semibold text-gray-700 mb-1">Damage Description</h3>
-                <p className="text-sm text-gray-600 leading-relaxed">{result.damageDescription}</p>
-              </div>
-
-              {result.missingItems.length > 0 && (
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left column */}
+          <div className="lg:col-span-8 space-y-6">
+            {/* Upload Form */}
+            <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+              <div className="flex items-start justify-between gap-3 mb-1">
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Missing Items</h3>
-                  <ul className="space-y-1">
-                    {result.missingItems.map((item, i) => (
-                      <li key={i} className="flex items-center gap-2 text-sm text-gray-600">
-                        <span className="w-1.5 h-1.5 bg-red-400 rounded-full flex-shrink-0" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
+                  <h2 className="text-lg font-semibold text-slate-900">
+                    Compare Shipment Photos
+                  </h2>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Upload a photo taken before loading and one upon delivery.
+                    The vision pipeline estimates damage, missing items, and
+                    tampering probability.
+                  </p>
                 </div>
-              )}
-            </div>
-          </section>
-        )}
+                <DraftPicker value={draftId} onSelect={setDraftId} />
+              </div>
 
-        {/* History */}
-        <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Comparisons</h2>
+              <form onSubmit={handleSubmit} className="space-y-6 mt-6">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Draft ID{" "}
+                    <span className="text-slate-400 font-normal">
+                      (optional)
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    value={draftId}
+                    onChange={(e) => setDraftId(e.target.value)}
+                    placeholder="Link to an existing draft"
+                    className="w-full sm:w-80 px-4 py-2.5 border border-slate-300 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  />
+                </div>
 
-          {historyQuery.isLoading ? (
-            <div className="flex items-center justify-center py-10">
-              <div className="w-8 h-8 border-2 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
-            </div>
-          ) : historyQuery.error ? (
-            <p className="text-sm text-red-500">Failed to load history.</p>
-          ) : !historyQuery.data || historyQuery.data.length === 0 ? (
-            <p className="text-sm text-gray-500">No comparisons yet. Upload two images to get started.</p>
-          ) : (
-            <div className="space-y-3">
-              {historyQuery.data.map((record) => {
-                const id = (record._id as unknown as { toString(): string }).toString();
-                return (
-                  <div
-                    key={id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border border-gray-100 rounded-xl hover:border-gray-200 hover:bg-gray-50 transition-colors"
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <ScanImage
+                    label="Before Loading"
+                    preview={beforePreview}
+                    scanning={isLoading}
+                    onPick={() => beforeInputRef.current?.click()}
+                  />
+                  <ScanImage
+                    label="After Delivery"
+                    preview={afterPreview}
+                    scanning={isLoading}
+                    onPick={() => afterInputRef.current?.click()}
+                  />
+                  <input
+                    ref={beforeInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleFileChange(e, "before")}
+                  />
+                  <input
+                    ref={afterInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleFileChange(e, "after")}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-slate-500">
+                    {beforeFile && afterFile
+                      ? "Both frames ready for analysis."
+                      : "Drop a before and after frame to begin."}
+                  </div>
+                  <motion.button
+                    type="submit"
+                    whileTap={{ scale: 0.97 }}
+                    disabled={isLoading || !beforeFile || !afterFile}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-sm transition-colors text-sm"
                   >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-600 truncate">{record.summary}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {new Date(record.createdAt as Date).toLocaleString()}
-                        {record.draftId ? ` · Draft: ${record.draftId}` : ""}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${riskBadgeColor(record.riskScore)}`}>
-                        {riskLabel(record.riskScore)} ({record.riskScore})
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {Math.round(record.tamperingProbability * 100)}% tamper
-                      </span>
+                    {isLoading ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Analyzing…
+                      </>
+                    ) : (
+                      <>
+                        <Image className="w-4 h-4" />
+                        Run Diff Analysis
+                      </>
+                    )}
+                  </motion.button>
+                </div>
+              </form>
+            </section>
+
+            {/* Loading skeleton */}
+            {isLoading && !result && (
+              <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+                <div className="flex items-center gap-6">
+                  <div className="w-44 h-44 rounded-full bg-slate-100 animate-pulse" />
+                  <div className="flex-1 space-y-3">
+                    <div className="h-4 w-40 bg-slate-100 rounded animate-pulse" />
+                    <div className="h-3 w-full bg-slate-100 rounded animate-pulse" />
+                    <div className="h-3 w-5/6 bg-slate-100 rounded animate-pulse" />
+                    <div className="h-3 w-4/6 bg-slate-100 rounded animate-pulse" />
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* Latest Result */}
+            <AnimatePresence>
+              {result && (
+                <motion.section
+                  key="result"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 6 }}
+                  transition={{ duration: 0.22 }}
+                  className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8"
+                >
+                  <div className="flex items-start justify-between gap-4 mb-6">
+                    <h2 className="text-lg font-semibold text-slate-900">
+                      Analysis Result
+                    </h2>
+                    <span
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${riskBadgeColor(
+                        result.riskScore
+                      )}`}
+                    >
+                      {riskLabel(result.riskScore)}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-8">
+                    <RiskGauge score={result.riskScore} />
+                    <div className="flex-1 grid grid-cols-2 gap-4 w-full">
+                      <div className="bg-slate-50 rounded-xl p-4">
+                        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                          Tampering Probability
+                        </p>
+                        <p
+                          className={`text-3xl font-bold ${riskColor(
+                            result.tamperingProbability * 100
+                          )}`}
+                        >
+                          <CountUp
+                            value={result.tamperingProbability * 100}
+                            suffix="%"
+                          />
+                        </p>
+                      </div>
+                      <div className="bg-slate-50 rounded-xl p-4">
+                        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                          Missing Items
+                        </p>
+                        <p className="text-3xl font-bold text-slate-800">
+                          <CountUp value={result.missingItems.length} />
+                        </p>
+                      </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
 
+                  <div className="space-y-4 mt-6">
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-700 mb-1">
+                        Summary
+                      </h3>
+                      <p className="text-sm text-slate-600 leading-relaxed">
+                        {result.summary}
+                      </p>
+                    </div>
+
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-700 mb-2">
+                        Damage Description
+                      </h3>
+                      <blockquote className="text-sm text-slate-700 leading-relaxed bg-slate-50 border-l-4 border-blue-400 pl-4 pr-3 py-3 rounded-r-xl">
+                        {result.damageDescription || "No visible damage."}
+                      </blockquote>
+                    </div>
+
+                    {result.missingItems.length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-700 mb-2">
+                          Missing Items
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {result.missingItems.map((item, i) => (
+                            <motion.span
+                              key={`${item}-${i}`}
+                              initial={{ opacity: 0, scale: 0.94 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{
+                                delay: i * 0.04,
+                                duration: 0.18,
+                              }}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-50 text-red-700 border border-red-200 rounded-full text-xs font-medium"
+                            >
+                              <X className="w-3 h-3" />
+                              {item}
+                            </motion.span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </motion.section>
+              )}
+            </AnimatePresence>
+
+            {/* History */}
+            <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-slate-900">
+                  Recent Comparisons
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => historyQuery.refetch()}
+                  className="text-xs font-semibold text-slate-500 hover:text-slate-700 inline-flex items-center gap-1"
+                >
+                  <RefreshCcw className="w-3.5 h-3.5" />
+                  Refresh
+                </button>
+              </div>
+
+              {historyQuery.isLoading ? (
+                <div className="space-y-3">
+                  <CardSkeleton height={64} />
+                  <CardSkeleton height={64} />
+                  <CardSkeleton height={64} />
+                </div>
+              ) : historyQuery.error ? (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                  <p className="text-sm text-red-700 font-medium">
+                    Failed to load history.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => historyQuery.refetch()}
+                    className="text-xs text-red-600 hover:text-red-700 underline mt-1"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : !historyQuery.data || historyQuery.data.length === 0 ? (
+                <p className="text-sm text-slate-500">
+                  No comparisons yet. Upload two images to get started.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {historyQuery.data.map((record) => {
+                    const id = (
+                      record._id as unknown as { toString(): string }
+                    ).toString();
+                    return (
+                      <motion.div
+                        key={id}
+                        whileHover={{ y: -1 }}
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border border-slate-100 rounded-xl hover:border-slate-200 hover:bg-slate-50 transition-colors"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-slate-700 truncate">
+                            {record.summary}
+                          </p>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            {new Date(record.createdAt as Date).toLocaleString()}
+                            {record.draftId ? ` · Draft: ${record.draftId}` : ""}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${riskBadgeColor(
+                              record.riskScore
+                            )}`}
+                          >
+                            {riskLabel(record.riskScore)} ({record.riskScore})
+                          </span>
+                          <span className="text-xs text-slate-500">
+                            {Math.round(record.tamperingProbability * 100)}%
+                            tamper
+                          </span>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          </div>
+
+          {/* Right rail */}
+          <aside className="lg:col-span-4">
+            <InsightsRail
+              draftId={draftId.trim() || undefined}
+              title="Verification Activity"
+            />
+          </aside>
+        </div>
       </main>
     </div>
   );

@@ -1,8 +1,10 @@
-import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
-import { router, protectedProcedure } from "../trpc.js";
+import { z } from "zod";
+
+import { requireUserId } from "../lib/auth.js";
 import { LoadOfferModel } from "../models/LoadOffer.js";
+import { protectedProcedure, router } from "../trpc.js";
 
 export const loadMatchRouter = router({
   /**
@@ -16,17 +18,25 @@ export const loadMatchRouter = router({
         weightKg: z.number().positive(),
         pickupDate: z.string(),
         notes: z.string().optional(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.user.id ?? ctx.user._id;
+      const userId = requireUserId(ctx);
+
+      const pickup = new Date(input.pickupDate);
+      if (Number.isNaN(pickup.getTime())) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid pickupDate",
+        });
+      }
 
       const offer = await LoadOfferModel.create({
-        userId: new mongoose.Types.ObjectId(userId as string),
+        userId,
         originCity: input.originCity,
         destinationCity: input.destinationCity,
         weightKg: input.weightKg,
-        pickupDate: new Date(input.pickupDate),
+        pickupDate: pickup,
         status: "open",
         notes: input.notes,
         createdAt: new Date(),
@@ -41,7 +51,7 @@ export const loadMatchRouter = router({
   listMine: protectedProcedure
     .input(z.object({}).optional())
     .query(async ({ ctx }) => {
-      const userId = ctx.user.id ?? ctx.user._id;
+      const userId = requireUserId(ctx);
 
       const offers = await LoadOfferModel.find({ userId }).sort({ createdAt: -1 });
 
@@ -50,15 +60,17 @@ export const loadMatchRouter = router({
 
   /**
    * Find matching open load offers for a given offer.
-   * Matches on overlapping route corridors and compatible pickup dates/weights.
    */
   findMatches: protectedProcedure
     .input(z.object({ offerId: z.string() }))
     .query(async ({ ctx, input }) => {
-      const userId = ctx.user.id ?? ctx.user._id;
+      const userId = requireUserId(ctx);
 
       if (!mongoose.Types.ObjectId.isValid(input.offerId)) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid offerId format" });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid offerId format",
+        });
       }
 
       const offer = await LoadOfferModel.findOne({
@@ -67,7 +79,10 @@ export const loadMatchRouter = router({
       });
 
       if (!offer) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Offer not found or not authorized" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Offer not found or not authorized",
+        });
       }
 
       const pickupDate = new Date(offer.pickupDate);
@@ -79,7 +94,6 @@ export const loadMatchRouter = router({
       const originLower = offer.originCity.toLowerCase();
       const destLower = offer.destinationCity.toLowerCase();
 
-      // Find all open offers from other users within the date window
       const candidates = await LoadOfferModel.find({
         _id: { $ne: offer._id },
         userId: { $ne: userId },
@@ -87,7 +101,6 @@ export const loadMatchRouter = router({
         pickupDate: { $gte: minDate, $lte: maxDate },
       });
 
-      // Filter by route corridor match (case-insensitive substring either way) and weight
       const matches = candidates
         .filter((candidate) => {
           const candOriginLower = candidate.originCity.toLowerCase();
@@ -115,7 +128,7 @@ export const loadMatchRouter = router({
           const candidatePickup = new Date(candidate.pickupDate);
           const daysApart = Math.abs(
             (pickupDate.getTime() - candidatePickup.getTime()) /
-              (1000 * 60 * 60 * 24)
+              (1000 * 60 * 60 * 24),
           );
 
           const similarityScore = Math.max(
@@ -123,7 +136,7 @@ export const loadMatchRouter = router({
             50 +
               (exactOrigin ? 25 : 0) +
               (exactDest ? 25 : 0) -
-              Math.round(daysApart) * 10
+              Math.round(daysApart) * 10,
           );
 
           return {
@@ -142,20 +155,26 @@ export const loadMatchRouter = router({
   cancel: protectedProcedure
     .input(z.object({ offerId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.user.id ?? ctx.user._id;
+      const userId = requireUserId(ctx);
 
       if (!mongoose.Types.ObjectId.isValid(input.offerId)) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid offerId format" });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid offerId format",
+        });
       }
 
       const updated = await LoadOfferModel.findOneAndUpdate(
         { _id: input.offerId, userId },
         { status: "cancelled" },
-        { new: true }
+        { new: true },
       );
 
       if (!updated) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Offer not found or not authorized" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Offer not found or not authorized",
+        });
       }
 
       return { message: "Offer cancelled successfully", offer: updated };

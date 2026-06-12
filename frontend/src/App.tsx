@@ -31,6 +31,7 @@ import WeightCheck from "./pages/weight-check/WeightCheck";
 import FraudDashboard from "./pages/fraud-dashboard/FraudDashboard";
 import TruckRegistry from "./pages/truck-registry/TruckRegistry";
 import AuditLog from "./pages/audit-log/AuditLog";
+import TrustCenter from "./pages/trust-center/TrustCenter";
 
 const pageFade = {
   initial: { opacity: 0 },
@@ -85,6 +86,7 @@ function AnimatedRoutes() {
             <Route path="/fraud-dashboard" element={<FraudDashboard />} />
             <Route path="/truck-registry" element={<TruckRegistry />} />
             <Route path="/audit-log" element={<AuditLog />} />
+            <Route path="/trust-center" element={<TrustCenter />} />
           </Route>
         </Routes>
       </motion.div>

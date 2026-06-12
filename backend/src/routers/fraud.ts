@@ -1,12 +1,13 @@
-import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
-import { router, protectedProcedure } from "../trpc.js";
+import { z } from "zod";
+
+import { requireUserId } from "../lib/auth.js";
+import { protectedProcedure, router } from "../trpc.js";
 
 // ---------------------------------------------------------------------------
 // Graceful model accessor — returns the Mongoose model if it has been
-// registered (by another agent), otherwise returns null so missing models
-// don't break this router at startup or compile time.
+// registered, otherwise returns null so missing models don't break startup.
 // ---------------------------------------------------------------------------
 
 function getModel(name: string): mongoose.Model<mongoose.Document> | null {
@@ -17,10 +18,6 @@ function getModel(name: string): mongoose.Model<mongoose.Document> | null {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Types for aggregated recent events
-// ---------------------------------------------------------------------------
-
 interface RecentEvent {
   type: string;
   riskScore: number;
@@ -28,25 +25,18 @@ interface RecentEvent {
   summary: string;
 }
 
-// ---------------------------------------------------------------------------
-// Router
-// ---------------------------------------------------------------------------
-
 export const fraudRouter = router({
   /**
    * fraud.summary — aggregated risk metrics for the current user.
-   *
-   * Reads five models created by other agents:
-   *   BoxCountResult, ShipmentDiff, RfidScanResult, WeightCheck, AnomalyReport
-   *
-   * Missing models are silently skipped and contribute zeros to the totals.
    */
   summary: protectedProcedure
     .input(z.object({}).optional())
     .query(async ({ ctx }) => {
-      const userId = ctx.user.id ?? ctx.user._id;
-
-      if (!userId) {
+      let userId: mongoose.Types.ObjectId;
+      try {
+        userId = requireUserId(ctx);
+      } catch (err) {
+        if (err instanceof TRPCError) throw err;
         throw new TRPCError({
           code: "UNAUTHORIZED",
           message: "User ID not found in token",
@@ -55,9 +45,7 @@ export const fraudRouter = router({
 
       const recentEvents: RecentEvent[] = [];
 
-      // ---------------------------------------------------------------
-      // 1. BoxCountResult — count mismatches where expected !== actual
-      // ---------------------------------------------------------------
+      // 1. BoxCountResult — count mismatches
       let boxCountMismatches = 0;
       const BoxCountResult = getModel("BoxCountResult");
       if (BoxCountResult) {
@@ -66,21 +54,6 @@ export const fraudRouter = router({
             userId,
             mismatch: true,
           });
-
-          // Fallback: if no mismatch field, count where expectedCount !== actualCount
-          if (boxCountMismatches === 0) {
-            const pipeline = [
-              { $match: { userId: new mongoose.Types.ObjectId(String(userId)) } },
-              {
-                $match: {
-                  $expr: { $ne: ["$expectedCount", "$actualCount"] },
-                },
-              },
-              { $count: "total" },
-            ];
-            const result = await BoxCountResult.aggregate(pipeline);
-            boxCountMismatches = result[0]?.total ?? 0;
-          }
 
           const recentBoxEvents = await BoxCountResult.find({ userId })
             .sort({ createdAt: -1 })
@@ -92,41 +65,27 @@ export const fraudRouter = router({
             recentEvents.push({
               type: "BoxCount",
               riskScore:
-                typeof d.riskScore === "number"
-                  ? d.riskScore
-                  : d.mismatch
-                  ? 0.7
-                  : 0.1,
+                typeof d.mismatchPct === "number" ? Number(d.mismatchPct) / 100 : 0,
               createdAt:
                 d.createdAt instanceof Date
                   ? d.createdAt
                   : new Date(String(d.createdAt ?? Date.now())),
-              summary:
-                typeof d.summary === "string"
-                  ? d.summary
-                  : `Box count check: expected ${d.expectedCount ?? "?"}, got ${d.actualCount ?? "?"}`,
+              summary: `Box count check: declared ${d.declaredCount ?? "?"}, detected ${d.detectedCount ?? "?"}`,
             });
           }
         } catch {
-          // model exists but query failed — skip gracefully
+          // skip gracefully
         }
       }
 
-      // ---------------------------------------------------------------
-      // 2. ShipmentDiff — average damage risk score
-      // ---------------------------------------------------------------
+      // 2. ShipmentDiff — average riskScore
       let avgDamageRiskScore = 0;
       const ShipmentDiff = getModel("ShipmentDiff");
       if (ShipmentDiff) {
         try {
           const pipeline = [
-            { $match: { userId: new mongoose.Types.ObjectId(String(userId)) } },
-            {
-              $group: {
-                _id: null,
-                avg: { $avg: "$damageRiskScore" },
-              },
-            },
+            { $match: { userId } },
+            { $group: { _id: null, avg: { $avg: "$riskScore" } } },
           ];
           const result = await ShipmentDiff.aggregate(pipeline);
           avgDamageRiskScore = result[0]?.avg ?? 0;
@@ -141,11 +100,7 @@ export const fraudRouter = router({
             recentEvents.push({
               type: "ShipmentDiff",
               riskScore:
-                typeof d.damageRiskScore === "number"
-                  ? d.damageRiskScore
-                  : typeof d.riskScore === "number"
-                  ? d.riskScore
-                  : 0.5,
+                typeof d.riskScore === "number" ? Number(d.riskScore) / 100 : 0.5,
               createdAt:
                 d.createdAt instanceof Date
                   ? d.createdAt
@@ -153,7 +108,7 @@ export const fraudRouter = router({
               summary:
                 typeof d.summary === "string"
                   ? d.summary
-                  : `Shipment diff detected for shipment ${d.shipmentId ?? d._id ?? "unknown"}`,
+                  : `Shipment diff detected for ${d.draftId ?? d._id ?? "unknown"}`,
             });
           }
         } catch {
@@ -161,32 +116,22 @@ export const fraudRouter = router({
         }
       }
 
-      // ---------------------------------------------------------------
-      // 3. RfidScanResult — total missing RFID tags
-      // ---------------------------------------------------------------
+      // 3. RfidScanResult — total missing tags
       let totalRfidMissing = 0;
       const RfidScanResult = getModel("RfidScanResult");
       if (RfidScanResult) {
         try {
           const pipeline = [
-            { $match: { userId: new mongoose.Types.ObjectId(String(userId)) } },
+            { $match: { userId } },
             {
               $group: {
                 _id: null,
-                total: { $sum: "$missingCount" },
+                total: { $sum: { $size: { $ifNull: ["$missing", []] } } },
               },
             },
           ];
           const result = await RfidScanResult.aggregate(pipeline);
           totalRfidMissing = result[0]?.total ?? 0;
-
-          // Fallback: count documents where status === 'missing'
-          if (totalRfidMissing === 0) {
-            totalRfidMissing = await RfidScanResult.countDocuments({
-              userId,
-              status: "missing",
-            });
-          }
 
           const recentRfidEvents = await RfidScanResult.find({ userId })
             .sort({ createdAt: -1 })
@@ -195,22 +140,16 @@ export const fraudRouter = router({
 
           for (const doc of recentRfidEvents) {
             const d = doc as Record<string, unknown>;
+            const matchPct =
+              typeof d.matchPct === "number" ? Number(d.matchPct) : 100;
             recentEvents.push({
               type: "RfidScan",
-              riskScore:
-                typeof d.riskScore === "number"
-                  ? d.riskScore
-                  : (d.missingCount as number) > 0
-                  ? 0.8
-                  : 0.1,
+              riskScore: Math.max(0, (100 - matchPct) / 100),
               createdAt:
                 d.createdAt instanceof Date
                   ? d.createdAt
                   : new Date(String(d.createdAt ?? Date.now())),
-              summary:
-                typeof d.summary === "string"
-                  ? d.summary
-                  : `RFID scan: ${d.missingCount ?? 0} missing tag(s)`,
+              summary: `RFID scan: ${Array.isArray(d.missing) ? d.missing.length : 0} missing tag(s)`,
             });
           }
         } catch {
@@ -218,9 +157,7 @@ export const fraudRouter = router({
         }
       }
 
-      // ---------------------------------------------------------------
-      // 4. WeightCheck — count flagged weight discrepancies
-      // ---------------------------------------------------------------
+      // 4. WeightCheck — count flagged
       let weightFlagged = 0;
       const WeightCheck = getModel("WeightCheck");
       if (WeightCheck) {
@@ -229,14 +166,6 @@ export const fraudRouter = router({
             userId,
             flagged: true,
           });
-
-          // Fallback: count where status === 'flagged'
-          if (weightFlagged === 0) {
-            weightFlagged = await WeightCheck.countDocuments({
-              userId,
-              status: "flagged",
-            });
-          }
 
           const recentWeightEvents = await WeightCheck.find({ userId })
             .sort({ createdAt: -1 })
@@ -247,20 +176,12 @@ export const fraudRouter = router({
             const d = doc as Record<string, unknown>;
             recentEvents.push({
               type: "WeightCheck",
-              riskScore:
-                typeof d.riskScore === "number"
-                  ? d.riskScore
-                  : d.flagged
-                  ? 0.75
-                  : 0.15,
+              riskScore: d.flagged ? 0.75 : 0.15,
               createdAt:
                 d.createdAt instanceof Date
                   ? d.createdAt
                   : new Date(String(d.createdAt ?? Date.now())),
-              summary:
-                typeof d.summary === "string"
-                  ? d.summary
-                  : `Weight check: declared ${d.declaredWeight ?? "?"}kg, actual ${d.actualWeight ?? "?"}kg`,
+              summary: `Weight check: declared ${d.declaredWeightKg ?? "?"}kg, measured ${d.measuredWeightKg ?? "?"}kg`,
             });
           }
         } catch {
@@ -268,9 +189,7 @@ export const fraudRouter = router({
         }
       }
 
-      // ---------------------------------------------------------------
-      // 5. AnomalyReport — count high-severity anomalies
-      // ---------------------------------------------------------------
+      // 5. AnomalyReport — count high-severity
       let anomalyHighSeverity = 0;
       const AnomalyReport = getModel("AnomalyReport");
       if (AnomalyReport) {
@@ -279,14 +198,6 @@ export const fraudRouter = router({
             userId,
             severity: "high",
           });
-
-          // Fallback: also try 'critical'
-          if (anomalyHighSeverity === 0) {
-            anomalyHighSeverity = await AnomalyReport.countDocuments({
-              userId,
-              $or: [{ severity: "high" }, { severity: "critical" }],
-            });
-          }
 
           const recentAnomalyEvents = await AnomalyReport.find({ userId })
             .sort({ createdAt: -1 })
@@ -298,13 +209,7 @@ export const fraudRouter = router({
             recentEvents.push({
               type: "Anomaly",
               riskScore:
-                typeof d.riskScore === "number"
-                  ? d.riskScore
-                  : d.severity === "high" || d.severity === "critical"
-                  ? 0.9
-                  : d.severity === "medium"
-                  ? 0.55
-                  : 0.2,
+                typeof d.riskScore === "number" ? Number(d.riskScore) / 100 : 0,
               createdAt:
                 d.createdAt instanceof Date
                   ? d.createdAt
@@ -312,9 +217,7 @@ export const fraudRouter = router({
               summary:
                 typeof d.summary === "string"
                   ? d.summary
-                  : typeof d.description === "string"
-                  ? d.description
-                  : `Anomaly detected — severity: ${d.severity ?? "unknown"}`,
+                  : `Anomaly — severity: ${d.severity ?? "unknown"}`,
             });
           }
         } catch {
@@ -322,16 +225,13 @@ export const fraudRouter = router({
         }
       }
 
-      // ---------------------------------------------------------------
-      // Sort recent events by createdAt desc and cap at 20
-      // ---------------------------------------------------------------
       const sortedRecentEvents = recentEvents
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
         .slice(0, 20);
 
       return {
         boxCountMismatches,
-        avgDamageRiskScore: Number(avgDamageRiskScore.toFixed(3)),
+        avgDamageRiskScore: Number((avgDamageRiskScore || 0).toFixed(3)),
         totalRfidMissing,
         weightFlagged,
         anomalyHighSeverity,

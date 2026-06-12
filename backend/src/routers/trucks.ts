@@ -1,12 +1,14 @@
-import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
-import { router, protectedProcedure } from "../trpc.js";
+import { z } from "zod";
+
+import { requireUserId } from "../lib/auth.js";
 import { TruckModel } from "../models/Truck.js";
+import { protectedProcedure, router } from "../trpc.js";
 
 export const trucksRouter = router({
   /**
-   * POST trucks.register — Register a new truck for the authenticated user.
+   * POST trucks.register
    */
   register: protectedProcedure
     .input(
@@ -16,20 +18,13 @@ export const trucksRouter = router({
         baseCity: z.string().min(1),
         driverName: z.string().min(1),
         phone: z.string().optional(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.user.id ?? ctx.user._id;
-
-      if (!mongoose.Types.ObjectId.isValid(String(userId))) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Invalid userId format",
-        });
-      }
+      const userId = requireUserId(ctx);
 
       const truck = await TruckModel.create({
-        userId: new mongoose.Types.ObjectId(String(userId)),
+        userId,
         plate: input.plate,
         capacityKg: input.capacityKg,
         baseCity: input.baseCity,
@@ -41,12 +36,12 @@ export const trucksRouter = router({
     }),
 
   /**
-   * GET trucks.list — List all trucks for the authenticated user.
+   * GET trucks.list
    */
   list: protectedProcedure
     .input(z.object({}).optional())
     .query(async ({ ctx }) => {
-      const userId = ctx.user.id ?? ctx.user._id;
+      const userId = requireUserId(ctx);
 
       const trucks = await TruckModel.find({ userId }).sort({ createdAt: -1 });
 
@@ -54,12 +49,12 @@ export const trucksRouter = router({
     }),
 
   /**
-   * DELETE trucks.remove — Remove a truck owned by the authenticated user.
+   * DELETE trucks.remove
    */
   remove: protectedProcedure
     .input(z.object({ truckId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.user.id ?? ctx.user._id;
+      const userId = requireUserId(ctx);
 
       if (!mongoose.Types.ObjectId.isValid(input.truckId)) {
         throw new TRPCError({

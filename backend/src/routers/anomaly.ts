@@ -1,15 +1,37 @@
-import { z } from "zod";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { router, protectedProcedure } from "../trpc.js";
+import { z } from "zod";
+
+import { requireUserId } from "../lib/auth.js";
 import { AnomalyReportModel } from "../models/AnomalyReport.js";
+import { AuditEventModel } from "../models/AuditEvent.js";
+import { protectedProcedure, router } from "../trpc.js";
+
+async function writeAudit(
+  userId: mongoose.Types.ObjectId,
+  draftId: string | undefined,
+  eventType: string,
+  summary: string,
+  payload: Record<string, unknown>,
+): Promise<void> {
+  try {
+    await AuditEventModel.create({
+      userId,
+      draftId: draftId ?? "n/a",
+      eventType,
+      payload,
+      summary,
+      createdAt: new Date(),
+    });
+  } catch (err) {
+    console.error(`[audit] failed to write ${eventType}:`, (err as Error)?.message);
+  }
+}
 
 export const anomalyRouter = router({
   /**
    * mutation: analyze
-   * Runs Gemini 1.5 Flash on shipment metadata to detect anomalies,
-   * then persists and returns the AnomalyReport document.
    */
   analyze: protectedProcedure
     .input(
@@ -23,14 +45,10 @@ export const anomalyRouter = router({
         destinationCity: z.string(),
         routeDeviationKm: z.number().nonnegative().default(0),
         extraNotes: z.string().optional(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.user.id ?? ctx.user._id;
-
-      if (!mongoose.Types.ObjectId.isValid(userId as string)) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid userId format" });
-      }
+      const userId = requireUserId(ctx);
 
       const {
         draftId,
@@ -86,7 +104,13 @@ Rules for severity:
 - "low": riskScore < 40 or minor discrepancies only
 `;
 
-      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
+      if (!process.env.GOOGLE_API_KEY) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "GOOGLE_API_KEY is not configured",
+        });
+      }
+      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
       let geminiResult;
@@ -94,7 +118,7 @@ Rules for severity:
         geminiResult = await model.generateContent(prompt);
       } catch (err) {
         throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
+          code: "BAD_GATEWAY",
           message: `Gemini API call failed: ${(err as Error).message}`,
         });
       }
@@ -135,10 +159,8 @@ Rules for severity:
         });
       }
 
-      const validatedUserId = new mongoose.Types.ObjectId(userId as string);
-
       const report = await AnomalyReportModel.create({
-        userId: validatedUserId,
+        userId,
         draftId: draftId ?? undefined,
         declaredWeightKg,
         measuredWeightKg,
@@ -154,25 +176,33 @@ Rules for severity:
         createdAt: new Date(),
       });
 
+      await writeAudit(
+        userId,
+        draftId,
+        "anomaly-analyze",
+        `Anomaly analysis: severity ${parsed.severity}, risk ${parsed.riskScore}`,
+        {
+          severity: parsed.severity,
+          riskScore: parsed.riskScore,
+          flags: parsed.flags,
+          resultId: String(report._id),
+        },
+      );
+
       return report;
     }),
 
   /**
    * query: history
-   * Returns the last N AnomalyReport docs for the authenticated user.
    */
   history: protectedProcedure
     .input(
       z.object({
         limit: z.number().int().positive().max(50).default(20),
-      })
+      }),
     )
     .query(async ({ ctx, input }) => {
-      const userId = ctx.user.id ?? ctx.user._id;
-
-      if (!mongoose.Types.ObjectId.isValid(userId as string)) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid userId format" });
-      }
+      const userId = requireUserId(ctx);
 
       const reports = await AnomalyReportModel.find({ userId })
         .sort({ createdAt: -1 })

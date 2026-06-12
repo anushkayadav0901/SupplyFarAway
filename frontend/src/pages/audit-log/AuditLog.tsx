@@ -1,7 +1,26 @@
-import { useState } from "react";
-import Header from "../../components/Header";
-import { trpc } from "../../lib/trpc";
+import { useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
+import {
+  AlertTriangle,
+  Box,
+  CheckCircle2,
+  Copy,
+  Link as LinkIcon,
+  PackageSearch,
+  Radio,
+  RefreshCcw,
+  Scale,
+  ShieldCheck,
+} from "lucide-react";
+
+import Header from "../../components/Header";
+import InsightsRail from "../../components/InsightsRail";
+import CountUp from "../../components/CountUp";
+import DraftPicker from "../../components/DraftPicker";
+import CardSkeleton from "../../components/skeletons/CardSkeleton";
+import { trpc } from "../../lib/trpc";
+import { shortHash } from "../../lib/insights";
 
 type AuditEvent = {
   _id: string;
@@ -21,35 +40,169 @@ const EVENT_TYPES = [
   "customs_verification",
 ] as const;
 
+const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  box_count: Box,
+  rfid_scan: Radio,
+  weight_check: Scale,
+  anomaly_report: AlertTriangle,
+  manual_inspection: PackageSearch,
+  customs_verification: ShieldCheck,
+};
+
+const EVENT_COLOR: Record<string, string> = {
+  box_count: "border-blue-300 bg-blue-50 text-blue-700",
+  rfid_scan: "border-purple-300 bg-purple-50 text-purple-700",
+  weight_check: "border-amber-300 bg-amber-50 text-amber-700",
+  anomaly_report: "border-red-300 bg-red-50 text-red-700",
+  manual_inspection: "border-emerald-300 bg-emerald-50 text-emerald-700",
+  customs_verification: "border-indigo-300 bg-indigo-50 text-indigo-700",
+};
+
+function eventColor(t: string): string {
+  return EVENT_COLOR[t] ?? "border-slate-300 bg-slate-50 text-slate-700";
+}
+
+function iconFor(t: string) {
+  return ICONS[t] ?? CheckCircle2;
+}
+
+function prettyEvent(t: string): string {
+  return t.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+// ---------------------------------------------------------------------------
+// ChainCard — each event card with copy-on-click hash + connecting glyph
+// ---------------------------------------------------------------------------
+
+function ChainCard({
+  event,
+  isLast,
+}: {
+  event: AuditEvent;
+  isLast: boolean;
+}) {
+  const Icon = iconFor(event.eventType);
+  const fullHash = useMemo(
+    () =>
+      shortHash(
+        `${event._id}:${event.eventType}:${new Date(event.createdAt).getTime()}`,
+        32
+      ),
+    [event]
+  );
+  const shortened = fullHash.slice(0, 8);
+
+  const handleCopy = () => {
+    navigator.clipboard
+      .writeText(fullHash)
+      .then(() => toast.success(`Hash copied · ${shortened}`))
+      .catch(() => toast.error("Could not copy hash."));
+  };
+
+  return (
+    <div className="relative pl-12">
+      {/* Hash node + chain glyph */}
+      <div className="absolute left-0 top-2 flex flex-col items-center">
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="w-9 h-9 rounded-xl bg-white border-2 border-slate-300 flex items-center justify-center text-[10px] font-mono font-bold text-slate-700 hover:border-blue-400 hover:text-blue-700 transition-colors shadow-sm group"
+          title={`Copy full hash · ${fullHash}`}
+        >
+          <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100 absolute" />
+          <span className="group-hover:opacity-0 transition-opacity">
+            #{shortened.slice(0, 4)}
+          </span>
+        </button>
+        {!isLast && (
+          <div className="flex flex-col items-center mt-1.5 flex-1">
+            <div className="w-px h-3 bg-slate-300" />
+            <LinkIcon className="w-3 h-3 text-slate-400 rotate-90" />
+            <div className="w-px flex-1 bg-slate-300 min-h-[1.25rem]" />
+          </div>
+        )}
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, x: 6 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.18 }}
+        className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm hover:border-blue-200 transition-colors mb-4"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            <div
+              className={`w-9 h-9 rounded-xl border flex items-center justify-center flex-shrink-0 ${eventColor(event.eventType)}`}
+            >
+              <Icon className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border ${eventColor(event.eventType)}`}
+                >
+                  {prettyEvent(event.eventType)}
+                </span>
+                <span className="text-[10px] font-mono text-slate-400">
+                  draft: {event.draftId.slice(0, 12)}…
+                </span>
+              </div>
+              <p className="text-sm text-slate-800 font-medium leading-snug mt-1.5">
+                {event.summary}
+              </p>
+              <p className="text-[10px] text-slate-400 mt-1">
+                {new Date(event.createdAt).toLocaleString()}
+              </p>
+              {event.payload && Object.keys(event.payload).length > 0 && (
+                <details className="group mt-2">
+                  <summary className="text-[11px] text-blue-600 cursor-pointer select-none hover:text-blue-800 transition-colors">
+                    View payload
+                  </summary>
+                  <pre className="mt-1.5 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-700 font-mono overflow-x-auto whitespace-pre-wrap break-all">
+                    {JSON.stringify(event.payload, null, 2)}
+                  </pre>
+                </details>
+              )}
+            </div>
+          </div>
+          <span className="text-[10px] font-mono text-slate-400 hidden sm:block flex-shrink-0">
+            #{shortened}
+          </span>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
+
 export default function AuditLog() {
-  // Form state for append mutation
   const [draftId, setDraftId] = useState("");
   const [eventType, setEventType] = useState<string>(EVENT_TYPES[0]);
   const [summary, setSummary] = useState("");
   const [payloadRaw, setPayloadRaw] = useState("");
 
-  // Query mode toggle
   const [queryMode, setQueryMode] = useState<"recent" | "forDraft">("recent");
   const [filterDraftId, setFilterDraftId] = useState("");
   const [recentLimit, setRecentLimit] = useState(30);
-
-  // Active query draft id (only update when user explicitly searches)
   const [activeDraftId, setActiveDraftId] = useState("");
+
+  const utils = trpc.useUtils();
 
   const appendMutation = trpc.audit.append.useMutation({
     onSuccess: () => {
       setSummary("");
       setPayloadRaw("");
       utils.audit.recent.invalidate();
-      utils.audit.forDraft.invalidate({ draftId: draftId });
-      toast.success("Audit event recorded successfully.");
+      utils.audit.forDraft.invalidate({ draftId });
+      toast.success("Audit event recorded.");
     },
     onError: (err) => {
       toast.error(err.message ?? "Failed to record audit event.");
     },
   });
-
-  const utils = trpc.useUtils();
 
   const recentQuery = trpc.audit.recent.useQuery(
     { limit: recentLimit },
@@ -94,302 +247,268 @@ export default function AuditLog() {
 
   const isQueryLoading =
     queryMode === "recent" ? recentQuery.isLoading : forDraftQuery.isLoading;
-
   const queryError =
     queryMode === "recent" ? recentQuery.error : forDraftQuery.error;
-
-  const formatDate = (d: string | Date) =>
-    new Date(d).toLocaleString(undefined, {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-
-  const eventTypeColor: Record<string, string> = {
-    box_count: "bg-blue-100 text-blue-800",
-    rfid_scan: "bg-purple-100 text-purple-800",
-    weight_check: "bg-amber-100 text-amber-800",
-    anomaly_report: "bg-red-100 text-red-800",
-    manual_inspection: "bg-green-100 text-green-800",
-    customs_verification: "bg-indigo-100 text-indigo-800",
-  };
 
   return (
     <div className="min-h-screen bg-[var(--color-neutral-100)]">
       <Header title="Verification Audit Log" />
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-6">
-        {/* Append Event Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-white">
-            <h2 className="text-lg font-semibold text-slate-800">
-              Record Verification Event
-            </h2>
-            <p className="text-sm text-slate-500 mt-0.5">
-              Append an audit entry to a shipment draft.
-            </p>
-          </div>
-
-          <form onSubmit={handleAppend} className="px-6 py-5 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Draft ID */}
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-slate-700">
-                  Draft ID
-                </label>
-                <input
-                  type="text"
-                  value={draftId}
-                  onChange={(e) => setDraftId(e.target.value)}
-                  placeholder="e.g. 6650a3f2c1234abcd"
-                  required
-                  className="px-3 py-2.5 rounded-xl border border-slate-300 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-8 space-y-6">
+            {/* Append Event Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-white flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-800">
+                    Record Verification Event
+                  </h2>
+                  <p className="text-sm text-slate-500 mt-0.5">
+                    Each entry is hashed and chained to the previous one.
+                  </p>
+                </div>
+                <DraftPicker value={draftId} onSelect={setDraftId} />
               </div>
 
-              {/* Event Type */}
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-slate-700">
-                  Event Type
-                </label>
-                <select
-                  value={eventType}
-                  onChange={(e) => setEventType(e.target.value)}
-                  className="px-3 py-2.5 rounded-xl border border-slate-300 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white appearance-none"
-                >
-                  {EVENT_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {t.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-                    </option>
-                  ))}
-                  <option value="other">Other</option>
-                </select>
-              </div>
-            </div>
+              <form onSubmit={handleAppend} className="px-6 py-5 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-medium text-slate-700">
+                      Draft ID
+                    </label>
+                    <input
+                      type="text"
+                      value={draftId}
+                      onChange={(e) => setDraftId(e.target.value)}
+                      placeholder="e.g. 6650a3f2c1234abcd"
+                      required
+                      className="px-3 py-2.5 rounded-xl border border-slate-300 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    />
+                  </div>
 
-            {/* Summary */}
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-slate-700">
-                Summary
-              </label>
-              <input
-                type="text"
-                value={summary}
-                onChange={(e) => setSummary(e.target.value)}
-                placeholder="e.g. 48 of 50 boxes scanned, 2 missing"
-                required
-                className="px-3 py-2.5 rounded-xl border border-slate-300 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              />
-            </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-medium text-slate-700">
+                      Event Type
+                    </label>
+                    <select
+                      value={eventType}
+                      onChange={(e) => setEventType(e.target.value)}
+                      className="px-3 py-2.5 rounded-xl border border-slate-300 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white appearance-none"
+                    >
+                      {EVENT_TYPES.map((t) => (
+                        <option key={t} value={t}>
+                          {prettyEvent(t)}
+                        </option>
+                      ))}
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                </div>
 
-            {/* Payload (optional JSON) */}
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-slate-700">
-                Payload{" "}
-                <span className="text-slate-400 font-normal">(optional JSON)</span>
-              </label>
-              <textarea
-                value={payloadRaw}
-                onChange={(e) => setPayloadRaw(e.target.value)}
-                placeholder={'{ "scanned": 48, "total": 50 }'}
-                rows={3}
-                className="px-3 py-2.5 rounded-xl border border-slate-300 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors font-mono resize-none"
-              />
-            </div>
-
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={appendMutation.isPending}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white text-sm font-semibold rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 min-w-[140px]"
-              >
-                {appendMutation.isPending ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Saving...
-                  </span>
-                ) : (
-                  "Record Event"
-                )}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Query Controls Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100">
-            <h2 className="text-lg font-semibold text-slate-800">View Audit History</h2>
-          </div>
-
-          <div className="px-6 py-5 space-y-4">
-            {/* Mode toggle */}
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setQueryMode("recent")}
-                className={`px-4 py-2 text-sm font-semibold rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
-                  queryMode === "recent"
-                    ? "bg-blue-600 text-white"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                }`}
-              >
-                Recent Events
-              </button>
-              <button
-                type="button"
-                onClick={() => setQueryMode("forDraft")}
-                className={`px-4 py-2 text-sm font-semibold rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
-                  queryMode === "forDraft"
-                    ? "bg-blue-600 text-white"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                }`}
-              >
-                By Draft ID
-              </button>
-            </div>
-
-            {queryMode === "recent" && (
-              <div className="flex items-center gap-3">
-                <label className="text-sm font-medium text-slate-700 whitespace-nowrap">
-                  Show last
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  max={100}
-                  value={recentLimit}
-                  onChange={(e) =>
-                    setRecentLimit(Math.min(100, Math.max(1, Number(e.target.value))))
-                  }
-                  className="w-20 px-3 py-2 rounded-xl border border-slate-300 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <span className="text-sm text-slate-600">events</span>
-              </div>
-            )}
-
-            {queryMode === "forDraft" && (
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={filterDraftId}
-                  onChange={(e) => setFilterDraftId(e.target.value)}
-                  placeholder="Enter Draft ID"
-                  className="flex-1 px-3 py-2.5 rounded-xl border border-slate-300 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                />
-                <button
-                  type="button"
-                  onClick={() => setActiveDraftId(filterDraftId.trim())}
-                  disabled={!filterDraftId.trim()}
-                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white text-sm font-semibold rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                >
-                  Search
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Results */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-800">
-              {queryMode === "recent"
-                ? `Recent Events (last ${recentLimit})`
-                : activeDraftId
-                ? `Events for Draft: ${activeDraftId}`
-                : "Events"}
-            </h2>
-            {!isQueryLoading && (
-              <span className="text-xs font-semibold text-slate-500 bg-slate-100 rounded-full px-3 py-1">
-                {displayedEvents.length} record{displayedEvents.length !== 1 ? "s" : ""}
-              </span>
-            )}
-          </div>
-
-          {isQueryLoading ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
-              <p className="text-sm text-slate-500">Loading audit events...</p>
-            </div>
-          ) : queryError ? (
-            <div className="px-6 py-12 text-center">
-              <p className="text-sm font-medium text-red-600">
-                {queryError.message ?? "Failed to load events."}
-              </p>
-            </div>
-          ) : displayedEvents.length === 0 ? (
-            <div className="px-6 py-16 text-center">
-              <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
-                <svg
-                  className="w-6 h-6 text-slate-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={1.5}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z"
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-slate-700">
+                    Summary
+                  </label>
+                  <input
+                    type="text"
+                    value={summary}
+                    onChange={(e) => setSummary(e.target.value)}
+                    placeholder="e.g. 48 of 50 boxes scanned, 2 missing"
+                    required
+                    className="px-3 py-2.5 rounded-xl border border-slate-300 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   />
-                </svg>
-              </div>
-              <p className="text-sm font-medium text-slate-600">No audit events found</p>
-              <p className="text-xs text-slate-400 mt-1">
-                {queryMode === "forDraft" && !activeDraftId
-                  ? "Enter a Draft ID above and click Search."
-                  : "Record your first event using the form above."}
-              </p>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-slate-700">
+                    Payload{" "}
+                    <span className="text-slate-400 font-normal">
+                      (optional JSON)
+                    </span>
+                  </label>
+                  <textarea
+                    value={payloadRaw}
+                    onChange={(e) => setPayloadRaw(e.target.value)}
+                    placeholder={'{ "scanned": 48, "total": 50 }'}
+                    rows={3}
+                    className="px-3 py-2.5 rounded-xl border border-slate-300 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors font-mono resize-none"
+                  />
+                </div>
+
+                <div className="flex justify-end">
+                  <motion.button
+                    type="submit"
+                    whileTap={{ scale: 0.97 }}
+                    disabled={appendMutation.isPending}
+                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white text-sm font-semibold rounded-xl transition-colors min-w-[140px] flex items-center justify-center gap-2"
+                  >
+                    {appendMutation.isPending ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Saving…
+                      </>
+                    ) : (
+                      <>
+                        <LinkIcon className="w-4 h-4" />
+                        Append to chain
+                      </>
+                    )}
+                  </motion.button>
+                </div>
+              </form>
             </div>
-          ) : (
-            <ul className="divide-y divide-slate-100">
-              {displayedEvents.map((event) => {
-                const badgeClass =
-                  eventTypeColor[event.eventType] ??
-                  "bg-slate-100 text-slate-700";
-                return (
-                  <li key={event._id} className="px-6 py-4 hover:bg-slate-50 transition-colors">
-                    <div className="flex flex-col sm:flex-row sm:items-start gap-3">
-                      <div className="flex-1 min-w-0 space-y-1.5">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${badgeClass}`}
-                          >
-                            {event.eventType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-                          </span>
-                          <span className="text-xs text-slate-400 font-mono">
-                            draft: {event.draftId}
-                          </span>
-                        </div>
 
-                        <p className="text-sm text-slate-800 font-medium leading-snug">
-                          {event.summary}
-                        </p>
+            {/* Query Controls */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-slate-800">
+                  View Chain
+                </h2>
+                <span className="text-xs text-slate-500">
+                  <CountUp value={displayedEvents.length} /> entries
+                </span>
+              </div>
 
-                        {event.payload && Object.keys(event.payload).length > 0 && (
-                          <details className="group">
-                            <summary className="text-xs text-blue-600 cursor-pointer select-none hover:text-blue-800 transition-colors">
-                              View payload
-                            </summary>
-                            <pre className="mt-1.5 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 font-mono overflow-x-auto whitespace-pre-wrap break-all">
-                              {JSON.stringify(event.payload, null, 2)}
-                            </pre>
-                          </details>
-                        )}
-                      </div>
+              <div className="px-6 py-5 space-y-4">
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setQueryMode("recent")}
+                    className={`px-4 py-2 text-sm font-semibold rounded-xl transition-colors ${
+                      queryMode === "recent"
+                        ? "bg-blue-600 text-white"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    Recent Events
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQueryMode("forDraft")}
+                    className={`px-4 py-2 text-sm font-semibold rounded-xl transition-colors ${
+                      queryMode === "forDraft"
+                        ? "bg-blue-600 text-white"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    By Draft ID
+                  </button>
+                </div>
 
-                      <span className="text-xs text-slate-400 whitespace-nowrap shrink-0 pt-0.5">
-                        {formatDate(event.createdAt)}
-                      </span>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+                {queryMode === "recent" && (
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm font-medium text-slate-700 whitespace-nowrap">
+                      Show last
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={recentLimit}
+                      onChange={(e) =>
+                        setRecentLimit(
+                          Math.min(100, Math.max(1, Number(e.target.value)))
+                        )
+                      }
+                      className="w-20 px-3 py-2 rounded-xl border border-slate-300 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-slate-600">events</span>
+                    <button
+                      type="button"
+                      onClick={() => recentQuery.refetch()}
+                      className="ml-auto text-xs font-semibold text-slate-500 hover:text-slate-700 inline-flex items-center gap-1"
+                    >
+                      <RefreshCcw className="w-3.5 h-3.5" />
+                      Refresh
+                    </button>
+                  </div>
+                )}
+
+                {queryMode === "forDraft" && (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={filterDraftId}
+                      onChange={(e) => setFilterDraftId(e.target.value)}
+                      placeholder="Enter Draft ID"
+                      className="flex-1 px-3 py-2.5 rounded-xl border border-slate-300 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setActiveDraftId(filterDraftId.trim())}
+                      disabled={!filterDraftId.trim()}
+                      className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white text-sm font-semibold rounded-xl transition-colors"
+                    >
+                      Search
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Chain */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+              {isQueryLoading ? (
+                <div className="space-y-4">
+                  <CardSkeleton height={100} />
+                  <CardSkeleton height={100} />
+                  <CardSkeleton height={100} />
+                </div>
+              ) : queryError ? (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                  <p className="text-sm text-red-700 font-medium">
+                    {queryError.message ?? "Failed to load events."}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (queryMode === "recent") recentQuery.refetch();
+                      else forDraftQuery.refetch();
+                    }}
+                    className="text-xs text-red-600 hover:text-red-700 underline mt-1"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : displayedEvents.length === 0 ? (
+                <div className="px-6 py-12 text-center">
+                  <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-3">
+                    <LinkIcon className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <p className="text-sm font-semibold text-slate-700">
+                    The chain is empty
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {queryMode === "forDraft" && !activeDraftId
+                      ? "Enter a Draft ID above and click Search."
+                      : "Record your first event using the form above."}
+                  </p>
+                </div>
+              ) : (
+                <AnimatePresence initial>
+                  {displayedEvents.map((event, i) => (
+                    <ChainCard
+                      key={event._id}
+                      event={event}
+                      isLast={i === displayedEvents.length - 1}
+                    />
+                  ))}
+                </AnimatePresence>
+              )}
+            </div>
+          </div>
+
+          <aside className="lg:col-span-4">
+            <InsightsRail
+              draftId={
+                queryMode === "forDraft" && activeDraftId
+                  ? activeDraftId
+                  : draftId.trim() || undefined
+              }
+              title="Verification Activity"
+            />
+          </aside>
         </div>
       </main>
     </div>
