@@ -11,4 +11,14 @@ export default defineConfig({
       "@server": path.resolve(__dirname, "../backend/src"),
     },
   },
+  server: {
+    proxy: {
+      // YOLO microservice (FastAPI + ultralytics) — run with `cd yolo && uvicorn main:app --port 8000`
+      "/yolo": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/yolo/, ""),
+      },
+    },
+  },
 });

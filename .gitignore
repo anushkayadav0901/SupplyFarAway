@@ -40,3 +40,11 @@ coverage/
 *.key
 backend/Config/*.json
 !backend/Config/.gitkeep
+
+# Reference projects pasted in for context (not part of the build)
+yolo_reference/
+
+# YOLO service Python venv + cached weights
+yolo/.venv/
+yolo/__pycache__/
+yolo/*.pt
