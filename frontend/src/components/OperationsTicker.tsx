@@ -38,7 +38,8 @@ const severityToTone = (severity: string): DisplayTick["severity"] => {
   const s = severity.toLowerCase();
   if (s === "high" || s === "critical") return "high";
   if (s === "medium" || s === "warn") return "warn";
-  if (s === "ok" || s === "low") return "info";
+  if (s === "ok" || s === "success") return "ok";
+  // "low" / "info" / anything else
   return "info";
 };
 

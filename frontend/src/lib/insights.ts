@@ -14,10 +14,13 @@ export type SeverityLevel = "low" | "medium" | "high" | "critical" | "info";
 // Score → tone
 // ---------------------------------------------------------------------------
 
-/** Map a 0-100 trust score to a semantic tone. */
+/**
+ * Map a 0-100 trust score to a semantic tone.
+ * Bands match the verdict bands so tone never disagrees with the verdict label.
+ */
 export function trustToneFromScore(score: number): TrustTone {
   if (score >= 80) return "ok";
-  if (score >= 50) return "warn";
+  if (score >= 60) return "warn";
   if (score >= 0) return "danger";
   return "neutral";
 }

@@ -28,17 +28,20 @@ const anomalyReportSchema = new Schema({
     type: Number,
     required: true,
   },
+  // Optional: only meaningful for route-derived anomaly reports.
+  // Verification features (box-count, shipment-diff, rfid, weight-check)
+  // emit reports without route context and omit these fields.
   originCity: {
     type: String,
-    required: true,
+    required: false,
   },
   destinationCity: {
     type: String,
-    required: true,
+    required: false,
   },
   routeDeviationKm: {
     type: Number,
-    required: true,
+    required: false,
     default: 0,
   },
   flags: {

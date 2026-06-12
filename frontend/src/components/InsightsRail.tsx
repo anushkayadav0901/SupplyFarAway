@@ -100,7 +100,7 @@ export default function InsightsRail({
   );
 
   const forDraftQuery = trpc.audit.forDraft.useQuery(
-    { draftId: draftId ?? "" },
+    { draftId: draftId ?? "", limit: 12, order: "newest" },
     {
       enabled: hasDraft,
       refetchInterval: pollWhenVisible,
@@ -113,10 +113,7 @@ export default function InsightsRail({
     const raw = hasDraft ? forDraftQuery.data : recentQuery.data;
     if (!raw) return [];
     // Cast through unknown to dodge Mongoose ObjectId-vs-string TS2352 gripes
-    const list = (raw as unknown as RailEvent[]).slice();
-    // forDraft returns oldest-first per backend; flip to newest-first
-    if (hasDraft) list.reverse();
-    return list.slice(0, 12);
+    return (raw as unknown as RailEvent[]).slice(0, 12);
   }, [hasDraft, forDraftQuery.data, recentQuery.data]);
 
   const isLoading = hasDraft ? forDraftQuery.isLoading : recentQuery.isLoading;
