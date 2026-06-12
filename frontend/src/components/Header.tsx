@@ -28,7 +28,7 @@ const Header = ({ title, page = "dashboard" }: HeaderProps) => {
         duration: 0.2,
         ease: "easeOut",
       }}
-      className="relative max-w-7xl mx-auto bg-gradient-to-r from-blue-600 via-blue-600 to-blue-700 text-white py-8 sm:py-12 rounded-b-3xl overflow-hidden w-full shadow-xl"
+      className="relative max-w-7xl mx-auto bg-blue-600 text-white py-8 sm:py-12 rounded-b-3xl overflow-hidden w-full shadow-xl"
     >
       {/* Animated SVG Background - Circuit Pattern */}
       <div className="absolute inset-0">
@@ -203,7 +203,7 @@ const Header = ({ title, page = "dashboard" }: HeaderProps) => {
               delay: 0.1,
               ease: "easeOut",
             }}
-            className="hidden sm:block w-16 h-0.5 bg-gradient-to-r from-white/40 to-transparent ml-4 rounded-full"
+            className="hidden sm:block w-16 h-0.5 bg-white/40 ml-4 rounded-full"
           />
         </motion.div>
 
@@ -224,7 +224,7 @@ const Header = ({ title, page = "dashboard" }: HeaderProps) => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => navigate("/inventory-management")}
-              className="border-none bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 px-5 py-2.5 text-white text-sm font-bold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600"
+              className="border-none bg-emerald-500 hover:bg-emerald-600 px-5 py-2.5 text-white text-sm font-bold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600"
             >
               Inventory
             </motion.button>
@@ -235,7 +235,7 @@ const Header = ({ title, page = "dashboard" }: HeaderProps) => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => navigate("/inventory-management")}
-                className="border-none bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 px-5 py-2.5 text-white text-sm font-bold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600"
+                className="border-none bg-emerald-500 hover:bg-emerald-600 px-5 py-2.5 text-white text-sm font-bold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600"
               >
                 Inventory
               </motion.button>
@@ -263,7 +263,7 @@ const Header = ({ title, page = "dashboard" }: HeaderProps) => {
       </div>
 
       {/* Bottom accent border */}
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--color-neutral-50)]/20 to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-[var(--color-neutral-50)]/30" />
 
       {/* Global Button Active Style */}
       <Global

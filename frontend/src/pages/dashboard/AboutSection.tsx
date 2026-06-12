@@ -13,8 +13,8 @@ const AboutSection: React.FC = () => {
   return (
     <section id="about" className="relative py-20 sm:py-32 px-4 sm:px-6 z-10">
       {/* Top Separator */}
-      <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-gray-200/50 to-transparent"></div>
-      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 h-px bg-gradient-to-r from-blue-400/60 to-emerald-400/60"></div>
+      <div className="absolute top-0 left-0 w-full h-px bg-gray-200/30"></div>
+      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 h-px bg-blue-400/60"></div>
 
       {/* Subtle Pattern Overlay */}
       <div className="absolute inset-0 opacity-20">
@@ -145,10 +145,7 @@ const AboutSection: React.FC = () => {
                 viewport={{ once: true }}
                 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-[1.1]"
               >
-                Smart
-                <span className="bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent">
-                  logix
-                </span>
+                SupplyChain
               </motion.h2>
             </div>
 
@@ -256,8 +253,8 @@ const AboutSection: React.FC = () => {
       </div>
 
       {/* Bottom Separator */}
-      <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-gray-200/50 to-transparent"></div>
-      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-32 h-px bg-gradient-to-r from-emerald-400/60 to-blue-400/60"></div>
+      <div className="absolute bottom-0 left-0 w-full h-px bg-gray-200/30"></div>
+      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-32 h-px bg-emerald-400/60"></div>
 
       {/* Corner Decorative Elements */}
       <div className="absolute top-4 left-4 w-8 h-8 border-l-2 border-t-2 border-blue-200 rounded-tl-lg"></div>

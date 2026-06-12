@@ -149,7 +149,7 @@ function ScanImage({
         {scanning && preview && (
           <>
             <motion.div
-              className="absolute left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-blue-500 to-transparent shadow-[0_0_18px_4px_rgba(59,130,246,0.55)]"
+              className="absolute left-0 right-0 h-[3px] bg-blue-500 shadow-[0_0_18px_4px_rgba(59,130,246,0.55)]"
               initial={{ top: 0 }}
               animate={shouldReduceMotion ? {} : { top: ["0%", "100%", "0%"] }}
               transition={{ duration: 2.2, ease: "easeInOut", repeat: Infinity }}
@@ -492,7 +492,7 @@ export default function ShipmentDiff() {
                   <div className="flex flex-col sm:flex-row items-center gap-8">
                     <RiskGauge score={result.riskScore} />
                     <div className="flex-1 grid grid-cols-2 gap-4 w-full">
-                      <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-4">
+                      <div className="bg-slate-50 rounded-xl p-4">
                         <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
                           Tampering Probability
                         </p>
@@ -500,7 +500,7 @@ export default function ShipmentDiff() {
                           <CountUp value={result.tamperingProbability * 100} suffix="%" />
                         </p>
                       </div>
-                      <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-4">
+                      <div className="bg-slate-50 rounded-xl p-4">
                         <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
                           Missing Items
                         </p>

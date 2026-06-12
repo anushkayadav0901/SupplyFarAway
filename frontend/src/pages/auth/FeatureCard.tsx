@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import TypewriterText from "./TypewriterText";
 
 interface FeatureCardProps {
-  icon?: string;
+  icon?: React.ReactNode;
   title?: string;
   desc?: string;
   gradient?: string;
@@ -19,10 +19,10 @@ interface FeatureCardProps {
 }
 
 const FeatureCard = ({
-  icon = "🚀",
+  icon,
   title = "Feature Title",
   desc = "Feature description goes here",
-  gradient = "from-blue-500/20 to-cyan-500/20",
+  gradient = "bg-blue-500/10",
   iconBg = "bg-blue-500/10",
   iconColor = "text-blue-400",
   index = 0,
@@ -37,7 +37,7 @@ const FeatureCard = ({
 
   return (
     <motion.div
-      className={`group relative overflow-hidden rounded-custom border border-white/[0.08] bg-gradient-to-r ${feature.gradient} backdrop-blur-xl h-16 w-full max-w-xs sm:max-w-sm md:max-w-md ${className}`}
+      className={`group relative overflow-hidden rounded-custom border border-white/[0.08] ${feature.gradient} backdrop-blur-xl h-16 w-full max-w-xs sm:max-w-sm md:max-w-md ${className}`}
       style={style}
       initial={{ opacity: 0, x: -50, scale: 0.9 }}
       animate={{ opacity: 1, x: 0, scale: 1 }}
@@ -55,7 +55,7 @@ const FeatureCard = ({
       }}
     >
       {/* Subtle glow effect */}
-      <div className="absolute inset-0 bg-gradient-to-r from-white/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="absolute inset-0 bg-white/[0.03] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
       {/* Content */}
       <div className="relative h-full flex items-center px-3 sm:px-4 gap-3 sm:gap-4">
@@ -68,7 +68,7 @@ const FeatureCard = ({
           }}
           transition={{ duration: 0.3 }}
         >
-          <span className="text-lg filter drop-shadow-sm">{feature.icon}</span>
+          <span className="text-lg filter drop-shadow-sm flex items-center justify-center">{feature.icon}</span>
         </motion.div>
 
         {/* Text Content */}
@@ -99,7 +99,7 @@ const FeatureCard = ({
 
         {/* Side glow bar */}
         <motion.div
-          className={`absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b ${feature.gradient} opacity-30`}
+          className={`absolute left-0 top-0 bottom-0 w-px ${feature.gradient} opacity-30`}
           initial={{ scaleY: 0 }}
           animate={{ scaleY: 1 }}
           transition={{

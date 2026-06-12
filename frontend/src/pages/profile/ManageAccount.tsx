@@ -500,7 +500,7 @@ const ManageAccount: React.FC = () => {
                       }}
                     />
                   ) : (
-                    <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-full flex items-center justify-center shadow-lg">
+                    <div className="w-24 h-24 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
                       <FaUser className="text-4xl text-white" />
                     </div>
                   )}

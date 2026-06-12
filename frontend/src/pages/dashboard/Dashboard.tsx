@@ -92,10 +92,10 @@ function MovexDashboard() {
       onClick={onClick}
       whileHover={{ scale: 1.03, y: -2 }}
       whileTap={{ scale: 0.98 }}
-      className="relative bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold text-base sm:text-lg px-8 py-4 rounded-2xl flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transition-all duration-200 overflow-hidden group"
+      className="relative bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base sm:text-lg px-8 py-4 rounded-2xl flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transition-all duration-200 overflow-hidden group"
     >
       <span className="relative z-10 flex items-center gap-3">{children}</span>
-      <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      <div className="absolute inset-0 bg-blue-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
     </motion.button>
   );
 
@@ -322,10 +322,7 @@ function MovexDashboard() {
             viewport={{ once: true }}
             className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight"
           >
-            Smart
-            <span className="bg-gradient-to-r from-blue-600 via-blue-500 to-emerald-500 bg-clip-text text-transparent">
-              logix
-            </span>
+            SupplyChain
           </motion.h2>
 
           <div className="flex items-center">
@@ -365,7 +362,7 @@ function MovexDashboard() {
                 onClick={handleProfileClick}
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.98 }}
-                className="cursor-pointer bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold text-sm px-6 py-3 rounded-xl flex items-center gap-2.5 transition-all duration-200 shadow-md hover:shadow-lg focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm px-6 py-3 rounded-xl flex items-center gap-2.5 transition-all duration-200 shadow-md hover:shadow-lg focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
               >
                 <FaUserCircle size={16} />
                 Profile
@@ -513,10 +510,7 @@ function MovexDashboard() {
                 transition={{ duration: 0.3, delay: 0.08, ease: "easeOut" }}
                 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold text-gray-900 leading-tight"
               >
-                Smart
-                <span className="bg-gradient-to-r from-blue-600 via-blue-500 to-emerald-500 bg-clip-text text-transparent">
-                  logix
-                </span>
+                SupplyChain
               </motion.h2>
               <motion.p
                 initial={{ opacity: 0, y: 16 }}
@@ -590,7 +584,7 @@ function MovexDashboard() {
         {/* Problems We Solve Section - Enhanced Design */}
         <section
           ref={solvesInView}
-          className="py-16 sm:py-28 px-4 sm:px-6 relative z-10 bg-gradient-to-b from-gray-50 to-white"
+          className="py-16 sm:py-28 px-4 sm:px-6 relative z-10 bg-gray-50"
           id="solves"
         >
           <motion.div
@@ -650,13 +644,13 @@ function MovexDashboard() {
                 className="group relative bg-white rounded-2xl p-6 sm:p-8 shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-blue-200 overflow-hidden"
               >
                 {/* Gradient overlay on hover */}
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-50/50 to-emerald-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+                <div className="absolute inset-0 bg-blue-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
                 
                 <div className="relative flex flex-col sm:flex-row items-center justify-between gap-6">
                   {/* Problem Side */}
                   <div className="flex-1 flex items-center gap-5">
                     <div
-                      className={`w-14 h-14 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-sm`}
+                      className={`w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-sm`}
                     >
                       <span className="text-2xl">{item.icon}</span>
                     </div>
@@ -695,7 +689,7 @@ function MovexDashboard() {
                       <p className="text-xl font-bold text-gray-900">{item.solve}</p>
                     </div>
                     <div
-                      className={`w-14 h-14 rounded-2xl bg-gradient-to-br from-${item.color}-100 to-${item.color}-200 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-sm`}
+                      className={`w-14 h-14 rounded-2xl bg-${item.color}-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-sm`}
                     >
                       <FaCheckCircle className={`text-${item.color}-600 text-2xl`} />
                     </div>
@@ -707,7 +701,7 @@ function MovexDashboard() {
         </section>
 
         {/* Footer - Enhanced Design */}
-        <footer className="py-12 px-4 text-center relative z-10 bg-gradient-to-br from-gray-50 to-gray-100 border-t border-gray-200/50">
+        <footer className="py-12 px-4 text-center relative z-10 bg-gray-50 border-t border-gray-200/50">
           <div className="max-w-6xl mx-auto">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -718,7 +712,7 @@ function MovexDashboard() {
             >
               {/* Logo */}
               <div className="flex items-center gap-2">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
                   <svg
                     viewBox="0 0 24 24"
                     className="w-6 h-6 text-white"
@@ -734,7 +728,7 @@ function MovexDashboard() {
                   </svg>
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900">
-                  Smart<span className="bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent">logix</span>
+                  SupplyChain
                 </h3>
               </div>
               
@@ -760,7 +754,7 @@ function MovexDashboard() {
               </div>
               
               {/* Divider */}
-              <div className="w-full max-w-md h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent" />
+              <div className="w-full max-w-md h-px bg-gray-300/30" />
               
               {/* Copyright */}
               <p className="text-gray-500 text-sm font-medium">

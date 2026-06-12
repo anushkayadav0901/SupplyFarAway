@@ -189,8 +189,8 @@ const OperationsTicker: React.FC<OperationsTickerProps> = ({
         </div>
       </div>
       <div className="relative">
-        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-white to-transparent z-10" />
-        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-white to-transparent z-10" />
+        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-12 bg-white z-10" />
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 bg-white z-10" />
         <motion.div
           className="flex gap-3 py-3 px-4"
           animate={isAnimating ? { x: ["0%", "-50%"] } : { x: "0%" }}

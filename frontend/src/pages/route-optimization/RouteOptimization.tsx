@@ -803,7 +803,7 @@ const RouteOptimization: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 hover:bg-white hover:shadow-sm transition-colors duration-150">
                     <div className="flex items-center gap-3 mb-2">
-                      <span className="text-green-600 text-xl">✅</span>
+                      <CheckCircleIcon sx={{ color: "#16a34a", fontSize: 28 }} />
                       <h5 className="font-semibold text-green-700">
                         Cost-Optimized
                       </h5>
@@ -815,7 +815,7 @@ const RouteOptimization: React.FC = () => {
 
                   <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 hover:bg-white hover:shadow-sm transition-colors duration-150">
                     <div className="flex items-center gap-3 mb-2">
-                      <span className="text-blue-600 text-xl">⏱️</span>
+                      <TimerIcon sx={{ color: "#2563eb", fontSize: 28 }} />
                       <h5 className="font-semibold text-blue-700">
                         Time-Optimized
                       </h5>
@@ -827,7 +827,7 @@ const RouteOptimization: React.FC = () => {
 
                   <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 hover:bg-white hover:shadow-sm transition-colors duration-150">
                     <div className="flex items-center gap-3 mb-2">
-                      <span className="text-green-600 text-xl">🌱</span>
+                      <svg className="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}><path d="M11 20A7 7 0 0 1 9.8 6.9C15.5 4.9 17 3.5 19 2c1 2 2 4.5 2 8 0 5.5-4.78 10-10 10Z" /><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" /></svg>
                       <h5 className="font-semibold text-green-700">
                         Carbon-Efficient
                       </h5>
@@ -915,7 +915,7 @@ const RouteOptimization: React.FC = () => {
                   label: "Carbon Efficient",
                   icon: <Co2Icon />,
                   className:
-                    "bg-gradient-to-r from-greenExtrapolate-400 to-emerald-500 text-white hover:from-green-500 hover:to-emerald-600",
+                    "bg-greenExtrapolate-400 text-white hover:bg-green-500",
                 },
               ].map((filter) => (
                 <Button
@@ -928,7 +928,7 @@ const RouteOptimization: React.FC = () => {
                     ${
                       activeFilter === filter.key
                         ? filter.className ||
-                          "bg-gradient-to-r from-blue-500 to-teal-400"
+                          "bg-blue-500"
                         : "bg-white text-blue-500 border-blue-500 hover:bg-blue-50"
                     }
                     flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2

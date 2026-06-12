@@ -84,7 +84,7 @@ function CorridorArc({
   if (sameCity) {
     return (
       <div
-        className="relative bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200 px-5 py-4 overflow-hidden"
+        className="relative bg-slate-50 rounded-xl border border-slate-200 px-5 py-4 overflow-hidden"
         aria-label={`Same origin and destination: ${origin}`}
       >
         <svg viewBox="0 0 400 100" className="w-full h-24">
@@ -104,7 +104,7 @@ function CorridorArc({
 
   return (
     <div
-      className="relative bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200 px-5 py-4 overflow-hidden"
+      className="relative bg-slate-50 rounded-xl border border-slate-200 px-5 py-4 overflow-hidden"
       aria-label={`Corridor from ${origin || "origin"} to ${destination || "destination"}`}
     >
       <svg viewBox="0 0 400 100" className="w-full h-24" aria-hidden="true">

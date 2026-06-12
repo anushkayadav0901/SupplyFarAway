@@ -113,7 +113,7 @@ const DashboardHero: React.FC = () => {
       transition={{ duration: 0.25, ease: "easeOut" }}
       className="relative bg-white/90 backdrop-blur-sm rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 overflow-hidden"
     >
-      <div className="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-gradient-to-br from-blue-100 to-emerald-100 opacity-60 blur-3xl pointer-events-none" />
+      <div className="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-blue-100 opacity-60 blur-3xl pointer-events-none" />
       <div className="relative grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-8 items-center">
         <div className="flex flex-col items-center">
           <TrustGauge

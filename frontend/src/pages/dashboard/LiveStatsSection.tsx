@@ -461,7 +461,7 @@ const LiveStatsSection: React.FC = () => {
           transition={{ duration: 0.7 }}
           className="text-center mb-16"
         >
-          <span className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-emerald-50 border border-blue-100 text-blue-700 rounded-full text-sm font-semibold mb-5">
+          <span className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-100 text-blue-700 rounded-full text-sm font-semibold mb-5">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600" />
@@ -470,7 +470,7 @@ const LiveStatsSection: React.FC = () => {
           </span>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
             Supply Chain{" "}
-            <span className="bg-gradient-to-r from-blue-600 via-violet-600 to-emerald-600 bg-clip-text text-transparent">
+            <span className="text-blue-600">
               Command Center
             </span>
           </h2>
@@ -598,7 +598,7 @@ const LiveStatsSection: React.FC = () => {
             {/* Sustainability Card */}
             <div className="relative bg-white/70 backdrop-blur-xl border border-gray-200/60 rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 flex-1 flex flex-col items-center justify-center overflow-hidden group">
               {/* hover glow */}
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-emerald-50/50 to-blue-50/50 rounded-2xl" />
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-emerald-50/50 rounded-2xl" />
               <div className="relative flex flex-col items-center">
                 <div className="flex items-center gap-2 mb-4">
                   <FaLeaf className="text-emerald-600" />
@@ -614,7 +614,7 @@ const LiveStatsSection: React.FC = () => {
             </div>
 
             {/* Security / Compliance mini card */}
-            <div className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-emerald-700 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
+            <div className="relative bg-blue-600 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
               {/* Animated background pattern */}
               <div className="absolute inset-0 opacity-10">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_2px_2px,rgba(255,255,255,0.3)_1px,transparent_0)] bg-[length:20px_20px]" />

@@ -549,13 +549,13 @@ function RouteMap(): React.ReactElement {
   const getRouteIcon = (state: string): string => {
     switch (state) {
       case "land":
-        return "🚛";
+        return "Truck";
       case "sea":
-        return "🚢";
+        return "Ship";
       case "air":
-        return "✈️";
+        return "Flight";
       default:
-        return "📍";
+        return "Pin";
     }
   };
 
@@ -566,28 +566,28 @@ function RouteMap(): React.ReactElement {
 
     const types: Record<string, RouteTypeInfo> = {
       land: {
-        color: "from-emerald-500 to-green-600",
+        color: "bg-emerald-500",
         textColor: "text-emerald-800",
-        bgColor: "bg-gradient-to-r from-emerald-50 to-green-50",
+        bgColor: "bg-emerald-50",
         borderColor: "border-emerald-200",
         name: "Land Route",
-        icon: "🚛",
+        icon: "Truck",
       },
       sea: {
-        color: "from-blue-500 to-cyan-600",
+        color: "bg-blue-500",
         textColor: "text-blue-800",
-        bgColor: "bg-gradient-to-r from-blue-50 to-cyan-50",
+        bgColor: "bg-blue-50",
         borderColor: "border-blue-200",
         name: "Sea Route",
-        icon: "🚢",
+        icon: "Ship",
       },
       air: {
-        color: "from-red-500 to-rose-600",
+        color: "bg-red-500",
         textColor: "text-red-800",
-        bgColor: "bg-gradient-to-r from-red-50 to-rose-50",
+        bgColor: "bg-red-50",
         borderColor: "border-red-200",
         name: "Air Route",
-        icon: "✈️",
+        icon: "Flight",
       },
     };
 
@@ -781,7 +781,7 @@ function RouteMap(): React.ReactElement {
               <div className="p-4 sm:p-6 border-b border-slate-200/50">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-slate-800 to-blue-800 bg-clip-text text-transparent">
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-800">
                       Route Explorer
                     </h1>
                     <p className="text-xs sm:text-sm text-slate-500 mt-1">
@@ -811,25 +811,25 @@ function RouteMap(): React.ReactElement {
                 </div>
               </div>
 
-              <div className="p-4 sm:p-6 bg-gradient-to-r from-slate-50 to-blue-50 border-b border-slate-200/50">
+              <div className="p-4 sm:p-6 bg-slate-50 border-b border-slate-200/50">
                 <h3 className="text-sm font-semibold text-slate-700 mb-3">
                   Route Types
                 </h3>
                 <div className="space-y-3">
                   <div className="flex items-center space-x-3">
-                    <div className="w-4 h-4 rounded-full bg-gradient-to-r from-emerald-500 to-green-600 shadow-sm"></div>
+                    <div className="w-4 h-4 rounded-full bg-emerald-500 shadow-sm"></div>
                     <span className="text-xs sm:text-sm font-medium text-slate-700">
                       Land Routes
                     </span>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <div className="w-4 h-4 rounded-full bg-gradient-to-r from-blue-500 to-cyan-600 shadow-sm"></div>
+                    <div className="w-4 h-4 rounded-full bg-blue-500 shadow-sm"></div>
                     <span className="text-xs sm:text-sm font-medium text-slate-700">
                       Sea Routes
                     </span>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <div className="w-4 h-4 rounded-full bg-gradient-to-r from-red-500 to-rose-600 shadow-sm"></div>
+                    <div className="w-4 h-4 rounded-full bg-red-500 shadow-sm"></div>
                     <span className="text-xs sm:text-sm font-medium text-slate-700">
                       Air Routes
                     </span>
@@ -866,7 +866,7 @@ function RouteMap(): React.ReactElement {
                             </span>
                           </div>
                           <div
-                            className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r ${color} text-white shadow-sm`}
+                            className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold ${color} text-white shadow-sm`}
                           >
                             {route.state.toUpperCase()}
                           </div>
@@ -890,7 +890,7 @@ function RouteMap(): React.ReactElement {
               </div>
 
               {selectedRoute && routes[selectedRoute] && (
-                <div className="p-4 sm:p-6 border-t border-slate-200/50 bg-gradient-to-r from-slate-50 to-blue-50">
+                <div className="p-4 sm:p-6 border-t border-slate-200/50 bg-slate-50">
                   <h3 className="font-semibold text-slate-800 mb-3 text-sm sm:text-base">
                     Route Details
                   </h3>
@@ -971,9 +971,9 @@ function RouteMap(): React.ReactElement {
                     </span>
                   </div>
                   <div
-                    className={`ml-2 px-1 sm:px-2 py-0.5 sm:py-1 rounded-lg text-xs font-semibold bg-gradient-to-r ${
-                      getRouteTypeInfo(selectedRoute).color
-                    } text-white`}
+className={`ml-2 px-1 sm:px-2 py-0.5 sm:py-1 rounded-lg text-xs font-semibold ${
+                       getRouteTypeInfo(selectedRoute).color
+                     } text-white`}
                   >
                     {routes[selectedRoute].state.toUpperCase()}
                   </div>

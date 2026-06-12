@@ -14,7 +14,7 @@ export default function HeroSkeleton() {
       <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-8 items-center">
         {/* Gauge placeholder */}
         <div className="flex items-center justify-center">
-          <div className="w-[200px] h-[200px] rounded-full bg-gradient-to-br from-slate-100 to-slate-50 animate-pulse" />
+          <div className="w-[200px] h-[200px] rounded-full bg-slate-100 animate-pulse" />
         </div>
         {/* Stat tiles placeholder */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

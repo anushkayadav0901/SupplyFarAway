@@ -298,7 +298,7 @@ function InstructionalEmptyState({ navigate }: { navigate: ReturnType<typeof use
     >
       {/* Instructional message */}
       <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-50 to-emerald-50 border border-slate-200 flex items-center justify-center mx-auto mb-4">
+        <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-slate-200 flex items-center justify-center mx-auto mb-4">
           <PackagePlus className="w-7 h-7 text-blue-500" aria-hidden="true" />
         </div>
         <h3 className="text-base font-bold text-slate-800 mb-1">
@@ -466,7 +466,7 @@ const TrustCenter: React.FC = () => {
           aria-label="Trust center hero"
         >
           <div
-            className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-gradient-to-br from-blue-100 to-emerald-100 opacity-50 blur-2xl pointer-events-none"
+            className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-blue-100 opacity-50 blur-2xl pointer-events-none"
             aria-hidden="true"
           />
           <div className="relative grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-8 items-center">

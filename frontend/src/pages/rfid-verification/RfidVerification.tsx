@@ -106,8 +106,8 @@ function AntennaPulse({ scanning }: { scanning: boolean }) {
       <div
         className={`w-16 h-16 rounded-full flex items-center justify-center text-white shadow-md ${
           scanning
-            ? "bg-gradient-to-br from-blue-500 to-blue-700 shadow-blue-200"
-            : "bg-gradient-to-br from-slate-400 to-slate-600"
+            ? "bg-blue-500 shadow-blue-200"
+            : "bg-slate-400"
         }`}
       >
         <Radio className="w-7 h-7" />

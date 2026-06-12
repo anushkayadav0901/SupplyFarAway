@@ -390,7 +390,7 @@ export default function AuditLog() {
           <div className="lg:col-span-8 space-y-6">
             {/* Append Event Card */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-white flex items-start justify-between gap-3">
+              <div className="px-6 py-4 border-b border-slate-100 bg-blue-50 flex items-start justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-semibold text-slate-800">
                     Record Verification Event

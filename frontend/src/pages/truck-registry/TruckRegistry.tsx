@@ -719,10 +719,10 @@ function SummaryTile({
 }) {
   const accentBg =
     accent === "blue"
-      ? "from-blue-500 to-blue-600"
+      ? "bg-blue-600"
       : accent === "emerald"
-        ? "from-emerald-500 to-emerald-600"
-        : "from-amber-500 to-amber-600";
+        ? "bg-emerald-600"
+        : "bg-amber-600";
   return (
     <motion.div
       whileHover={{ y: -2 }}
@@ -730,7 +730,7 @@ function SummaryTile({
       className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex items-center gap-3"
     >
       <div
-        className={`w-10 h-10 rounded-xl bg-gradient-to-br ${accentBg} flex items-center justify-center text-white shadow-md shrink-0`}
+        className={`w-10 h-10 rounded-xl ${accentBg} flex items-center justify-center text-white shadow-md shrink-0`}
         aria-hidden="true"
       >
         <Truck className="w-5 h-5" />

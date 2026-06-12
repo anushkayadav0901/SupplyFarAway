@@ -12,7 +12,7 @@ const PageLoadingSkeleton: React.FC = () => (
   >
     {/* Header skeleton — matches the blue rounded-b-3xl Header shape */}
     <div className="max-w-7xl mx-auto">
-      <div className="h-[120px] bg-gradient-to-r from-blue-500/30 via-blue-400/20 to-blue-500/30 rounded-b-3xl mx-0" />
+      <div className="h-[120px] bg-blue-500/30 rounded-b-3xl mx-0" />
     </div>
 
     {/* Content placeholder */}

@@ -15,7 +15,7 @@ const ThemeToggle: React.FC = () => {
     >
       {/* Toggle Background */}
       <motion.div
-        className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 dark:from-indigo-500 dark:to-purple-600 opacity-0 dark:opacity-100 transition-opacity duration-300"
+        className="absolute inset-0 rounded-full bg-blue-400 dark:bg-indigo-500 opacity-0 dark:opacity-100 transition-opacity duration-300"
       />
       
       {/* Toggle Circle */}

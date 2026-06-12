@@ -33,11 +33,11 @@ interface StatCardProps {
 
 const StatCard: React.FC<StatCardProps> = ({ icon: Icon, title, value, subtitle, color = "blue" }) => {
   const colorClasses: Record<string, string> = {
-    blue: "from-blue-500 to-blue-600",
-    green: "from-green-500 to-green-600",
-    yellow: "from-yellow-500 to-yellow-600",
-    red: "from-red-500 to-red-600",
-    purple: "from-purple-500 to-purple-600",
+    blue: "bg-blue-500",
+    green: "bg-green-500",
+    yellow: "bg-yellow-500",
+    red: "bg-red-500",
+    purple: "bg-purple-500",
   };
 
   return (
@@ -55,7 +55,7 @@ const StatCard: React.FC<StatCardProps> = ({ icon: Icon, title, value, subtitle,
           )}
         </div>
         <div
-          className={`p-3 rounded-lg bg-gradient-to-br ${colorClasses[color]}`}
+          className={`p-3 rounded-lg ${colorClasses[color]}`}
         >
           <Icon className="w-6 h-6 text-white" />
         </div>

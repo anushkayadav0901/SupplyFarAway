@@ -609,7 +609,7 @@ const ComplianceForm: React.FC = () => {
         page="compliance-check"
       />
       <div className="max-w-7xl mx-auto bg-white mt-6 shadow-lg rounded-2xl mb-6 overflow-x-auto border border-gray-100">
-        <div className="flex border-b border-gray-200 whitespace-nowrap bg-gradient-to-r from-gray-50 to-white">
+        <div className="flex border-b border-gray-200 whitespace-nowrap bg-gray-50">
           {tabOrder.map((tab: string, tabIdx: number) => {
             const currentIdx = tabOrder.indexOf(activeTab);
             // Allow free navigation to already-visited tabs, but only allow
@@ -638,7 +638,7 @@ const ComplianceForm: React.FC = () => {
               >
                 {tab.replace(/([A-Z])/g, " $1").trim()}
                 {activeTab === tab && (
-                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 to-blue-500 rounded-t-full" />
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-600 rounded-t-full" />
                 )}
               </button>
             );
@@ -647,12 +647,12 @@ const ComplianceForm: React.FC = () => {
       </div>
       <div className="max-w-7xl mx-auto bg-white shadow-xl rounded-2xl p-6 sm:p-8 border border-gray-100">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center shadow-md">
+          <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-md">
             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
             {activeTab.replace(/([A-Z])/g, " $1").trim()}
           </h2>
         </div>
@@ -694,7 +694,7 @@ const ComplianceForm: React.FC = () => {
             className={`py-3 sm:py-3.5 px-6 sm:px-8 text-base sm:text-lg font-semibold rounded-xl transition-all duration-200 w-full sm:w-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 shadow-md ${
               tabOrder.indexOf(activeTab) === 0 || responseReceived
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed opacity-60"
-                : "bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white hover:shadow-lg hover:scale-[1.02]"
+                : "bg-emerald-500 hover:bg-emerald-600 text-white hover:shadow-lg hover:scale-[1.02]"
             }`}
           >
             Previous
@@ -708,7 +708,7 @@ const ComplianceForm: React.FC = () => {
               className={`py-3 sm:py-3.5 px-6 sm:px-8 text-base sm:text-lg font-semibold rounded-xl transition-all duration-200 w-full sm:w-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 shadow-md ${
                 !areCurrentTabMandatoryFieldsFilled() || responseReceived
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed opacity-60"
-                  : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white hover:shadow-lg hover:scale-[1.02]"
+                  : "bg-blue-600 hover:bg-blue-700 text-white hover:shadow-lg hover:scale-[1.02]"
               }`}
             >
               Next
@@ -720,7 +720,7 @@ const ComplianceForm: React.FC = () => {
               className={`py-3 sm:py-3.5 px-6 sm:px-8 text-base sm:text-lg font-semibold rounded-xl transition-all duration-200 w-full sm:w-auto min-w-[240px] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 inline-flex items-center justify-center gap-3 shadow-md ${
                 isButtonDisabled
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed opacity-60"
-                  : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white hover:shadow-lg hover:scale-[1.02]"
+                  : "bg-blue-600 hover:bg-blue-700 text-white hover:shadow-lg hover:scale-[1.02]"
               }`}
             >
               {loading && (

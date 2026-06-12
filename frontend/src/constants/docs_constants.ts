@@ -24,54 +24,54 @@ export const navigationStructure = {
           "Discover Supply Chain, an AI-powered logistics intelligence platform revolutionizing global supply chain management with advanced compliance, routing, and inventory solutions.",
         linkId: "/dashboard",
         content: `
-          # Welcome to Supply Chain ✨
+          # Welcome to Supply Chain
 
           ### Revolutionizing Global Logistics with Intelligent AI-Powered Solutions
 
           Supply Chain is the next-generation logistics intelligence platform that transforms how businesses navigate complex global and domestic shipment challenges. Powered by cutting-edge MERN stack architecture and enhanced with advanced AI technologies including Gemini Pro and Google Cloud Vision, we deliver unprecedented efficiency and intelligence to your entire supply chain ecosystem.
           
-          ## Our Mission 🎯
+          ## Our Mission
           
           Empowering businesses worldwide with intelligent, scalable logistics solutions that seamlessly ensure regulatory compliance, optimize shipping routes, and promote environmental sustainability through breakthrough AI-driven insights and analytics.
           
           ## Intelligent Core Features
           
-          ### 🛡️ Smart Compliance Engine
+          ### Smart Compliance Engine
           Advanced AI validation system that automatically verifies shipments against complex international trade regulations, ensuring 100% compliance accuracy across global markets.
           
-          ### 🚀 Dynamic Route Optimization
+          ### Dynamic Route Optimization
           Intelligent algorithm that calculates optimal shipping routes by analyzing cost-effectiveness, time efficiency, and environmental impact in real-time.
           
-          ### 📊 Intelligent Inventory Management  
+          ### Intelligent Inventory Management  
           Comprehensive shipment tracking system with seamless workflow integration, providing complete visibility across your entire logistics pipeline.
           
-          ### 👤 Advanced Profile Management
+          ### Advanced Profile Management
           Sophisticated user account system that maintains detailed historical data, compliance records, and route preferences for personalized logistics experiences.
           
-          ### 📰 Real-Time News Intelligence
+          ### Real-Time News Intelligence
           Curated logistics news feed that keeps you informed about critical global events, trade developments, and industry insights affecting your operations.
           
-          ### 📋 Professional Resources Hub
+          ### Professional Resources Hub
           Comprehensive library of essential shipping document templates, compliance guides, and industry-standard forms for streamlined operations.
           
-          ## Why Choose Supply Chain? 🌟
+          ## Why Choose Supply Chain?
           
-          ### 🔄 99.99% Uptime Guarantee
+          ### 99.99% Uptime Guarantee
           Enterprise-grade cloud infrastructure ensures your logistics operations never stop, with redundant systems and 24/7 monitoring.
           
-          ### ⚡ Lightning-Fast Insights
+          ### Lightning-Fast Insights
           Instantaneous compliance verification and route optimization powered by advanced AI algorithms and real-time data processing.
           
-          ### 🌍 Global Compliance Mastery
+          ### Global Compliance Mastery
           Comprehensive support for international trade regulations across 200+ countries with automatic updates for changing compliance requirements.
           
-          ### 🌱 Sustainability Leadership
+          ### Sustainability Leadership
           Carbon-intelligent routing algorithms that significantly reduce environmental impact while maintaining operational efficiency and cost-effectiveness.
           
-          ### 🔒 Enterprise Security
+          ### Enterprise Security
           Bank-level security protocols with end-to-end encryption, ensuring your sensitive logistics data remains protected at all times.
           
-          ## Quick Start Guide 🚀
+          ## Quick Start Guide
           
           ### Step 1: Instant Registration
           Sign up effortlessly using Google authentication or create a custom account with our streamlined registration process.
@@ -239,26 +239,26 @@ The Analysis section provides detailed insights from AI-driven product and compl
           
           ## Core Intelligence Features
           
-          - **🤖 Advanced AI Validation**: Sophisticated algorithms analyze your shipment data against global regulatory frameworks, ensuring 99.9% compliance accuracy with real-time validation
-          - **📊 Flexible Input Methods**: Seamlessly process data through multiple channels including intuitive manual forms, bulk CSV uploads, and cutting-edge product image recognition technology  
-          - **📋 Intelligent Reporting**: Generate comprehensive compliance reports featuring detailed status indicators, risk assessment scores, regulatory recommendations, and actionable insights
+          - **Advanced AI Validation**: Sophisticated algorithms analyze your shipment data against global regulatory frameworks, ensuring 99.9% compliance accuracy with real-time validation
+          - **Flexible Input Methods**: Seamlessly process data through multiple channels including intuitive manual forms, bulk CSV uploads, and cutting-edge product image recognition technology  
+          - **Intelligent Reporting**: Generate comprehensive compliance reports featuring detailed status indicators, risk assessment scores, regulatory recommendations, and actionable insights
           
           ## Essential Data Requirements
           
-          ### 🌍 Geographic Information
+          ### Geographic Information
           - **Origin/Destination Countries**: ISO 3166-1 alpha-2 standard codes (US, CA, GB, etc.)
           
-          ### 🏷️ Product Classification  
+          ### Product Classification  
           - **HS Code**: Precise 6-10 digit harmonized system codes following WCO international standards
           - **Product Description**: Detailed specifications that accurately align with designated HS classifications
           
-          ### 📦 Shipment Details
+          ### Shipment Details
           - **Quantity & Weight**: Verified positive values with proper unit specifications
           - **Documentation**: Complete commercial invoices and packing lists with validation stamps
           
           ## Smart Sustainability Integration
           
-          ### 🌱 Eco-Intelligence Recommendations
+          ### Eco-Intelligence Recommendations
           Our AI analyzes your shipment patterns to deliver personalized sustainability insights including:
           
           - **Green Packaging Solutions**: Biodegradable and recyclable material recommendations
@@ -389,16 +389,16 @@ The Manual Form feature in Supply Chain enables users to input shipment details 
           
           ## Optimization Categories
           
-          ### 🌟 Popular Routes
+          ### Popular Routes
           Discover the three most trusted and frequently utilized shipping corridors, backed by proven performance metrics and user preferences.
           
-          ### 💰 Cost Optimized
+          ### Cost Optimized
           Access the most economical shipping solutions designed to maximize your budget efficiency while maintaining service quality.
           
-          ### ⚡ Time Optimized  
+          ### Time Optimized  
           Leverage the fastest available routes engineered for speed-critical shipments and time-sensitive logistics operations.
           
-          ### 🌱 Carbon Efficient
+          ### Carbon Efficient
           Choose environmentally responsible routes that minimize your carbon footprint while supporting sustainable logistics practices.
           `,
         examples: [

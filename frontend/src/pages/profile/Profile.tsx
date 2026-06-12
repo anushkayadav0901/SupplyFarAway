@@ -478,12 +478,12 @@ const Profile: React.FC = () => {
                         tabIndex={0}
                         className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-green-600 ${
                           badge.tier === "Eco Champion"
-                            ? "bg-gradient-to-r from-emerald-500 to-emerald-700 text-white"
+                            ? "bg-emerald-500 text-white"
                             : badge.tier === "Green Advocate"
-                            ? "bg-gradient-to-r from-lime-400 to-lime-600 text-lime-900"
+                            ? "bg-lime-400 text-lime-900"
                             : badge.tier === "Sustainable Starter"
-                            ? "bg-gradient-to-r from-yellow-300 to-lime-400 text-lime-800"
-                            : "bg-gradient-to-r from-gray-300 to-green-300 text-green-800"
+                            ? "bg-yellow-300 text-lime-800"
+                            : "bg-gray-300 text-green-800"
                         }`}
                       >
                         <FaLeaf className="mr-1" /> {badge.tier}

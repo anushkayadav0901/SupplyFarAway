@@ -12,6 +12,7 @@ import Globe from "react-globe.gl";
 import Toast from "../../components/Toast";
 import TypewriterText from "./TypewriterText";
 import FeatureCard from "./FeatureCard";
+import { FaCheckCircle, FaTruck, FaBox } from "react-icons/fa";
 import { trpc } from "../../lib/trpc";
 
 interface Hub {
@@ -281,12 +282,11 @@ const LogisticsGlobe = React.memo(() => {
   useEffect(() => {
     if (globeEl.current && !globeReady) {
       const controls = globeEl.current.controls();
-      controls.autoRotate = true;
-      controls.autoRotateSpeed = 1;
+      controls.autoRotate = false;
       controls.enableZoom = false;
 
-      // Set initial camera position
-      globeEl.current.pointOfView({ altitude: 1.8 }, 0);
+      // Set initial camera position — centered on the Americas
+      globeEl.current.pointOfView({ lat: 20, lng: -80, altitude: 1.8 }, 0);
 
       // Lock vertical rotation
       const currentPolar = controls.getPolarAngle();
@@ -384,24 +384,24 @@ const Login = () => {
   const features = useMemo(
     () => [
       {
-        icon: "✅",
+        icon: <FaCheckCircle className="text-emerald-400" size={18} />,
         title: "Compliance Monitoring",
         desc: "Automated checks for global trade rules",
-        gradient: "from-emerald-500/20 to-teal-500/20",
+        gradient: "bg-emerald-500/10",
         iconBg: "bg-emerald-500/10",
       },
       {
-        icon: "🚛",
+        icon: <FaTruck className="text-blue-400" size={18} />,
         title: "Smart Route Optimization",
         desc: "Best routes by cost, time, and emissions",
-        gradient: "from-blue-500/20 to-cyan-500/20",
+        gradient: "bg-blue-500/10",
         iconBg: "bg-blue-500/10",
       },
       {
-        icon: "📦",
+        icon: <FaBox className="text-yellow-400" size={18} />,
         title: "Inventory Management",
         desc: "Track all shipments & records in one place",
-        gradient: "from-yellow-500/20 to-orange-500/20",
+        gradient: "bg-yellow-500/10",
         iconBg: "bg-yellow-500/10",
       },
     ],
@@ -548,7 +548,7 @@ const Login = () => {
             className="z-20"
           >
              <h1 className="text-5xl font-bold text-white mb-2 tracking-tight drop-shadow-lg">
-              <span className="bg-gradient-to-r from-blue-300 to-emerald-300 bg-clip-text text-transparent">
+              <span className="text-blue-300">
                 Supply Chain
               </span>
             </h1>
@@ -721,7 +721,7 @@ const Login = () => {
                 whileTap={{ scale: loading ? 1 : 0.98 }}
                 onClick={handleLogin}
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3.5 rounded-xl font-semibold transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-0 shadow-lg hover:shadow-xl"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-semibold transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-0 shadow-lg hover:shadow-xl"
               >
                 {loading ? (
                   <>
