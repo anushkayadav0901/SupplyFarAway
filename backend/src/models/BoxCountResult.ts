@@ -44,6 +44,9 @@ const boxCountResultSchema = new Schema(
   }
 );
 
+// Compound index for the hot history-list query: find by userId sorted by createdAt desc.
+boxCountResultSchema.index({ userId: 1, createdAt: -1 });
+
 export type BoxCountResultDocument = InferSchemaType<typeof boxCountResultSchema> & {
   _id: mongoose.Types.ObjectId;
 };

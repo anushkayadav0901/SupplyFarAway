@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { motion, useReducedMotion } from "framer-motion";
 import { Camera, Video } from "lucide-react";
@@ -77,9 +78,11 @@ function fmtDate(d: string | Date): string {
 
 // ─── main component ───────────────────────────────────────────────────────────
 export default function BoxCount() {
+  const [searchParams] = useSearchParams();
+  const initialDraftId = searchParams.get("draftId") ?? "";
   const [mode, setMode] = useState<Mode>("idle");
   const [declaredCount, setDeclaredCount] = useState<string>("");
-  const [draftId, setDraftId] = useState<string>("");
+  const [draftId, setDraftId] = useState<string>(initialDraftId);
 
   const [yoloOnline, setYoloOnline] = useState<boolean | null>(null);
   const [cameraError, setCameraError] = useState<string>("");
@@ -111,8 +114,13 @@ export default function BoxCount() {
 
   const shouldReduceMotion = useReducedMotion();
 
+  const utils = trpc.useUtils();
   const commentaryMutation = trpc.boxCount.liveCommentary.useMutation();
-  const saveSessionMutation = trpc.boxCount.saveSession.useMutation();
+  const saveSessionMutation = trpc.boxCount.saveSession.useMutation({
+    onSuccess: () => {
+      utils.boxCount.history.invalidate().catch(() => void 0);
+    },
+  });
   const historyQuery = trpc.boxCount.history.useQuery({ limit: HISTORY_LIMIT });
 
   // keep refs in sync
@@ -163,6 +171,20 @@ export default function BoxCount() {
     return () => document.removeEventListener("visibilitychange", handler);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
+
+  // beforeunload — synchronously tear down the camera stream on page refresh / close.
+  // Async saveSession is not reliable here; the priority is releasing the camera LED.
+  useEffect(() => {
+    const handler = () => {
+      if (frameTimerRef.current) clearInterval(frameTimerRef.current);
+      if (durationTimerRef.current) clearInterval(durationTimerRef.current);
+      frameTimerRef.current = null;
+      durationTimerRef.current = null;
+      stopCameraInternal();
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, []);
 
   // ─── helpers ──────────────────────────────────────────────────────────────
   const pushLog = useCallback(
@@ -325,6 +347,8 @@ export default function BoxCount() {
 
   // ─── session control ─────────────────────────────────────────────────────
   const start = async () => {
+    // Re-entrancy guard — double-click or Enter spam should not stack starts.
+    if (mode === "starting" || mode === "live") return;
     const n = parseInt(declaredCount, 10);
     if (!n || n <= 0) {
       // Persisted inline error — toasts auto-dismiss and the user loses context.
@@ -403,7 +427,6 @@ export default function BoxCount() {
         }`,
       });
       if (!mountedRef.current) return;
-      historyQuery.refetch().catch(() => void 0);
       toast.success("Session saved");
       setMode("saved");
     } catch (err) {
@@ -412,7 +435,7 @@ export default function BoxCount() {
       toast.error(msg);
       setMode("idle");
     }
-  }, [draftId, duration, historyQuery, saveSessionMutation, suspectedCount]);
+  }, [draftId, duration, saveSessionMutation, suspectedCount]);
 
   // keyboard Enter on form submits
   const handleFormKeyDown = (e: React.KeyboardEvent) => {
@@ -800,7 +823,9 @@ export default function BoxCount() {
                         </span>
                       )}
                       <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 font-semibold">
-                        {Math.round(item.confidence * 100)}% confidence
+                        {Number.isFinite(item.confidence)
+                          ? `${Math.round(item.confidence * 100)}% confidence`
+                          : "—"}
                       </span>
                     </div>
                     {item.notes && (

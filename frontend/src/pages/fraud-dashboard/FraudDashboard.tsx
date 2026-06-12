@@ -290,6 +290,7 @@ export default function FraudDashboard() {
   // Pulse logic — previous-value ref to detect delta increases (C3, extra directive)
   // ---------------------------------------------------------------------------
   const prevValuesRef = useRef<Record<string, number>>({});
+  const hasBaselineRef = useRef(false);
   const [pulseMap, setPulseMap] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -300,6 +301,14 @@ export default function FraudDashboard() {
       anomalyHighSeverity: summary.anomalyHighSeverity,
       recentEvents: recentEvents.length,
     };
+    // Skip pulse on the first observation — comparing against an empty prev
+    // map caused every card to "pulse" the moment data arrived. We only want
+    // to pulse on real deltas between two real observations.
+    if (!hasBaselineRef.current) {
+      prevValuesRef.current = current;
+      hasBaselineRef.current = true;
+      return;
+    }
     const prev = prevValuesRef.current;
     const nextPulse: Record<string, boolean> = {};
     let dirty = false;
@@ -607,14 +616,17 @@ export default function FraudDashboard() {
                   ) : (
                     <div className="divide-y divide-slate-100">
                       <AnimatePresence initial>
-                        {displayedEvents.map((event, idx) => (
-                          <EventRow
-                            key={idx}
-                            event={event}
-                            idx={idx}
-                            prefersReduced={prefersReduced}
-                          />
-                        ))}
+                        {displayedEvents.map((event, idx) => {
+                          const ts = new Date(event.createdAt).getTime();
+                          return (
+                            <EventRow
+                              key={`${event.type}-${ts}-${idx}`}
+                              event={event}
+                              idx={idx}
+                              prefersReduced={prefersReduced}
+                            />
+                          );
+                        })}
                       </AnimatePresence>
                       {/* Show more affordance (extra directive) */}
                       {hasMoreEvents && !showAllEvents && (

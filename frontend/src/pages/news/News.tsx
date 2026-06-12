@@ -56,6 +56,92 @@ interface RowProps {
   onRowToggle: (article: Article) => void;
 }
 
+// Hoisted outside the News component so React doesn't unmount/remount each
+// row on every parent render (which used to discard Collapse animation state
+// and re-trigger summarization requests).
+const NewsRow: React.FC<RowProps> = ({
+  article,
+  expandedRows,
+  rowSummaries,
+  rowLoading,
+  onRowToggle,
+}) => {
+  const open = expandedRows[article.link] || false;
+  const summaryData = rowSummaries[article.link] || ({} as SummaryData);
+  const isRowLoading = rowLoading[article.link] || false;
+
+  return (
+    <>
+      <TableRow className="hover:bg-gray-50 transition-colors duration-150">
+        <TableCell>
+          <IconButton
+            aria-label={
+              open ? "Collapse article details" : "Expand article details"
+            }
+            size="small"
+            onClick={() => onRowToggle(article)}
+          >
+            {open ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
+          </IconButton>
+        </TableCell>
+        <TableCell>{article.title}</TableCell>
+        <TableCell>{article.source || "Unknown source"}</TableCell>
+        <TableCell>{new Date(article.date).toLocaleDateString()}</TableCell>
+        <TableCell>
+          <a
+            href={article.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 rounded"
+            aria-label={`Read full article: ${article.title}`}
+          >
+            Read More
+          </a>
+        </TableCell>
+      </TableRow>
+      <TableRow>
+        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={5}>
+          <Collapse in={open} timeout="auto" unmountOnExit>
+            <Box
+              sx={{
+                margin: 2,
+                backgroundColor: "#f9fafb",
+                borderRadius: "8px",
+                padding: "16px",
+              }}
+            >
+              {isRowLoading ? (
+                <div
+                  className="flex justify-center items-center"
+                  aria-busy="true"
+                  aria-live="polite"
+                >
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                </div>
+              ) : (
+                <>
+                  <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                    Summary
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    {summaryData.summary || "No summary available"}
+                  </p>
+                  <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                    Suggestions
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    {summaryData.suggestions || "No suggestions available"}
+                  </p>
+                </>
+              )}
+            </Box>
+          </Collapse>
+        </TableCell>
+      </TableRow>
+    </>
+  );
+};
+
 const News: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [tempSearchQuery, setTempSearchQuery] = useState<string>("");
@@ -205,81 +291,9 @@ const News: React.FC = () => {
     visible: { opacity: 1, y: 0, transition: { duration: prefersReducedMotion ? 0 : 0.2, ease: "easeOut" } },
   };
 
-  const Row: React.FC<RowProps> = ({
-    article,
-    expandedRows,
-    rowSummaries,
-    rowLoading,
-    onRowToggle,
-  }) => {
-    const open = expandedRows[article.link] || false;
-    const summaryData = rowSummaries[article.link] || {};
-    const isRowLoading = rowLoading[article.link] || false;
-
-    return (
-      <>
-        <TableRow className="hover:bg-gray-50 transition-colors duration-150">
-          <TableCell>
-            <IconButton
-              aria-label={open ? "Collapse article details" : "Expand article details"}
-              size="small"
-              onClick={() => onRowToggle(article)}
-            >
-              {open ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
-            </IconButton>
-          </TableCell>
-          <TableCell>{article.title}</TableCell>
-          <TableCell>{article.source}</TableCell>
-          <TableCell>{new Date(article.date).toLocaleDateString()}</TableCell>
-          <TableCell>
-            <a
-              href={article.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-500 hover:underline"
-            >
-              Read More
-            </a>
-          </TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={5}>
-            <Collapse in={open} timeout="auto" unmountOnExit>
-              <Box
-                sx={{
-                  margin: 2,
-                  backgroundColor: "#f9fafb",
-                  borderRadius: "8px",
-                  padding: "16px",
-                }}
-              >
-                {isRowLoading ? (
-                  <div className="flex justify-center items-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                  </div>
-                ) : (
-                  <>
-                    <h3 className="text-sm font-semibold text-gray-800 mb-2">
-                      Summary
-                    </h3>
-                    <p className="text-sm text-gray-600 mb-4">
-                      {summaryData.summary || "No summary available"}
-                    </p>
-                    <h3 className="text-sm font-semibold text-gray-800 mb-2">
-                      Suggestions
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      {summaryData.suggestions || "No suggestions available"}
-                    </p>
-                  </>
-                )}
-              </Box>
-            </Collapse>
-          </TableCell>
-        </TableRow>
-      </>
-    );
-  };
+  // Row is hoisted to a stable reference (see NewsRow below) so React doesn't
+  // unmount/remount every row each render of News, which was wiping the
+  // Collapse animation state and refiring queries.
 
   const handleClearSearch = (): void => {
     setSearchQuery("");
@@ -515,7 +529,7 @@ const News: React.FC = () => {
                   </TableRow>
                 ) : (
                   news.map((article) => (
-                    <Row
+                    <NewsRow
                       key={article.link}
                       article={article}
                       expandedRows={expandedRows}

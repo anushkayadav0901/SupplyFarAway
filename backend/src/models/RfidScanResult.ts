@@ -44,6 +44,9 @@ const rfidScanResultSchema = new Schema(
   }
 );
 
+// Compound index for the hot history-list query: find by userId sorted by createdAt desc.
+rfidScanResultSchema.index({ userId: 1, createdAt: -1 });
+
 export type RfidScanResultDocument = InferSchemaType<typeof rfidScanResultSchema> & {
   _id: mongoose.Types.ObjectId;
 };

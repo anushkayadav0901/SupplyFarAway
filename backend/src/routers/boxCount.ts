@@ -169,6 +169,33 @@ export const boxCountRouter = router({
         },
       );
 
+      // Cross-feature linkage: emit AnomalyReport stub on large mismatch (parity with saveSession).
+      if (mismatchPct > ANOMALY_MISMATCH_PCT_THRESHOLD) {
+        try {
+          await AnomalyReportModel.create({
+            userId,
+            draftId: input.draftId,
+            declaredWeightKg: 0,
+            measuredWeightKg: 0,
+            declaredCount: input.declaredCount,
+            detectedCount,
+            originCity: "n/a",
+            destinationCity: "n/a",
+            routeDeviationKm: 0,
+            flags: ["box-count-mismatch"],
+            severity: "medium",
+            riskScore: clampRiskScore(mismatchPct),
+            summary: `Box count mismatch ${mismatchPct.toFixed(1)}% (declared ${input.declaredCount}, detected ${detectedCount}).`,
+            createdAt: new Date(),
+          });
+        } catch (err) {
+          console.error(
+            "[boxCount.verify] anomaly emit failed:",
+            (err as Error)?.message,
+          );
+        }
+      }
+
       return doc;
     }),
 
@@ -242,8 +269,10 @@ Respond ONLY with strict JSON:
           riskLevel: "low" | "medium" | "high";
           alert: boolean;
         };
-        const validRiskLevels: Array<"low" | "medium" | "high"> = ["low", "medium", "high"];
-        const riskLevel = validRiskLevels.includes(parsed.riskLevel) ? parsed.riskLevel : "low";
+        const validRiskLevels: ReadonlyArray<string> = ["low", "medium", "high"];
+        const riskLevel: "low" | "medium" | "high" = validRiskLevels.includes(parsed.riskLevel)
+          ? parsed.riskLevel
+          : "low";
         return {
           commentary: String(parsed.commentary ?? "").slice(0, ERR_SNIPPET_LEN),
           suspectedCount: Math.max(0, Math.round(Number(parsed.suspectedCount ?? 0))),

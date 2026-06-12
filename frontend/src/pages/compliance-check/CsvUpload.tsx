@@ -138,6 +138,23 @@ const CsvUploadPage: React.FC = () => {
       skipEmptyLines: true,
       complete: (result: { data: Record<string, string>[] }) => {
         try {
+          if (!result.data || result.data.length === 0) {
+            setCsvError(
+              `"${file.name}" does not contain any data rows. Please add at least one row of shipment data below the headers and try again.`,
+            );
+            setToastProps({
+              type: "error",
+              message: `"${file.name}" is empty.`,
+            });
+            setLoading(false);
+            return;
+          }
+          if (result.data.length > 1) {
+            setToastProps({
+              type: "warn",
+              message: `CSV contains ${result.data.length} rows — only the first will be used.`,
+            });
+          }
           const data = result.data[0];
           const parsedFormData: ParsedFormData = {
             ShipmentDetails: {
@@ -315,7 +332,17 @@ const CsvUploadPage: React.FC = () => {
       });
       return;
     }
-    if (file && file.type === "text/csv") {
+    // Windows/Excel often label CSVs as application/vnd.ms-excel and Safari
+    // sometimes leaves type empty — fall back to extension when MIME is
+    // ambiguous so the drop path matches the file picker behaviour (which
+    // already accepts via accept=".csv").
+    const looksLikeCsv =
+      !!file &&
+      (file.type === "text/csv" ||
+        file.type === "application/vnd.ms-excel" ||
+        file.type === "" ||
+        /\.csv$/i.test(file.name));
+    if (looksLikeCsv) {
       handleCsvUpload(file);
     } else {
       setCsvError("Please drop a valid CSV file.");

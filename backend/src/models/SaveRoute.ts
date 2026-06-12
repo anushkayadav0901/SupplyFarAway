@@ -21,6 +21,9 @@ const saveRouteSchema = new Schema({
   },
 });
 
+// Compound index for route-history queries (per-user, newest first).
+saveRouteSchema.index({ userId: 1, timestamp: -1 });
+
 export type SaveRouteDocument = InferSchemaType<typeof saveRouteSchema> & {
   _id: mongoose.Types.ObjectId;
 };

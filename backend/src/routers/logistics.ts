@@ -198,6 +198,15 @@ JSON format:
 
       const jsonStart = rawResponse.indexOf("[");
       const jsonEnd = rawResponse.lastIndexOf("]") + 1;
+      // Guard against a malformed AI response that does not contain a JSON
+      // array at all (e.g. an apology string). Without this, slice(-1, 0) on
+      // negative indices yields nonsense that's expensive to debug.
+      if (jsonStart === -1 || jsonEnd <= jsonStart) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Invalid AI response format: no JSON array found",
+        });
+      }
       const cleanResponseText = rawResponse.slice(jsonStart, jsonEnd).trim();
 
       let aiGeneratedRoutes: unknown[];
@@ -453,13 +462,14 @@ JSON format:
   getMapData: protectedProcedure
     .input(z.object({ draftId: z.string().min(1) }))
     .query(async ({ input, ctx }) => {
-      requireUserId(ctx);
+      const userId = requireUserId(ctx);
 
       if (!mongoose.Types.ObjectId.isValid(input.draftId)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid draftId format" });
       }
 
-      const draft = await DraftModel.findById(input.draftId);
+      // Scope by userId to prevent cross-user data leakage (IDOR).
+      const draft = await DraftModel.findOne({ _id: input.draftId, userId });
       if (!draft) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Draft not found" });
       }
@@ -667,7 +677,15 @@ JSON format:
           });
         }
 
-        const emissions: number = apiResponse.data.data.attributes.carbon_kg;
+        // Defensive: the Carbon Interface schema occasionally returns the
+        // attribute as a string, null, or omits it. Coerce to a finite
+        // number so a single bad leg doesn't NaN-poison the running total.
+        const rawEmissions = apiResponse.data?.data?.attributes?.carbon_kg;
+        const parsed =
+          typeof rawEmissions === "number"
+            ? rawEmissions
+            : parseFloat(String(rawEmissions ?? "0"));
+        const emissions = Number.isFinite(parsed) ? parsed : 0;
         totalEmissions += emissions;
         perLegEmissions.push(emissions);
 
@@ -819,13 +837,14 @@ ${legLines}
   getCarbonFootprint: protectedProcedure
     .input(z.object({ draftId: z.string().min(1) }))
     .query(async ({ input, ctx }) => {
-      requireUserId(ctx);
+      const userId = requireUserId(ctx);
 
       if (!mongoose.Types.ObjectId.isValid(input.draftId)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid draftId format" });
       }
 
-      const draft = await DraftModel.findById(input.draftId);
+      // Scope by userId to prevent cross-user data leakage (IDOR).
+      const draft = await DraftModel.findOne({ _id: input.draftId, userId });
       if (!draft) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Draft not found" });
       }

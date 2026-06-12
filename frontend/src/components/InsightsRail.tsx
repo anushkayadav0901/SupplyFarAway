@@ -83,11 +83,18 @@ export default function InsightsRail({
 }: InsightsRailProps) {
   const hasDraft = Boolean(draftId && draftId.trim().length > 0);
 
+  // Pause polling whenever the document is hidden — InsightsRail is the
+  // most aggressive poller on the page and was previously the top
+  // background-tab bandwidth consumer.
+  const pollWhenVisible = () =>
+    typeof document !== "undefined" && document.hidden ? false : refetchIntervalMs;
+
   const recentQuery = trpc.audit.recent.useQuery(
     { limit: 30 },
     {
       enabled: !hasDraft,
-      refetchInterval: refetchIntervalMs,
+      refetchInterval: pollWhenVisible,
+      refetchIntervalInBackground: false,
       refetchOnWindowFocus: false,
     }
   );
@@ -96,7 +103,8 @@ export default function InsightsRail({
     { draftId: draftId ?? "" },
     {
       enabled: hasDraft,
-      refetchInterval: refetchIntervalMs,
+      refetchInterval: pollWhenVisible,
+      refetchIntervalInBackground: false,
       refetchOnWindowFocus: false,
     }
   );

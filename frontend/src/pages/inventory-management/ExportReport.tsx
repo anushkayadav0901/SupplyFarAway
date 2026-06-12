@@ -499,6 +499,23 @@ function ExportReport(): React.ReactElement {
   const [carbonData, setCarbonData] = useState<CarbonData | null>(null);
   const [carbonLoading, setCarbonLoading] = useState<boolean>(false);
   const [showDownloadMenu, setShowDownloadMenu] = useState<boolean>(false);
+  const downloadMenuRef = React.useRef<HTMLDivElement | null>(null);
+
+  // Close the download menu when the user clicks anywhere outside of it so
+  // the menu doesn't get stuck open after a single trigger click.
+  useEffect(() => {
+    if (!showDownloadMenu) return;
+    const onClickOutside = (e: MouseEvent) => {
+      if (
+        downloadMenuRef.current &&
+        !downloadMenuRef.current.contains(e.target as Node)
+      ) {
+        setShowDownloadMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, [showDownloadMenu]);
 
   const utils = trpc.useUtils();
   const calculateCarbonMutation =
@@ -538,9 +555,15 @@ function ExportReport(): React.ReactElement {
     : null;
   const draft = (draftData as any)?.draft as Draft | undefined;
 
-  // Fetch/generate carbon data once draft is available
+  // Fetch/generate carbon data once draft is available. Guard against
+  // running every render — the draft object identity changes on each query
+  // refetch even when the underlying _id hasn't changed, which would
+  // otherwise re-trigger the expensive carbon-interface call repeatedly.
+  const carbonRanForRef = React.useRef<string | null>(null);
   useEffect(() => {
     if (!draft || !draftId) return;
+    if (carbonRanForRef.current === draftId) return;
+    carbonRanForRef.current = draftId;
 
     const fetchAndGenerateCarbonData = async () => {
       setCarbonLoading(true);
@@ -697,7 +720,7 @@ function ExportReport(): React.ReactElement {
               <span className="font-semibold">{generationDate}</span>
             </p>
           </div>
-          <div className="absolute top-4 right-4">
+          <div ref={downloadMenuRef} className="absolute top-4 right-4">
             <button
               onClick={() => setShowDownloadMenu(!showDownloadMenu)}
               onKeyDown={(e) => { if (e.key === "Escape") setShowDownloadMenu(false); }}
@@ -906,13 +929,17 @@ function ExportReport(): React.ReactElement {
             <div>
               <p className="text-sm font-medium text-gray-600">Total Cost</p>
               <p className="text-gray-800">
-                {draft.routeData?.totalCost || "N/A"} EUR
+                {draft.routeData?.totalCost != null
+                  ? `${draft.routeData.totalCost} EUR`
+                  : "N/A"}
               </p>
             </div>
             <div>
               <p className="text-sm font-medium text-gray-600">Total Time</p>
               <p className="text-gray-800">
-                {draft.routeData?.totalTime || "N/A"} hours
+                {draft.routeData?.totalTime != null
+                  ? `${draft.routeData.totalTime} hours`
+                  : "N/A"}
               </p>
             </div>
             <div>
@@ -920,7 +947,9 @@ function ExportReport(): React.ReactElement {
                 Total Distance
               </p>
               <p className="text-gray-800">
-                {draft.routeData?.totalDistance || "N/A"} km
+                {draft.routeData?.totalDistance != null
+                  ? `${draft.routeData.totalDistance} km`
+                  : "N/A"}
               </p>
             </div>
             <div>
@@ -928,7 +957,9 @@ function ExportReport(): React.ReactElement {
                 Total Carbon Score
               </p>
               <p className="text-gray-800">
-                {draft.routeData?.totalCarbonScore || "N/A"} kg CO2e
+                {draft.routeData?.totalCarbonScore != null
+                  ? `${draft.routeData.totalCarbonScore} kg CO2e`
+                  : "N/A"}
               </p>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Camera,
   Diff,
@@ -19,7 +19,6 @@ import {
 import Header from "../../components/Header";
 import TrustGauge from "../../components/TrustGauge";
 import OperationsTicker from "../../components/OperationsTicker";
-import { RowSkeleton } from "../../components/skeletons/CardSkeleton";
 import { trpc } from "../../lib/trpc";
 import { formatRelativeTime, trustToneFromScore } from "../../lib/insights";
 
@@ -335,7 +334,10 @@ function InstructionalEmptyState({ navigate }: { navigate: ReturnType<typeof use
 const TrustCenter: React.FC = () => {
   const navigate = useNavigate();
   const prefersReduced = useReducedMotion();
-  const [draftId, setDraftId] = useState<string>("");
+  const [searchParams] = useSearchParams();
+  // Deep link from another page: /trust-center?draftId=...
+  const urlDraftId = searchParams.get("draftId") ?? "";
+  const [draftId, setDraftId] = useState<string>(urlDraftId);
   const [showAll, setShowAll] = useState(false);
 
   const draftsQuery = trpc.inventory.getDrafts.useQuery(
@@ -354,19 +356,43 @@ const TrustCenter: React.FC = () => {
     }
   }, [drafts, draftId]);
 
+  // Keep state in sync if the URL changes after mount (e.g., user navigates
+  // to a different shipment from a sibling page).
+  const lastUrlDraftIdRef = React.useRef(urlDraftId);
+  React.useEffect(() => {
+    if (urlDraftId !== lastUrlDraftIdRef.current) {
+      lastUrlDraftIdRef.current = urlDraftId;
+      if (urlDraftId) setDraftId(urlDraftId);
+    }
+  }, [urlDraftId]);
+
   const selectedDraft = useMemo(
     () => drafts.find((d) => String(d._id) === draftId),
     [drafts, draftId]
   );
 
+  // Pause polling when the tab is hidden so we don't burn bandwidth in the
+  // background. react-query's refetchInterval callback receives the query and
+  // we gate on document.hidden. (L5)
+  const refetchIfVisible = (intervalMs: number) =>
+    typeof document !== "undefined" && document.hidden ? false : intervalMs;
+
   const bundleQuery = trpc.insights.draftBundle.useQuery(
     { draftId: draftId || "" },
-    { enabled: !!draftId, retry: false, refetchInterval: 8000 }
+    {
+      enabled: !!draftId,
+      retry: false,
+      refetchInterval: () => refetchIfVisible(8000),
+    }
   );
 
   const scoreQuery = trpc.insights.shipmentTrustScore.useQuery(
     { draftId: draftId || "" },
-    { enabled: !!draftId, retry: false, refetchInterval: 8000 }
+    {
+      enabled: !!draftId,
+      retry: false,
+      refetchInterval: () => refetchIfVisible(8000),
+    }
   );
 
   const bundle = bundleQuery.data;
@@ -450,6 +476,18 @@ const TrustCenter: React.FC = () => {
                   className="w-[200px] h-[200px] rounded-full bg-slate-100 animate-pulse"
                   aria-label="Loading trust gauge"
                 />
+              ) : !draftId ? (
+                // Don't show a score of 0 when nothing is selected — the empty-
+                // state UI below already explains what to do. (V2)
+                <div
+                  className="w-[200px] h-[200px] rounded-full bg-slate-50 border-2 border-dashed border-slate-200 flex items-center justify-center text-center px-4"
+                  aria-label="No shipment selected"
+                  role="status"
+                >
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Pick a shipment to see its trust score
+                  </p>
+                </div>
               ) : (
                 <TrustGauge
                   value={trustScore}
@@ -511,10 +549,19 @@ const TrustCenter: React.FC = () => {
                     >
                       {drafts.map((d) => {
                         const f = d.formData ?? {};
+                        // Prefer a real id, then a product name, then the
+                        // origin → destination pair (only if BOTH cities are
+                        // present), and finally the last 8 chars of _id.
+                        // The previous version's `"? → ?"` template was always
+                        // truthy, so the final fallback was unreachable.
+                        const routeLbl =
+                          f.originCity && f.destinationCity
+                            ? `${f.originCity} → ${f.destinationCity}`
+                            : "";
                         const lbl =
                           f.shipmentId ||
                           f.productName ||
-                          `${f.originCity ?? "?"} → ${f.destinationCity ?? "?"}` ||
+                          routeLbl ||
                           String(d._id).slice(-8);
                         return (
                           <option key={String(d._id)} value={String(d._id)}>

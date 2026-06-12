@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 
 interface TypewriterTextProps {
   text: string;
@@ -8,10 +8,18 @@ interface TypewriterTextProps {
 }
 
 const TypewriterText = ({ text, delay = 0, speed = 50 }: TypewriterTextProps) => {
-  const [displayText, setDisplayText] = useState("");
+  const prefersReducedMotion = useReducedMotion();
+  const [displayText, setDisplayText] = useState(prefersReducedMotion ? text : "");
   const [showCursor, setShowCursor] = useState(true);
 
   useEffect(() => {
+    // Reduced motion: snap to the final string immediately, no per-char timers.
+    if (prefersReducedMotion) {
+      setDisplayText(text);
+      setShowCursor(false);
+      return;
+    }
+
     let cancelled = false;
     const timers: ReturnType<typeof setTimeout>[] = [];
     setDisplayText("");
@@ -39,13 +47,14 @@ const TypewriterText = ({ text, delay = 0, speed = 50 }: TypewriterTextProps) =>
       clearTimeout(delayTimer);
       timers.forEach(clearTimeout);
     };
-  }, [text, delay, speed]);
+  }, [text, delay, speed, prefersReducedMotion]);
 
   return (
-    <span className="relative">
+    <span className="relative" aria-label={text}>
       {displayText}
-      {showCursor && (
+      {showCursor && !prefersReducedMotion && (
         <motion.span
+          aria-hidden="true"
           className="inline-block w-0.5 h-5 bg-blue-400 ml-1"
           animate={{ opacity: [1, 0] }}
           transition={{ duration: 0.8, repeat: Infinity }}

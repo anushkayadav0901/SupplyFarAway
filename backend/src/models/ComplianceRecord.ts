@@ -24,6 +24,9 @@ const complianceRecordSchema = new Schema({
   },
 });
 
+// Compound index for history list queries (per-user, newest first).
+complianceRecordSchema.index({ userId: 1, timestamp: -1 });
+
 export type ComplianceRecordDocument = InferSchemaType<typeof complianceRecordSchema> & {
   _id: mongoose.Types.ObjectId;
 };

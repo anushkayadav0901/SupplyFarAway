@@ -39,6 +39,15 @@ const draftSchema = new Schema(
   { strict: false }
 );
 
+// Compound index for the hot path: list drafts per-user, newest first.
+draftSchema.index({ userId: 1, timestamp: -1 });
+// Status-bucket queries used by the inventory tabs.
+draftSchema.index({
+  userId: 1,
+  "statuses.compliance": 1,
+  "statuses.routeOptimization": 1,
+});
+
 export type DraftDocument = InferSchemaType<typeof draftSchema> & {
   _id: mongoose.Types.ObjectId;
 };

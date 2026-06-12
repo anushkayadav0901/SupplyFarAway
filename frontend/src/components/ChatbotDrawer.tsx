@@ -69,6 +69,23 @@ const SupplyChainChatbot = React.memo(() => {
       return;
     }
 
+    // Avoid stacking duplicate script tags on retry. If a previous attempt
+    // injected a tag with the same SRC, reuse / wait on it rather than
+    // appending a second one.
+    const existing = document.querySelector(
+      `script[src="${SCRIPT_SRC}"]`,
+    ) as HTMLScriptElement | null;
+    if (existing) {
+      // The existing tag may already be loaded; whenDefined resolves either way.
+      window.customElements.whenDefined("df-messenger").then(() => {
+        if (mountedRef.current) {
+          setIsScriptLoaded(true);
+          setIsLoading(false);
+        }
+      });
+      return;
+    }
+
     const script = document.createElement("script");
     script.src = SCRIPT_SRC;
     script.async = true;
@@ -85,7 +102,7 @@ const SupplyChainChatbot = React.memo(() => {
     script.onerror = () => {
       if (mountedRef.current) {
         setError(
-          "Failed to load the chat assistant. Please try again later."
+          "Failed to load the chat assistant. Please try again later.",
         );
         setIsLoading(false);
       }

@@ -26,8 +26,10 @@ for (const key of REQUIRED_ENV_AT_BOOT) {
 }
 
 // Connect to MongoDB. Surface errors clearly — a failed connection is fatal
-// at startup and should not be silently swallowed.
-connectMongoDB().catch((err: unknown) => {
+// at startup and should not be silently swallowed. The HTTP server is only
+// bound after this resolves so the first request can't race ahead of DB
+// readiness and return a 500 to an unsuspecting client.
+const dbReady: Promise<void> = connectMongoDB().catch((err: unknown) => {
   const message = err instanceof Error ? err.message : String(err);
   console.error("[index] Startup aborted — database connection failed:", message);
   process.exit(1);
@@ -58,11 +60,14 @@ const FRONTEND_URL = isProduction
 // ---------------------------------------------------------------------------
 
 app.use(express.json({ limit: "5mb" }));
+// Strip trailing slash so an env var like "https://app.example.com/" still
+// matches the browser-sent Origin header "https://app.example.com".
+const normalizedFrontendUrl = FRONTEND_URL.replace(/\/$/, "");
 app.use(
   cors({
-    origin: FRONTEND_URL,
+    origin: normalizedFrontendUrl,
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   }),
 );
 app.use(passport.initialize());
@@ -72,7 +77,15 @@ app.use(passport.initialize());
 // ---------------------------------------------------------------------------
 
 app.get("/", (_req: Request, res: Response) => {
-  res.json({ status: "ok", service: "supply-chain-backend" });
+  // Mongoose readyState: 0=disconnected, 1=connected, 2=connecting, 3=disconnecting.
+  const dbConnected = mongoose.connection.readyState === 1;
+  res
+    .status(dbConnected ? 200 : 503)
+    .json({
+      status: dbConnected ? "ok" : "degraded",
+      service: "supply-chain-backend",
+      db: dbConnected ? "connected" : "disconnected",
+    });
 });
 
 // ---------------------------------------------------------------------------
@@ -127,8 +140,21 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
 // Start server
 // ---------------------------------------------------------------------------
 
-const server = app.listen(PORT, () => {
-  console.log(`[index] Server listening on port ${PORT} (${isProduction ? "production" : "development"})`);
+// Wait for the database to be reachable before accepting traffic so that
+// the first authenticated request never races a half-ready Mongoose pool.
+const serverPromise: Promise<ReturnType<typeof app.listen>> = dbReady.then(
+  () =>
+    app.listen(PORT, () => {
+      console.log(
+        `[index] Server listening on port ${PORT} (${isProduction ? "production" : "development"})`,
+      );
+    }),
+);
+
+// Re-export for graceful shutdown — we lazily resolve from the promise.
+let server: ReturnType<typeof app.listen> | undefined;
+void serverPromise.then((s) => {
+  server = s;
 });
 
 // ---------------------------------------------------------------------------
@@ -149,8 +175,9 @@ async function gracefulShutdown(signal: string): Promise<void> {
   forceExit.unref();
 
   try {
+    const s = server ?? (await serverPromise);
     await new Promise<void>((resolve, reject) => {
-      server.close((err) => (err ? reject(err) : resolve()));
+      s.close((err) => (err ? reject(err) : resolve()));
     });
     await mongoose.connection.close();
     console.log("[index] Shutdown complete");

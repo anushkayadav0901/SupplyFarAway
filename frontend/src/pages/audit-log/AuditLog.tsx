@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { toast } from "react-toastify";
@@ -98,7 +98,7 @@ function prettyEvent(t: string): string {
 // ChainCard — each event with copy-on-click hash + chain glyph (audit-log directive)
 // ---------------------------------------------------------------------------
 
-function ChainCard({
+const ChainCard = React.memo(function ChainCard({
   event,
   isLast,
 }: {
@@ -208,7 +208,9 @@ function ChainCard({
                   {prettyEvent(event.eventType)}
                 </span>
                 <span className="text-[10px] font-mono text-slate-400">
-                  draft: {event.draftId.slice(0, 12)}…
+                  draft: {event.draftId.length > 12
+                    ? `${event.draftId.slice(0, 12)}…`
+                    : event.draftId}
                 </span>
               </div>
               <p className="text-sm text-slate-800 font-medium leading-snug mt-1.5">
@@ -241,7 +243,7 @@ function ChainCard({
       </motion.div>
     </div>
   );
-}
+});
 
 // ---------------------------------------------------------------------------
 // Main
@@ -287,7 +289,15 @@ export default function AuditLog() {
       setSummary("");
       setPayloadRaw("");
       utils.audit.recent.invalidate().catch(() => null);
-      utils.audit.forDraft.invalidate({ draftId }).catch(() => null);
+      // Invalidate the active "by draft" query too — the user may be filtering
+      // on a different draftId than the one they just appended to.
+      utils.audit.forDraft.invalidate({ draftId: draftId.trim() }).catch(() => null);
+      if (activeDraftId && activeDraftId !== draftId.trim()) {
+        utils.audit.forDraft
+          .invalidate({ draftId: activeDraftId })
+          .catch(() => null);
+      }
+      utils.insights.recentActivity.invalidate().catch(() => null);
       toast.success("Audit event recorded.");
     },
     onError: (err) => {
@@ -311,7 +321,16 @@ export default function AuditLog() {
     let payload: Record<string, unknown> | undefined;
     if (payloadRaw.trim()) {
       try {
-        payload = JSON.parse(payloadRaw) as Record<string, unknown>;
+        const parsed = JSON.parse(payloadRaw);
+        if (
+          parsed === null ||
+          typeof parsed !== "object" ||
+          Array.isArray(parsed)
+        ) {
+          toast.error("Payload must be a JSON object (not an array or scalar).");
+          return;
+        }
+        payload = parsed as Record<string, unknown>;
       } catch {
         toast.error("Payload must be valid JSON (or leave it empty).");
         return;
@@ -323,6 +342,11 @@ export default function AuditLog() {
       return;
     }
 
+    if (!summary.trim()) {
+      toast.error("Summary is required.");
+      return;
+    }
+
     appendMutation.mutate({
       draftId: draftId.trim(),
       eventType,
@@ -331,10 +355,13 @@ export default function AuditLog() {
     });
   };
 
-  // Handle Escape key to close forDraft mode (V6)
+  // Submit on Enter; Escape clears the filter input so users can quickly bail.
   const handleFilterKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
+      e.preventDefault();
       setActiveDraftId(filterDraftId.trim());
+    } else if (e.key === "Escape") {
+      setFilterDraftId("");
     }
   };
 
@@ -468,7 +495,12 @@ export default function AuditLog() {
                         : { boxShadow: "0 0 0 3px rgba(59,130,246,0.25)" }
                     }
                     disabled={appendMutation.isPending}
-                    aria-label="Append event to audit chain"
+                    aria-label={
+                      appendMutation.isPending
+                        ? "Saving audit event"
+                        : "Append event to audit chain"
+                    }
+                    aria-busy={appendMutation.isPending}
                     className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white text-sm font-semibold rounded-xl transition-colors min-w-[140px] flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                   >
                     {appendMutation.isPending ? (
@@ -553,11 +585,18 @@ export default function AuditLog() {
                     <span className="text-sm text-slate-600">events</span>
                     <button
                       type="button"
-                      onClick={() => recentQuery.refetch()}
+                      onClick={() => {
+                        recentQuery.refetch().catch(() => null);
+                      }}
+                      disabled={recentQuery.isRefetching}
                       aria-label="Refresh recent events"
-                      className="ml-auto text-xs font-semibold text-slate-500 hover:text-slate-700 inline-flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                      aria-busy={recentQuery.isRefetching}
+                      className="ml-auto text-xs font-semibold text-slate-500 hover:text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
                     >
-                      <RefreshCcw className="w-3.5 h-3.5" aria-hidden="true" />
+                      <RefreshCcw
+                        className={`w-3.5 h-3.5 ${recentQuery.isRefetching ? "animate-spin" : ""}`}
+                        aria-hidden="true"
+                      />
                       Refresh
                     </button>
                   </div>
@@ -608,8 +647,11 @@ export default function AuditLog() {
                   <button
                     type="button"
                     onClick={() => {
-                      if (queryMode === "recent") recentQuery.refetch();
-                      else forDraftQuery.refetch();
+                      if (queryMode === "recent") {
+                        recentQuery.refetch().catch(() => null);
+                      } else {
+                        forDraftQuery.refetch().catch(() => null);
+                      }
                     }}
                     className="text-xs text-red-600 hover:text-red-700 underline mt-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 rounded"
                     aria-label="Retry loading audit events"
@@ -635,13 +677,20 @@ export default function AuditLog() {
               ) : (
                 <>
                   <AnimatePresence initial>
-                    {displayedEvents.map((event, i) => (
-                      <ChainCard
-                        key={event._id}
-                        event={event}
-                        isLast={i === displayedEvents.length - 1 && !hasMore}
-                      />
-                    ))}
+                    {displayedEvents.map((event, i) => {
+                      // The last *visible* entry is the chain tip if either:
+                      //  - there's no "Show more" affordance below it
+                      //    (showAll=true OR hasMore=false)
+                      const isLastVisible = i === displayedEvents.length - 1;
+                      const showMoreVisible = hasMore && !showAll;
+                      return (
+                        <ChainCard
+                          key={event._id}
+                          event={event}
+                          isLast={isLastVisible && !showMoreVisible}
+                        />
+                      );
+                    })}
                   </AnimatePresence>
                   {/* Show more affordance (extra directive) */}
                   {hasMore && !showAll && (

@@ -117,7 +117,19 @@ export const inventoryRouter = router({
         });
       }
 
-      Object.assign(draft, input.updateData);
+      // Drop fields the client should never be able to overwrite (defence-in-
+      // depth against IDOR/userId-overwrite via the loose `updateData` Record).
+      const sanitizedUpdate: Record<string, unknown> = { ...input.updateData };
+      delete sanitizedUpdate.userId;
+      delete sanitizedUpdate._id;
+      delete sanitizedUpdate.id;
+
+      Object.assign(draft, sanitizedUpdate);
+      // The schema uses Mixed for nested fields — Mongoose can't see deep
+      // assignments without markModified, so changes would silently not persist.
+      for (const key of Object.keys(sanitizedUpdate)) {
+        draft.markModified(key);
+      }
       await draft.save();
 
       return {
@@ -175,8 +187,18 @@ export const inventoryRouter = router({
   getDraftsByUser: protectedProcedure
     .input(GetDraftsByUserInputSchema)
     .query(async ({ ctx, input }) => {
-      requireUserId(ctx);
+      const authedUserId = requireUserId(ctx);
       assertObjectId(input.userId, "userId");
+
+      // Defence-in-depth: refuse to expose another user's drafts even if the
+      // caller knows their ObjectId. Only the authenticated user can read
+      // their own drafts via this endpoint.
+      if (String(authedUserId) !== input.userId) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Cannot query drafts for a different user",
+        });
+      }
 
       const query: Record<string, unknown> = { userId: input.userId };
       if (input.complianceStatus === "done")
@@ -357,21 +379,35 @@ Return only the keywords.
         });
       }
 
-      articles = (
-        response.data.articles as Array<{
-          title?: string;
-          url?: string;
-          description?: string;
-          publishedAt?: string;
-          source: { name?: string };
-        }>
-      ).map((article) => ({
-        title: article.title || "No title available",
-        link: article.url || "#",
-        summary: article.description || "No summary available",
-        date: article.publishedAt || new Date().toISOString(),
-        source: article.source.name || "Unknown",
-      }));
+      // Defensive: NewsAPI may return null/undefined for `articles` on no-result
+      // days or upstream failures. Coerce to an empty list to prevent
+      // `Cannot read properties of undefined` from blowing up the request.
+      const rawArticles = ((response.data as { articles?: unknown }).articles ??
+        []) as Array<{
+        title?: string;
+        url?: string;
+        description?: string;
+        publishedAt?: string;
+        source?: { name?: string } | null;
+      }>;
+
+      articles = rawArticles
+        // NewsAPI sometimes returns sentinel "[Removed]" rows — strip them so
+        // we don't render broken cards in the UI.
+        .filter(
+          (a) =>
+            a &&
+            typeof a === "object" &&
+            a.title !== "[Removed]" &&
+            a.url !== "https://removed.com"
+        )
+        .map((article) => ({
+          title: article.title || "No title available",
+          link: article.url || "#",
+          summary: article.description || "No summary available",
+          date: article.publishedAt || new Date().toISOString(),
+          source: article.source?.name || "Unknown",
+        }));
 
       if (!search && articles.length > 0) {
         await NewsHistoryModel.findOneAndUpdate(
@@ -438,7 +474,16 @@ Return only the keywords.
         });
       }
 
-      const [summary, suggestions] = text.split("\n\n");
+      // Robust split: accept any whitespace gap of >=1 blank line. Some Gemini
+      // responses come back with a single newline, others with multiple. Keep
+      // every paragraph after the first as the "suggestions" block so we
+      // don't drop content beyond the second paragraph.
+      const paragraphs = text
+        .split(/\n\s*\n+/)
+        .map((p) => p.trim())
+        .filter(Boolean);
+      const summary = paragraphs[0] ?? "";
+      const suggestions = paragraphs.slice(1).join("\n\n");
 
       return {
         message: "Article summarized successfully",

@@ -26,7 +26,10 @@ const newsHistorySchema = new Schema({
   },
 });
 
-newsHistorySchema.index({ date: 1, query: 1 });
+newsHistorySchema.index({ date: 1, query: 1 }, { unique: true });
+// TTL: news cache entries older than 14 days self-evict so the collection
+// can't grow unbounded over the lifetime of the deployment.
+newsHistorySchema.index({ timestamp: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 14 });
 
 export type NewsHistoryDocument = InferSchemaType<typeof newsHistorySchema> & {
   _id: mongoose.Types.ObjectId;

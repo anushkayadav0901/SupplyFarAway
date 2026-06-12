@@ -88,7 +88,14 @@ export const fraudRouter = router({
             { $group: { _id: null, avg: { $avg: "$riskScore" } } },
           ];
           const result = await ShipmentDiff.aggregate(pipeline);
-          avgDamageRiskScore = result[0]?.avg ?? 0;
+          // ShipmentDiff.riskScore is stored as 0-100, but the FE expects the
+          // ratio (0-1) so it can render via `value * 100` consistently with
+          // the per-event riskScore (also 0-1). Normalize here.
+          const rawAvg = result[0]?.avg ?? 0;
+          avgDamageRiskScore =
+            typeof rawAvg === "number" && Number.isFinite(rawAvg)
+              ? rawAvg / 100
+              : 0;
 
           const recentDiffEvents = await ShipmentDiff.find({ userId })
             .sort({ createdAt: -1 })

@@ -148,14 +148,29 @@ export const shipmentDiffRouter = router({
       const riskScore = clampRiskScore(parsed.riskScore);
       const tamperingProbability = clampTamperingProb(parsed.tamperingProbability);
 
+      const damageDescription =
+        typeof parsed.damageDescription === "string" && parsed.damageDescription.trim().length > 0
+          ? parsed.damageDescription
+          : "No visible damage reported.";
+      const summary =
+        typeof parsed.summary === "string" && parsed.summary.trim().length > 0
+          ? parsed.summary
+          : `Shipment diff (risk ${riskScore}).`;
+
+      // Sanitize missingItems: drop non-strings, empty entries, and cap length to avoid bloat.
+      const missingItems = (Array.isArray(parsed.missingItems) ? parsed.missingItems : [])
+        .filter((it): it is string => typeof it === "string" && it.trim().length > 0)
+        .map((it) => it.trim())
+        .slice(0, 100);
+
       const doc = await ShipmentDiffModel.create({
         userId,
         draftId: input.draftId,
         riskScore,
         tamperingProbability,
-        missingItems: Array.isArray(parsed.missingItems) ? parsed.missingItems : [],
-        damageDescription: parsed.damageDescription ?? "",
-        summary: parsed.summary ?? "",
+        missingItems,
+        damageDescription,
+        summary,
         createdAt: new Date(),
       });
 
@@ -167,7 +182,7 @@ export const shipmentDiffRouter = router({
         {
           riskScore,
           tamperingProbability,
-          missingItems: parsed.missingItems,
+          missingItems,
           resultId: String(doc._id),
         },
       );
@@ -188,7 +203,7 @@ export const shipmentDiffRouter = router({
             flags: ["shipment-diff-high-risk"],
             severity: "high",
             riskScore,
-            summary: `Shipment diff risk ${riskScore}: ${parsed.summary ?? parsed.damageDescription ?? ""}`.slice(0, ANOMALY_SUMMARY_MAX),
+            summary: `Shipment diff risk ${riskScore}: ${summary || damageDescription}`.slice(0, ANOMALY_SUMMARY_MAX),
             createdAt: new Date(),
           });
         } catch (err) {

@@ -352,13 +352,21 @@ const Login = () => {
   const [searchParams] = useSearchParams();
   const [toastProps, setToastProps] = useState<ToastState>({ type: "", message: "" });
 
+  const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (navTimerRef.current) clearTimeout(navTimerRef.current);
+    };
+  }, []);
+
   // tRPC mutation for login
   const loginMutation = trpc.auth.loginUser.useMutation({
     onSuccess: (data: { token: string; [key: string]: unknown }) => {
       localStorage.setItem("token", data.token);
       setToastProps({ type: "success", message: "Login Successful!" });
       const nextPath = searchParams.get("next") || "/dashboard";
-      setTimeout(() => {
+      if (navTimerRef.current) clearTimeout(navTimerRef.current);
+      navTimerRef.current = setTimeout(() => {
         navigate(nextPath);
       }, 1000);
     },
@@ -406,9 +414,19 @@ const Login = () => {
       localStorage.setItem("token", token);
       setToastProps({ type: "success", message: "Google Login Successful!" });
       const nextPath = searchParams.get("next") || "/dashboard";
-      setTimeout(() => {
+      // Strip the token from the URL so a refresh doesn't re-trigger this
+      // path with a stale token in the address bar.
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("token");
+        window.history.replaceState({}, "", url.toString());
+      } catch {
+        // ignore — non-fatal
+      }
+      const timer = setTimeout(() => {
         navigate(nextPath);
       }, 1500);
+      return () => clearTimeout(timer);
     }
   }, [searchParams, navigate]);
 
@@ -418,6 +436,8 @@ const Login = () => {
 
   // Memoize handleLogin to prevent recreation
   const handleLogin = useCallback(() => {
+    // Guard against double-submit via Enter key while a mutation is pending.
+    if (loginMutation.isPending) return;
     if (!emailAddress || !password) {
       setToastProps({ type: "warn", message: "Please fill in all fields" });
       return;
@@ -426,8 +446,8 @@ const Login = () => {
       setToastProps({ type: "warn", message: "Please enter a valid email address" });
       return;
     }
-    if (password.length < 6) {
-      setToastProps({ type: "warn", message: "Password must be at least 6 characters" });
+    if (password.length < 1) {
+      setToastProps({ type: "warn", message: "Please enter your password" });
       return;
     }
 

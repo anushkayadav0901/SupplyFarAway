@@ -133,9 +133,11 @@ export const loadMatchRouter = router({
           if (!candidate.originCity || !candidate.destinationCity || candidate.weightKg == null) {
             return false;
           }
-
-          const candOriginLower = candidate.originCity.toLowerCase();
-          const candDestLower = candidate.destinationCity.toLowerCase();
+          // Defensive: skip degenerate same-city candidates (origin === destination)
+          // which would otherwise match almost any corridor via substring.
+          const candOriginLower = candidate.originCity.toLowerCase().trim();
+          const candDestLower = candidate.destinationCity.toLowerCase().trim();
+          if (candOriginLower === candDestLower) return false;
 
           const originMatch =
             originLower.includes(candOriginLower) ||
@@ -197,8 +199,11 @@ export const loadMatchRouter = router({
         });
       }
 
+      // Only allow cancelling open offers — cancelling an already-cancelled
+      // or matched offer is a no-op that should surface as a clear error
+      // (instead of silently changing the status back).
       const updated = await LoadOfferModel.findOneAndUpdate(
-        { _id: input.offerId, userId },
+        { _id: input.offerId, userId, status: "open" },
         { status: "cancelled" },
         { new: true },
       );
@@ -206,7 +211,8 @@ export const loadMatchRouter = router({
       if (!updated) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Offer not found or not authorized",
+          message:
+            "Offer not found, not authorized, or already cancelled/matched",
         });
       }
 

@@ -192,11 +192,15 @@ function StaticMapFallback({ ping }: { ping: PingResult | null }) {
       const latMin = 24, latMax = 50, lngMin = -125, lngMax = -66;
       const toX = (lng: number) => ((lng - lngMin) / (lngMax - lngMin)) * W;
       const toY = (lat: number) => ((latMax - lat) / (latMax - latMin)) * H;
+      // Clamp so non-US pings never render off-canvas (which used to leave
+      // the user staring at a blank fallback for global routes).
+      const clamp = (v: number, lo: number, hi: number) =>
+        Math.max(lo, Math.min(hi, v));
 
-      const tx = toX(ping.lng);
-      const ty = toY(ping.lat);
-      const dx = toX(ping.destinationLng);
-      const dy = toY(ping.destinationLat);
+      const tx = clamp(toX(ping.lng), 10, W - 10);
+      const ty = clamp(toY(ping.lat), 10, H - 10);
+      const dx = clamp(toX(ping.destinationLng), 10, W - 10);
+      const dy = clamp(toY(ping.destinationLat), 10, H - 10);
 
       // Route line
       ctx.beginPath();

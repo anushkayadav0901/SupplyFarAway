@@ -93,7 +93,11 @@ const OperationsTicker: React.FC<OperationsTickerProps> = ({
   const isAnimating = !isHovered && isDocVisible;
 
   const { data, isLoading } = trpc.insights.operationsTicker.useQuery(undefined, {
-    refetchInterval: intervalMs,
+    // Pause polling when the page is hidden so we don't drain bandwidth
+    // off-screen — matches the marquee pause behaviour below.
+    refetchInterval: () =>
+      typeof document !== "undefined" && document.hidden ? false : intervalMs,
+    refetchIntervalInBackground: false,
     retry: false,
   });
 

@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { toast } from "react-toastify";
 import { Radio, Terminal, RefreshCcw, Tag } from "lucide-react";
@@ -238,9 +239,12 @@ function HistoryCard({ item }: { item: ScanResult }) {
 
 export default function RfidVerification() {
   const shouldReduceMotion = useReducedMotion();
+  const [searchParams] = useSearchParams();
+  const initialDraftId = searchParams.get("draftId") ?? "";
   const [manifestInput, setManifestInput] = useState("");
+  const [manifestTouched, setManifestTouched] = useState(false);
   const [scannedInput, setScannedInput] = useState("");
-  const [draftId, setDraftId] = useState("");
+  const [draftId, setDraftId] = useState(initialDraftId);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [historyLimit, setHistoryLimit] = useState<typeof HISTORY_LIMITS[number]>(20);
 
@@ -250,7 +254,11 @@ export default function RfidVerification() {
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const mountedRef = useRef(true);
 
+  const utils = trpc.useUtils();
   const verifyMutation = trpc.rfid.verify.useMutation({
+    onSuccess: () => {
+      utils.rfid.history.invalidate().catch(() => void 0);
+    },
     onError: (err) => {
       toast.error(err.message || "Verification failed.");
     },
@@ -291,11 +299,15 @@ export default function RfidVerification() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Re-entrancy guard — Enter spam or rapid clicks should not stack scans.
+    if (streaming || verifyMutation.isPending) return;
+
     // Trim and dedup before submit
     const manifestTags = parseTags(manifestInput);
     const scannedTags = parseTags(scannedInput);
 
     if (manifestTags.length === 0) {
+      setManifestTouched(true);
       toast.error("Manifest tag list cannot be empty.");
       return;
     }
@@ -334,7 +346,6 @@ export default function RfidVerification() {
         });
         if (!mountedRef.current) return;
         setResult(doc as unknown as ScanResult);
-        historyQuery.refetch().catch(() => void 0);
       } catch {
         // handled by onError above
       }
@@ -344,8 +355,8 @@ export default function RfidVerification() {
 
   const submitting = streaming || verifyMutation.isPending;
 
-  // manifest tag count for inline preview
-  const manifestTagCount = parseTags(manifestInput).length;
+  // manifest tag count for inline preview — memoized to avoid reparsing on every render
+  const manifestTagCount = useMemo(() => parseTags(manifestInput).length, [manifestInput]);
 
   return (
     <div className="min-h-screen bg-[var(--color-neutral-100)]">
@@ -450,15 +461,17 @@ export default function RfidVerification() {
                       id="manifestInput"
                       value={manifestInput}
                       onChange={(e) => setManifestInput(e.target.value)}
+                      onBlur={() => setManifestTouched(true)}
                       rows={8}
                       placeholder={"E200001234567890\nE200001234567891\nE200001234567892"}
                       aria-required="true"
+                      aria-invalid={manifestTouched && manifestInput.trim() === "" ? true : undefined}
                       className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none transition-colors"
                       required
                     />
-                    {/* Empty state hint */}
-                    {manifestInput.trim() === "" && (
-                      <p className="mt-1 text-xs text-amber-600 flex items-center gap-1">
+                    {/* Empty state hint — only show once the user has interacted with the field */}
+                    {manifestTouched && manifestInput.trim() === "" && (
+                      <p className="mt-1 text-xs text-amber-600 flex items-center gap-1" role="alert">
                         <Tag className="w-3 h-3" aria-hidden="true" />
                         Enter at least one manifest tag to proceed.
                       </p>
@@ -610,7 +623,11 @@ export default function RfidVerification() {
                   <select
                     id="historyLimit"
                     value={historyLimit}
-                    onChange={(e) => setHistoryLimit(Number(e.target.value) as typeof HISTORY_LIMITS[number])}
+                    onChange={(e) => {
+                      const parsed = Number(e.target.value);
+                      const next = HISTORY_LIMITS.find((n) => n === parsed) ?? 20;
+                      setHistoryLimit(next);
+                    }}
                     className="text-sm border border-slate-200 rounded-lg px-2 py-1.5 bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     {HISTORY_LIMITS.map((n) => (

@@ -157,14 +157,14 @@ function MapView({ draftId }: MapViewProps): React.ReactElement {
             const endMarker = new google.maps.Marker({
               position: endLatLng,
               map,
-              title: routeDirection.waypoints[1],
+              title: routeDirection.waypoints[routeDirection.waypoints.length - 1],
             });
 
             const startInfoWindow = new google.maps.InfoWindow({
               content: `<div>${routeDirection.waypoints[0]}</div>`,
             });
             const endInfoWindow = new google.maps.InfoWindow({
-              content: `<div>${routeDirection.waypoints[1]}</div>`,
+              content: `<div>${routeDirection.waypoints[routeDirection.waypoints.length - 1]}</div>`,
             });
 
             startMarker.addListener("click", () =>
@@ -204,14 +204,14 @@ function MapView({ draftId }: MapViewProps): React.ReactElement {
             const endMarker = new google.maps.Marker({
               position: endLatLng,
               map,
-              title: routeDirection.waypoints[1],
+              title: routeDirection.waypoints[routeDirection.waypoints.length - 1],
             });
 
             const startInfoWindow = new google.maps.InfoWindow({
               content: `<div>${routeDirection.waypoints[0]}</div>`,
             });
             const endInfoWindow = new google.maps.InfoWindow({
-              content: `<div>${routeDirection.waypoints[1]}</div>`,
+              content: `<div>${routeDirection.waypoints[routeDirection.waypoints.length - 1]}</div>`,
             });
 
             startMarker.addListener("click", () =>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   Tabs,
@@ -93,6 +93,17 @@ interface ToastProps {
 const InventoryManagement: React.FC = () => {
   const prefersReducedMotion = useReducedMotion();
   const [activeTab, setActiveTab] = useState<string>("all");
+  // Reactive viewport width so the responsive tab labels actually update on
+  // resize/rotation. Reading window.innerWidth straight in JSX is a one-shot
+  // snapshot at mount and never re-evaluates.
+  const [viewportWidth, setViewportWidth] = useState<number>(
+    typeof window !== "undefined" ? window.innerWidth : 1024,
+  );
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
   const [toastProps, setToastProps] = useState<ToastProps>({
     type: "",
     message: "",
@@ -459,7 +470,7 @@ const InventoryManagement: React.FC = () => {
               <Tab label={`All (${tabCounts.all})`} value="all" />
               <Tab
                 label={
-                  window.innerWidth < 600
+                  viewportWidth < 600
                     ? `Pending (${tabCounts["yet-to-be-checked"]})`
                     : `Yet to be Checked (${tabCounts["yet-to-be-checked"]})`
                 }
@@ -475,7 +486,7 @@ const InventoryManagement: React.FC = () => {
               />
               <Tab
                 label={
-                  window.innerWidth < 600
+                  viewportWidth < 600
                     ? `Ready (${tabCounts["ready-for-shipment"]})`
                     : `Ready for Shipment (${tabCounts["ready-for-shipment"]})`
                 }

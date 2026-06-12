@@ -89,8 +89,8 @@ const SEVERITY_BADGE: Record<string, string> = {
 };
 
 const VERDICT_LABEL: Record<string, string> = {
-  low: "Trusted",
-  medium: "Watch",
+  low: "Low Risk",
+  medium: "Medium Risk",
   high: "High Risk",
 };
 
@@ -279,6 +279,17 @@ export default function AnomalyDetection() {
   const pulseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showAllHistory, setShowAllHistory] = useState(false);
 
+  // Keep the form's draftId in sync if the deep-link param changes after mount
+  // (e.g., a sibling page navigates here with a new ?draftId=).
+  const lastUrlDraftIdRef = useRef(initialDraftId);
+  useEffect(() => {
+    const next = searchParams.get("draftId") ?? "";
+    if (next !== lastUrlDraftIdRef.current) {
+      lastUrlDraftIdRef.current = next;
+      if (next) setForm((prev) => ({ ...prev, draftId: next }));
+    }
+  }, [searchParams]);
+
   const analyzeMutation = trpc.anomaly.analyze.useMutation({
     onError: (err) => {
       toast.error(err.message || "Analysis failed. Please try again.");
@@ -322,6 +333,19 @@ export default function AnomalyDetection() {
       return;
     }
 
+    // Backend rejects negatives via z.nonnegative() — surface a friendlier
+    // client-side error instead of letting the request round-trip and fail.
+    if (
+      declaredWeightKg < 0 ||
+      measuredWeightKg < 0 ||
+      declaredCount < 0 ||
+      detectedCount < 0 ||
+      routeDeviationKm < 0
+    ) {
+      toast.error("Numeric fields must be zero or positive.");
+      return;
+    }
+
     if (!form.originCity.trim() || !form.destinationCity.trim()) {
       toast.error("Origin and destination cities are required.");
       return;
@@ -345,7 +369,23 @@ export default function AnomalyDetection() {
       });
 
       toast.success("Analysis complete.");
+      // anomaly.analyze writes an AuditEvent and creates an AnomalyReport, so
+      // invalidate downstream caches that depend on either. (L1)
       utils.anomaly.history.invalidate().catch(() => null);
+      utils.audit.recent.invalidate().catch(() => null);
+      utils.insights.recentActivity.invalidate().catch(() => null);
+      utils.fraud.summary.invalidate().catch(() => null);
+      if (form.draftId.trim()) {
+        utils.audit.forDraft
+          .invalidate({ draftId: form.draftId.trim() })
+          .catch(() => null);
+        utils.insights.draftBundle
+          .invalidate({ draftId: form.draftId.trim() })
+          .catch(() => null);
+        utils.insights.shipmentTrustScore
+          .invalidate({ draftId: form.draftId.trim() })
+          .catch(() => null);
+      }
     } catch {
       // handled by onError
     }
@@ -625,7 +665,12 @@ export default function AnomalyDetection() {
                     whileTap={prefersReduced ? undefined : { scale: 0.97 }}
                     whileHover={prefersReduced ? undefined : { boxShadow: "0 0 0 3px rgba(59,130,246,0.3)" }}
                     disabled={analyzeMutation.isPending}
-                    aria-label="Run AI anomaly analysis"
+                    aria-label={
+                      analyzeMutation.isPending
+                        ? "Running AI anomaly analysis"
+                        : "Run AI anomaly analysis"
+                    }
+                    aria-busy={analyzeMutation.isPending}
                     className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold text-sm rounded-xl shadow-sm transition-colors duration-150 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                   >
                     {analyzeMutation.isPending ? (
@@ -761,11 +806,18 @@ export default function AnomalyDetection() {
                 </h2>
                 <button
                   type="button"
-                  onClick={() => historyQuery.refetch()}
+                  onClick={() => {
+                    historyQuery.refetch().catch(() => null);
+                  }}
+                  disabled={historyQuery.isRefetching}
                   aria-label="Refresh analysis history"
-                  className="text-xs font-semibold text-slate-500 hover:text-slate-700 inline-flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                  aria-busy={historyQuery.isRefetching}
+                  className="text-xs font-semibold text-slate-500 hover:text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
                 >
-                  <RefreshCcw className="w-3.5 h-3.5" aria-hidden="true" />
+                  <RefreshCcw
+                    className={`w-3.5 h-3.5 ${historyQuery.isRefetching ? "animate-spin" : ""}`}
+                    aria-hidden="true"
+                  />
                   Refresh
                 </button>
               </div>
@@ -780,7 +832,9 @@ export default function AnomalyDetection() {
                     </p>
                     <button
                       type="button"
-                      onClick={() => historyQuery.refetch()}
+                      onClick={() => {
+                    historyQuery.refetch().catch(() => null);
+                  }}
                       className="text-xs text-red-600 hover:text-red-700 underline mt-1"
                     >
                       Retry

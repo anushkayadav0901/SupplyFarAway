@@ -39,9 +39,34 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
+ * Errors that are permanent for a given address — retrying will not help.
+ * We tag them so the retry loop can break out early.
+ */
+class GeocodePermanentError extends Error {
+  readonly apiStatus: string;
+  constructor(message: string, apiStatus: string) {
+    super(message);
+    this.name = "GeocodePermanentError";
+    this.apiStatus = apiStatus;
+  }
+}
+
+const PERMANENT_GEOCODE_STATUSES = new Set([
+  "ZERO_RESULTS",
+  "INVALID_REQUEST",
+  "REQUEST_DENIED",
+  "NOT_FOUND",
+]);
+
+/**
  * Single geocode attempt — does NOT retry.
  */
 async function geocodeOnce(address: string): Promise<LatLng> {
+  if (!GOOGLE_API_KEY) {
+    throw new Error(
+      "[geocode] GOOGLE_API_KEY is not set — cannot call the Geocoding API",
+    );
+  }
   const response = await axios.get<{
     status: string;
     error_message?: string;
@@ -61,6 +86,12 @@ async function geocodeOnce(address: string): Promise<LatLng> {
   console.error(
     `[geocode] Geocoding failed for "${address}" — status: ${apiStatus}, message: ${apiMsg}`,
   );
+  if (PERMANENT_GEOCODE_STATUSES.has(apiStatus)) {
+    throw new GeocodePermanentError(
+      `Geocoding failed for address "${address}" (status: ${apiStatus})`,
+      apiStatus,
+    );
+  }
   throw new Error(
     `Geocoding failed for address "${address}" (status: ${apiStatus})`,
   );
@@ -82,6 +113,14 @@ export async function geocodeAddress(address: string): Promise<LatLng> {
       return await geocodeOnce(address);
     } catch (err) {
       lastError = err;
+      // Permanent failures (ZERO_RESULTS, INVALID_REQUEST, ...) won't
+      // succeed on retry — break out immediately.
+      if (err instanceof GeocodePermanentError) {
+        console.warn(
+          `[geocode] Not retrying permanent failure for "${address}": ${err.apiStatus}`,
+        );
+        break;
+      }
       if (attempt < GEOCODE_MAX_RETRIES) {
         const delayMs = GEOCODE_RETRY_BASE_MS * Math.pow(2, attempt);
         console.warn(
@@ -102,6 +141,11 @@ export async function geocodeAddress(address: string): Promise<LatLng> {
  * Requires at least 2 waypoints (origin + destination).
  */
 export async function getDirections(waypoints: string[]): Promise<string> {
+  if (!GOOGLE_API_KEY) {
+    throw new Error(
+      "[geocode] GOOGLE_API_KEY is not set — cannot call the Routes API",
+    );
+  }
   if (waypoints.length < 2) {
     throw new Error("[geocode] getDirections requires at least 2 waypoints");
   }
@@ -157,7 +201,7 @@ export async function getDirections(waypoints: string[]): Promise<string> {
 
   const headers = {
     "Content-Type": "application/json",
-    "X-Goog-Api-Key": GOOGLE_API_KEY ?? "",
+    "X-Goog-Api-Key": GOOGLE_API_KEY,
     "X-Goog-FieldMask": "routes.polyline.encodedPolyline",
   };
 
@@ -171,7 +215,15 @@ export async function getDirections(waypoints: string[]): Promise<string> {
       throw new Error("No routes found for the given waypoints");
     }
 
-    return response.data.routes[0].polyline.encodedPolyline;
+    const encoded = response.data.routes[0]?.polyline?.encodedPolyline;
+    if (!encoded || typeof encoded !== "string") {
+      console.error(
+        "[geocode] Routes API returned a route without an encoded polyline:",
+        waypoints,
+      );
+      throw new Error("Routes API returned an empty polyline");
+    }
+    return encoded;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[geocode] Routes API request failed:", message);

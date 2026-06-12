@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   Line,
@@ -72,7 +73,11 @@ function fmtPct(n: number, decimals = 2): string {
 
 export default function WeightCheck() {
   const shouldReduceMotion = useReducedMotion();
-  const [form, setForm] = useState<FormState>(initialForm);
+  const [searchParams] = useSearchParams();
+  const [form, setForm] = useState<FormState>(() => ({
+    ...initialForm,
+    draftId: searchParams.get("draftId") ?? "",
+  }));
   const [series, setSeries] = useState<{ t: number; kg: number }[]>(() =>
     makeIdleSeries()
   );
@@ -110,16 +115,23 @@ export default function WeightCheck() {
     };
   }, []);
 
-  // Idle drift loop — paused while streaming
+  // Latest form values held in a ref so the idle drift loop can read them
+  // without re-creating its interval on every keystroke.
+  const formRef = useRef(form);
+  useEffect(() => { formRef.current = form; }, [form]);
+
+  // Idle drift loop — paused while streaming. Note: deliberately does NOT depend
+  // on form values; we read latest via formRef to avoid timer churn on every keystroke.
   useEffect(() => {
     if (streaming) return;
     idleTimerRef.current = setInterval(() => {
       if (!mountedRef.current) return;
       setSeries((prev) => {
         const last = prev.length > 0 ? prev[prev.length - 1].kg : IDLE_BASELINE_KG;
+        const f = formRef.current;
         const target =
-          parseFloat(form.measuredWeightKg) ||
-          parseFloat(form.declaredWeightKg) ||
+          parseFloat(f.measuredWeightKg) ||
+          parseFloat(f.declaredWeightKg) ||
           IDLE_BASELINE_KG;
         const drift = (Math.random() - 0.5) * 0.3 + (target - last) * 0.005;
         const nextKg = last + drift;
@@ -131,16 +143,22 @@ export default function WeightCheck() {
       if (idleTimerRef.current) clearInterval(idleTimerRef.current);
       idleTimerRef.current = null;
     };
-  }, [streaming, form.measuredWeightKg, form.declaredWeightKg]);
+  }, [streaming]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const runStream = (declared: number, measured: number): Promise<void> => {
-    return new Promise((resolve) => {
-      if (!mountedRef.current) { resolve(); return; }
+  // Hold the active resolver so the Cancel button can resolve runStream() with
+  // a "cancelled" outcome, freeing the awaiting handleSubmit() instead of
+  // leaving it hanging on a promise that's never settled.
+  const streamResolverRef = useRef<((cancelled: boolean) => void) | null>(null);
+
+  const runStream = (declared: number, measured: number): Promise<boolean> => {
+    return new Promise<boolean>((resolve) => {
+      if (!mountedRef.current) { resolve(true); return; }
       setStreaming(true);
+      streamResolverRef.current = resolve;
       if (idleTimerRef.current) {
         clearInterval(idleTimerRef.current);
         idleTimerRef.current = null;
@@ -150,7 +168,8 @@ export default function WeightCheck() {
         if (!mountedRef.current) {
           if (streamTimerRef.current) clearInterval(streamTimerRef.current);
           streamTimerRef.current = null;
-          resolve();
+          streamResolverRef.current = null;
+          resolve(true);
           return;
         }
         step++;
@@ -172,7 +191,8 @@ export default function WeightCheck() {
             return [...prev.slice(-SERIES_WINDOW), { t: nextT, kg: measured }];
           });
           if (mountedRef.current) setStreaming(false);
-          resolve();
+          streamResolverRef.current = null;
+          resolve(false);
         }
       }, STREAM_TICK_MS);
     });
@@ -180,6 +200,9 @@ export default function WeightCheck() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Re-entrancy guard — Enter spam during streaming or pending mutation should not stack runs.
+    if (streaming || submitMutation.isPending) return;
 
     const declared = parseFloat(form.declaredWeightKg);
     const measured = parseFloat(form.measuredWeightKg);
@@ -199,8 +222,8 @@ export default function WeightCheck() {
       return;
     }
 
-    await runStream(declared, measured);
-    if (!mountedRef.current) return;
+    const cancelled = await runStream(declared, measured);
+    if (!mountedRef.current || cancelled) return;
 
     submitMutation.mutate({
       ...(form.draftId.trim() ? { draftId: form.draftId.trim() } : {}),
@@ -217,6 +240,11 @@ export default function WeightCheck() {
         if (streamTimerRef.current) clearInterval(streamTimerRef.current);
         streamTimerRef.current = null;
         if (mountedRef.current) setStreaming(false);
+        // Resolve the pending runStream() promise as cancelled so the awaiting
+        // handleSubmit() unwinds instead of leaking.
+        const resolver = streamResolverRef.current;
+        streamResolverRef.current = null;
+        if (resolver) resolver(true);
       }
     };
     window.addEventListener("keydown", handler);
@@ -231,9 +259,18 @@ export default function WeightCheck() {
       ? ((measuredFloat - declaredFloat) / declaredFloat) * 100
       : 0;
   const needleAngle = Math.max(-90, Math.min(90, (livePct / 25) * 90));
+  // Resolve threshold with a default — empty/NaN should fall back to the documented default.
+  const parsedThreshold = parseFloat(form.thresholdPct);
+  const effectiveThreshold = Number.isFinite(parsedThreshold) && parsedThreshold >= 0
+    ? parsedThreshold
+    : parseFloat(DEFAULT_THRESHOLD_PCT);
 
-  const chartMin = Math.min(...series.map((p) => p.kg)) - 1;
-  const chartMax = Math.max(...series.map((p) => p.kg)) + 1;
+  // Defensive: when the series happens to be empty Math.min/...[] is Infinity;
+  // fall back to the idle baseline so the YAxis domain stays finite.
+  const chartMin =
+    series.length > 0 ? Math.min(...series.map((p) => p.kg)) - 1 : IDLE_BASELINE_KG - 1;
+  const chartMax =
+    series.length > 0 ? Math.max(...series.map((p) => p.kg)) + 1 : IDLE_BASELINE_KG + 1;
 
   return (
     <div className="min-h-screen bg-[var(--color-neutral-100)]">
@@ -398,6 +435,10 @@ export default function WeightCheck() {
                         if (streamTimerRef.current) clearInterval(streamTimerRef.current);
                         streamTimerRef.current = null;
                         setStreaming(false);
+                        // Resolve the pending runStream() promise as cancelled.
+                        const resolver = streamResolverRef.current;
+                        streamResolverRef.current = null;
+                        if (resolver) resolver(true);
                       }}
                       aria-label="Cancel streaming"
                       className="px-6 py-3 text-sm font-medium text-slate-600 hover:text-slate-800 rounded-xl border border-slate-200 hover:border-slate-300 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400"
@@ -479,7 +520,7 @@ export default function WeightCheck() {
                 <ScaleNeedle
                   pct={livePct}
                   angle={needleAngle}
-                  flagged={Math.abs(livePct) > parseFloat(form.thresholdPct)}
+                  flagged={Math.abs(livePct) > effectiveThreshold}
                 />
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-slate-700">Predicted deviation</p>
@@ -487,7 +528,7 @@ export default function WeightCheck() {
                     <CountUp value={livePct} decimals={2} suffix="%" />
                   </p>
                   <p className="text-xs text-slate-500 mt-1">
-                    Threshold: {parseFloat(form.thresholdPct).toFixed(1)}% — Click
+                    Threshold: {effectiveThreshold.toFixed(1)}% — Click
                     "Stream &amp; Verify" to record the reading.
                   </p>
                 </div>

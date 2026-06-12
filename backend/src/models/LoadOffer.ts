@@ -35,9 +35,15 @@ const loadOfferSchema = new Schema(
     createdAt: {
       type: Date,
       default: Date.now,
+      index: true,
     },
   }
 );
+
+// Compound index for list queries (latest offers by user) and match queries
+// (open offers in a date window, excluding self).
+loadOfferSchema.index({ userId: 1, createdAt: -1 });
+loadOfferSchema.index({ status: 1, pickupDate: 1 });
 
 export type LoadOfferDocument = InferSchemaType<typeof loadOfferSchema> & {
   _id: mongoose.Types.ObjectId;

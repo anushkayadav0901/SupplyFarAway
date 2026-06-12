@@ -100,8 +100,15 @@ legacyComplianceRouter.post(
       }
       const validatedUserId = new mongoose.Types.ObjectId(userId);
 
-      // Sanitize original filename to remove path separators.
-      const safeOriginalName = imageFile.originalname.replace(/[/\\]/g, "_");
+      // Sanitize original filename: strip path separators, leading dots, and
+      // any sequence of dots (defeats `..` traversal attempts) before using
+      // it as a GCS object key. Cap length so a long client filename can't
+      // be used to bloat storage paths.
+      const safeOriginalName = imageFile.originalname
+        .replace(/[/\\]/g, "_")
+        .replace(/\.{2,}/g, "_")
+        .replace(/^\.+/, "")
+        .slice(0, 200) || "upload";
       const fileName = `${Date.now()}_${safeOriginalName}`;
       const bucket = storage.bucket(bucketName);
       const blob = bucket.file(fileName);

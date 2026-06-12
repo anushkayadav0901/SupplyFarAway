@@ -48,7 +48,10 @@ async function writeAudit(
 }
 
 function clampRiskScore(value: unknown): number {
-  return Math.min(RISK_SCORE_MAX, Math.max(RISK_SCORE_MIN, Math.round(Number(value ?? 0))));
+  const num = Number(value ?? 0);
+  // Guard against NaN — Math.max(0, NaN) and Math.min(100, NaN) both return NaN.
+  if (!Number.isFinite(num)) return 0;
+  return Math.min(RISK_SCORE_MAX, Math.max(RISK_SCORE_MIN, Math.round(num)));
 }
 
 // ---------------------------------------------------------------------------
@@ -94,12 +97,20 @@ export const anomalyRouter = router({
 
       const countDiff = Math.abs(detectedCount - declaredCount);
 
+      // Strip control chars / newlines from free-text fields so they can't
+      // break out of the prompt structure or inject extra "instructions".
+      const sanitize = (s: string): string =>
+        s.replace(/[\u0000-\u001f\u007f]+/g, " ").trim();
+      const safeOriginCity = sanitize(originCity);
+      const safeDestinationCity = sanitize(destinationCity);
+      const safeExtraNotes = extraNotes ? sanitize(extraNotes) : "";
+
       const prompt = `
 You are a logistics fraud and anomaly detection AI. Analyze the following shipment data and identify suspicious patterns.
 
 Shipment Details:
-- Origin City: ${originCity}
-- Destination City: ${destinationCity}
+- Origin City: ${safeOriginCity}
+- Destination City: ${safeDestinationCity}
 - Declared Weight: ${declaredWeightKg} kg
 - Measured/Actual Weight: ${measuredWeightKg} kg
 - Weight Discrepancy: ${weightDiffPct.toFixed(1)}%
@@ -107,7 +118,7 @@ Shipment Details:
 - Detected Item Count: ${detectedCount}
 - Count Discrepancy: ${countDiff} units
 - Route Deviation: ${routeDeviationKm} km from expected route
-${extraNotes ? `- Additional Notes: ${extraNotes}` : ""}
+${safeExtraNotes ? `- Additional Notes: ${safeExtraNotes}` : ""}
 
 Based on this data, identify any anomalies or suspicious patterns. Consider:
 1. Weight discrepancies (>5% is suspicious, >15% is highly suspicious)
@@ -185,13 +196,22 @@ Rules for severity:
       }
 
       // Normalise optional fields so downstream code can rely on them.
+      // Cap flag count + per-flag length so a runaway Gemini response can't
+      // bloat the stored document. Cap summary length for the same reason.
+      const MAX_FLAGS = 20;
+      const MAX_FLAG_LEN = 240;
+      const MAX_SUMMARY_LEN = 2000;
       const safeFlags = Array.isArray(parsed.flags)
-        ? parsed.flags.filter((f) => typeof f === "string")
+        ? parsed.flags
+            .filter((f) => typeof f === "string")
+            .map((f) => f.slice(0, MAX_FLAG_LEN))
+            .slice(0, MAX_FLAGS)
         : [];
-      const safeSummary =
+      const rawSummary =
         typeof parsed.summary === "string" && parsed.summary.trim().length > 0
           ? parsed.summary
           : `Severity ${parsed.severity}, risk ${parsed.riskScore}`;
+      const safeSummary = rawSummary.slice(0, MAX_SUMMARY_LEN);
 
       // Clamp riskScore to valid range even if AI returns out-of-bounds value.
       const riskScore = clampRiskScore(parsed.riskScore);

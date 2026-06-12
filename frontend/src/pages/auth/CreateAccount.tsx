@@ -353,6 +353,13 @@ const CreateAccount = () => {
   const [searchParams] = useSearchParams();
   const [toastProps, setToastProps] = useState<ToastState>({ type: "", message: "" });
 
+  const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (navTimerRef.current) clearTimeout(navTimerRef.current);
+    };
+  }, []);
+
   // tRPC mutation for account creation
   const createAccountMutation = trpc.auth.createAccount.useMutation({
     onSuccess: (data: { token?: string; [key: string]: unknown }) => {
@@ -363,7 +370,8 @@ const CreateAccount = () => {
         type: "success",
         message: "Account Created Successfully!",
       });
-      setTimeout(() => {
+      if (navTimerRef.current) clearTimeout(navTimerRef.current);
+      navTimerRef.current = setTimeout(() => {
         navigate("/dashboard");
       }, 1000);
     },
@@ -415,9 +423,18 @@ const CreateAccount = () => {
         message: "Account Created with Google!",
       });
       const nextPath = searchParams.get("next") || "/dashboard";
-      setTimeout(() => {
+      // Strip the token from the URL so a refresh doesn't re-trigger.
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("token");
+        window.history.replaceState({}, "", url.toString());
+      } catch {
+        // ignore
+      }
+      const timer = setTimeout(() => {
         navigate(nextPath);
       }, 1500);
+      return () => clearTimeout(timer);
     }
   }, [searchParams, navigate]);
 
@@ -426,7 +443,9 @@ const CreateAccount = () => {
 
   // Memoize handleCreateAccount
   const handleCreateAccount = useCallback(() => {
-    if (!firstName || !lastName || !emailAddress || !password) {
+    // Guard against double-submit via Enter key while a mutation is pending.
+    if (createAccountMutation.isPending) return;
+    if (!firstName.trim() || !lastName.trim() || !emailAddress || !password) {
       setToastProps({ type: "warn", message: "Please fill in all fields" });
       return;
     }
@@ -434,14 +453,15 @@ const CreateAccount = () => {
       setToastProps({ type: "warn", message: "Please enter a valid email address" });
       return;
     }
-    if (password.length < 6) {
-      setToastProps({ type: "warn", message: "Password must be at least 6 characters" });
+    // Backend enforces a minimum of 8 — match here to avoid round-trip failure.
+    if (password.length < 8) {
+      setToastProps({ type: "warn", message: "Password must be at least 8 characters" });
       return;
     }
 
     createAccountMutation.mutate({
-      firstName,
-      lastName,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
       emailAddress,
       password,
     });

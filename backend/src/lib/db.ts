@@ -29,6 +29,9 @@ export async function connectMongoDB(): Promise<void> {
     await mongoose.connect(uri, {
       serverSelectionTimeoutMS: CONNECT_TIMEOUT_MS,
       maxPoolSize: MAX_POOL_SIZE,
+      // Disable command buffering so callers see a clear error if the
+      // pool is disconnected, rather than queueing forever.
+      bufferCommands: false,
     });
     console.log("[db] MongoDB connected successfully");
   } catch (err) {

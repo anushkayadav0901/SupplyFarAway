@@ -172,12 +172,19 @@ You are a compliance checker AI for international trade shipments, designed to a
         });
       }
 
-      const originalAIComplianceStatus = complianceResponse.complianceStatus as string;
+      // Tolerate minor casing/whitespace drift from the AI response — Gemini
+      // sometimes returns "READY FOR SHIPMENT" or "ready for shipment" instead
+      // of the documented "Ready for Shipment", which used to silently flip
+      // the draft to nonCompliant.
+      const originalAIComplianceStatus = String(
+        complianceResponse.complianceStatus ?? ""
+      ).trim();
+      const normalizedAIStatus = originalAIComplianceStatus.toLowerCase();
 
       let standardizedStatus: string;
-      if (originalAIComplianceStatus === "Ready for Shipment") {
+      if (normalizedAIStatus === "ready for shipment") {
         standardizedStatus = "compliant";
-      } else if (originalAIComplianceStatus === "Not Ready") {
+      } else if (normalizedAIStatus === "not ready") {
         standardizedStatus = "nonCompliant";
       } else {
         standardizedStatus = "nonCompliant";

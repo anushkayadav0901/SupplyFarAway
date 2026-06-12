@@ -106,6 +106,17 @@ const RouteOptimization: React.FC = () => {
   const location = useLocation();
   const prefersReducedMotion = useReducedMotion();
 
+  // Track pending timers so we can clean them up on unmount. Without this,
+  // navigation 2s after choose-route used to fire even if the user already
+  // navigated away, briefly flashing inventory before their next route.
+  const pendingTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
+  useEffect(() => {
+    return () => {
+      pendingTimersRef.current.forEach(clearTimeout);
+      pendingTimersRef.current = [];
+    };
+  }, []);
+
   // tRPC mutations / queries
   const generateRoutesMutation = trpc.logistics.generateRoutes.useMutation();
   const processRoutesMutation = trpc.logistics.processRoutes.useMutation();
@@ -256,10 +267,11 @@ const RouteOptimization: React.FC = () => {
         type: "error",
         message: (error as any)?.message || "Failed to fetch routes",
       });
-      setTimeout(
+      const retryToastTid = setTimeout(
         () => setToastProps({ type: "info", message: "Please try again." }),
         2000
       );
+      pendingTimersRef.current.push(retryToastTid);
     } finally {
       setLoading(false);
     }
@@ -459,7 +471,8 @@ const RouteOptimization: React.FC = () => {
       const response = await chooseRouteMutation.mutateAsync(requestBody);
       setToastProps({ type: "success", message: (response as any).message });
       setChosenRoute(index);
-      setTimeout(() => navigate("/inventory-management"), 2000);
+      const tid = setTimeout(() => navigate("/inventory-management"), 2000);
+      pendingTimersRef.current.push(tid);
     } catch (error: unknown) {
       console.error("Error choosing route:", error);
       const errorMessage =

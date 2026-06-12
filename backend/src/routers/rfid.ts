@@ -57,15 +57,45 @@ export const rfidRouter = router({
     .input(
       z.object({
         draftId: z.string().max(100).optional(),
+        // Case-insensitive dedupe — preserve original casing of the FIRST occurrence
+        // and drop trimmed-empty entries. This matches the frontend parseTags() contract
+        // so "ABC" and "abc" in the same list don't both survive into the database.
         manifestTags: z
-          .array(z.string().min(1).max(MAX_TAG_LEN))
+          .array(z.string().max(MAX_TAG_LEN))
           .min(1)
           .max(MAX_TAGS_PER_LIST)
-          .transform((tags) => [...new Set(tags)]), // dedup
+          .transform((tags) => {
+            const seen = new Set<string>();
+            const out: string[] = [];
+            for (const t of tags) {
+              const trimmed = t.trim();
+              if (trimmed.length === 0) continue;
+              const key = trimmed.toLowerCase();
+              if (seen.has(key)) continue;
+              seen.add(key);
+              out.push(trimmed);
+            }
+            return out;
+          })
+          .refine((tags) => tags.length > 0, {
+            message: "Manifest tag list must contain at least one non-empty tag",
+          }),
         scannedTags: z
-          .array(z.string().min(1).max(MAX_TAG_LEN))
+          .array(z.string().max(MAX_TAG_LEN))
           .max(MAX_TAGS_PER_LIST)
-          .transform((tags) => [...new Set(tags)]), // dedup
+          .transform((tags) => {
+            const seen = new Set<string>();
+            const out: string[] = [];
+            for (const t of tags) {
+              const trimmed = t.trim();
+              if (trimmed.length === 0) continue;
+              const key = trimmed.toLowerCase();
+              if (seen.has(key)) continue;
+              seen.add(key);
+              out.push(trimmed);
+            }
+            return out;
+          }),
       }),
     )
     .mutation(async ({ ctx, input }) => {

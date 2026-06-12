@@ -30,10 +30,14 @@ const truckSchema = new Schema(
     createdAt: {
       type: Date,
       default: Date.now,
+      index: true,
     },
   },
   { strict: true }
 );
+
+// Compound index for list queries scoped per-user, newest first.
+truckSchema.index({ userId: 1, createdAt: -1 });
 
 export type TruckDocument = InferSchemaType<typeof truckSchema> & {
   _id: mongoose.Types.ObjectId;

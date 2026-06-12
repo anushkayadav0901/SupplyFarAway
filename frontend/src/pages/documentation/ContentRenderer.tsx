@@ -119,6 +119,11 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
     const link = document.createElement("a");
     link.href = url;
     link.download = filename;
+    // For cross-origin URLs the browser ignores `download` — open in a
+    // new tab as a fallback so the link still works. Hardened with
+    // rel="noopener noreferrer" to prevent reverse tab-nabbing.
+    link.rel = "noopener noreferrer";
+    link.target = "_blank";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -244,10 +249,13 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
           {currentSection.title}
         </span>
         <button
+          type="button"
           onClick={onToggleSidebar}
-          className="lg:hidden ml-auto p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 flex-shrink-0"
+          aria-label={isSidebarOpen ? "Close navigation" : "Open navigation"}
+          aria-expanded={isSidebarOpen}
+          className="lg:hidden ml-auto p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
         >
-          {isSidebarOpen ? <FaTimes /> : <FaBars />}
+          {isSidebarOpen ? <FaTimes aria-hidden="true" /> : <FaBars aria-hidden="true" />}
         </button>
       </nav>
 

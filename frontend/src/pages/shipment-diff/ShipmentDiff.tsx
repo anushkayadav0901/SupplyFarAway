@@ -1,7 +1,8 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { toast } from "react-toastify";
-import { Image, RefreshCcw, Upload, X, AlertTriangle } from "lucide-react";
+import { Image as ImageIcon, RefreshCcw, Upload, X, AlertTriangle } from "lucide-react";
 
 import Header from "../../components/Header";
 import InsightsRail from "../../components/InsightsRail";
@@ -17,6 +18,10 @@ import { trpc } from "../../lib/trpc";
 //   red      61 – 100
 const RISK_HIGH = 61;
 const RISK_MED = 31;
+/** Frontend image size cap — keep in sync with backend MAX_IMAGE_BASE64_CHARS (10 MB). */
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const ALLOWED_IMAGE_MIME = ["image/jpeg", "image/png", "image/webp"] as const;
+type AllowedImageMime = (typeof ALLOWED_IMAGE_MIME)[number];
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -164,7 +169,9 @@ function ScanImage({
 
 export default function ShipmentDiff() {
   const shouldReduceMotion = useReducedMotion();
-  const [draftId, setDraftId] = useState("");
+  const [searchParams] = useSearchParams();
+  const initialDraftId = searchParams.get("draftId") ?? "";
+  const [draftId, setDraftId] = useState(initialDraftId);
   const [beforeFile, setBeforeFile] = useState<File | null>(null);
   const [afterFile, setAfterFile] = useState<File | null>(null);
   const [beforePreview, setBeforePreview] = useState<string>("");
@@ -173,7 +180,25 @@ export default function ShipmentDiff() {
   const beforeInputRef = useRef<HTMLInputElement>(null);
   const afterInputRef = useRef<HTMLInputElement>(null);
 
+  // Revoke object URLs on unmount to prevent memory leaks — useRef so cleanup
+  // sees the latest URLs even if the closure was captured early.
+  const beforePreviewRef = useRef(beforePreview);
+  const afterPreviewRef = useRef(afterPreview);
+  useEffect(() => { beforePreviewRef.current = beforePreview; }, [beforePreview]);
+  useEffect(() => { afterPreviewRef.current = afterPreview; }, [afterPreview]);
+  useEffect(() => {
+    return () => {
+      if (beforePreviewRef.current) URL.revokeObjectURL(beforePreviewRef.current);
+      if (afterPreviewRef.current) URL.revokeObjectURL(afterPreviewRef.current);
+    };
+  }, []);
+
+  const utils = trpc.useUtils();
+
   const compareMutation = trpc.shipmentDiff.compare.useMutation({
+    onSuccess: () => {
+      utils.shipmentDiff.history.invalidate().catch(() => void 0);
+    },
     onError: (err) => {
       toast.error(err.message ?? "Comparison failed. Please try again.");
     },
@@ -188,6 +213,16 @@ export default function ShipmentDiff() {
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > MAX_IMAGE_BYTES) {
+      toast.error(`Image is larger than 10 MB (${(file.size / 1024 / 1024).toFixed(1)} MB).`);
+      e.target.value = "";
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file.");
+      e.target.value = "";
+      return;
+    }
     if (slot === "before") {
       if (beforePreview) URL.revokeObjectURL(beforePreview);
       setBeforeFile(file);
@@ -234,14 +269,16 @@ export default function ShipmentDiff() {
         readFileAsBase64(afterFile),
       ]);
 
+      const inferredMime: AllowedImageMime =
+        ALLOWED_IMAGE_MIME.find((m) => m === beforeFile.type) ?? "image/jpeg";
+
       await compareMutation.mutateAsync({
         draftId: draftId.trim() || undefined,
         beforeImageBase64: beforeBase64,
         afterImageBase64: afterBase64,
-        mimeType: (beforeFile.type as "image/jpeg" | "image/png" | "image/webp") || "image/jpeg",
+        mimeType: inferredMime,
       });
 
-      historyQuery.refetch().catch(() => void 0);
       toast.success("Comparison complete.");
     } catch {
       // handled by onError above
@@ -373,7 +410,7 @@ export default function ShipmentDiff() {
                         </>
                       ) : (
                         <>
-                          <Image className="w-4 h-4" aria-hidden="true" />
+                          <ImageIcon className="w-4 h-4" aria-hidden="true" />
                           Run Diff Analysis
                         </>
                       )}
@@ -547,7 +584,7 @@ export default function ShipmentDiff() {
                 </div>
               ) : !historyQuery.data || historyQuery.data.length === 0 ? (
                 <div className="py-12 text-center text-slate-400">
-                  <Image className="w-10 h-10 mx-auto mb-3 opacity-40" aria-hidden="true" />
+                  <ImageIcon className="w-10 h-10 mx-auto mb-3 opacity-40" aria-hidden="true" />
                   <p className="text-sm font-medium text-slate-500">No comparisons yet</p>
                   <p className="text-xs mt-1">Upload two images to get started.</p>
                 </div>

@@ -101,12 +101,27 @@ export const authRouter = router({
       }
 
       const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
-      const newUser = await UserModel.create({
-        firstName,
-        lastName,
-        emailAddress,
-        password: hashedPassword,
-      });
+      let newUser;
+      try {
+        newUser = await UserModel.create({
+          firstName,
+          lastName,
+          emailAddress,
+          password: hashedPassword,
+        });
+      } catch (err) {
+        // Translate a duplicate-key error (race between two concurrent
+        // createAccount requests) into a clean BAD_REQUEST rather than
+        // a generic 500.
+        const code = (err as { code?: number } | undefined)?.code;
+        if (code === 11000) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "User already exists",
+          });
+        }
+        throw err;
+      }
 
       const token = signToken({
         id: String(newUser._id),
@@ -327,49 +342,35 @@ export const authRouter = router({
 
       // H4: verify the document exists and belongs to the authenticated user
       // before updating (findByIdAndUpdate with the user's own ID ensures ownership).
+      // Previously the "else" branch created a brand-new stub user without
+      // email/password if the record had been deleted concurrently — that's
+      // dangerous (it would bypass the unique-email index when the original
+      // record came back). Reject the request in that case instead.
       const user = await UserModel.findById(userId);
 
-      if (user) {
-        const updatedUser = await UserModel.findByIdAndUpdate(
-          userId,
-          { $set: updateData },
-          { new: true, runValidators: true },
-        );
-
-        if (!updatedUser) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
-        }
-
-        return {
-          message: "Profile updated successfully",
-          user: {
-            phoneNumber: updatedUser.phoneNumber,
-            companyName: updatedUser.companyName,
-            companyAddress: updatedUser.companyAddress ?? {},
-            taxId: updatedUser.taxId,
-          },
-        };
-      } else {
-        const newUserData = {
-          ...updateData,
-          createdAt: new Date(),
-        };
-
-        const newUser = new UserModel(
-          newUserData as Parameters<typeof UserModel.create>[0],
-        );
-        const savedUser = await newUser.save();
-
-        return {
-          message: "Profile created successfully",
-          user: {
-            phoneNumber: savedUser.phoneNumber,
-            companyName: savedUser.companyName,
-            companyAddress: savedUser.companyAddress ?? {},
-            taxId: savedUser.taxId,
-          },
-        };
+      if (!user) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
       }
+
+      const updatedUser = await UserModel.findByIdAndUpdate(
+        userId,
+        { $set: updateData },
+        { new: true, runValidators: true },
+      );
+
+      if (!updatedUser) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+      }
+
+      return {
+        message: "Profile updated successfully",
+        user: {
+          phoneNumber: updatedUser.phoneNumber,
+          companyName: updatedUser.companyName,
+          companyAddress: updatedUser.companyAddress ?? {},
+          taxId: updatedUser.taxId,
+        },
+      };
     }),
 
   /**
@@ -379,11 +380,19 @@ export const authRouter = router({
   deleteAccount: protectedProcedure.mutation(async ({ ctx }) => {
     const userId = requireUserId(ctx);
 
-    // H4: all deletes are scoped by the authenticated user's ID.
-    await UserModel.findByIdAndDelete(userId);
-    await DraftModel.deleteMany({ userId });
-    await SaveRouteModel.deleteMany({ userId });
-    await ProductAnalysisModel.deleteMany({ userId });
+    // Delete the user first; if that fails we surface the error before
+    // wiping the orphaned data. Then clean up all owned collections in
+    // parallel — they are independent and safe to run concurrently.
+    const deletedUser = await UserModel.findByIdAndDelete(userId);
+    if (!deletedUser) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+    }
+
+    await Promise.all([
+      DraftModel.deleteMany({ userId }),
+      SaveRouteModel.deleteMany({ userId }),
+      ProductAnalysisModel.deleteMany({ userId }),
+    ]);
 
     return { message: "Account deleted successfully" };
   }),

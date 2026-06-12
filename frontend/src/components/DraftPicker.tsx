@@ -49,13 +49,24 @@ export default function DraftPicker({
   const draftsQuery = trpc.inventory.getDrafts.useQuery({});
 
   useEffect(() => {
+    // Only mount the document listener while the dropdown is actually
+    // open — avoids constant per-mousedown work for every other picker
+    // instance on the page.
+    if (!open) return;
     function onClickOutside(e: MouseEvent) {
       if (!ref.current) return;
       if (!ref.current.contains(e.target as Node)) setOpen(false);
     }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
     document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
-  }, []);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onClickOutside);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
 
   const drafts =
     (draftsQuery.data?.drafts as unknown as DraftLike[] | undefined) ?? [];
@@ -66,18 +77,26 @@ export default function DraftPicker({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls="draft-picker-list"
+        className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
       >
-        <FileText className="w-3.5 h-3.5 text-slate-500" />
+        <FileText className="w-3.5 h-3.5 text-slate-500" aria-hidden="true" />
         Pick draft
         <ChevronDown
+          aria-hidden="true"
           className={`w-3.5 h-3.5 text-slate-500 transition-transform ${
             open ? "rotate-180" : ""
           }`}
         />
       </button>
       {open && (
-        <div className="absolute right-0 mt-2 w-72 max-h-80 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-lg z-30">
+        <div
+          id="draft-picker-list"
+          role="listbox"
+          className="absolute right-0 mt-2 w-72 max-h-80 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-lg z-30"
+        >
           {draftsQuery.isLoading ? (
             <div className="p-4 text-xs text-slate-500">Loading drafts…</div>
           ) : draftsQuery.error ? (
@@ -94,7 +113,7 @@ export default function DraftPicker({
                 const id = getId(d);
                 const selected = id === trimmedValue;
                 return (
-                  <li key={id}>
+                  <li key={id} role="option" aria-selected={selected}>
                     <button
                       type="button"
                       onClick={() => {

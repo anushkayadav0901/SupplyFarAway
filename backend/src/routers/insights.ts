@@ -339,13 +339,14 @@ async function computeAvgTrustScore(
         safeFindOne("anomaly/avg", AnomalyReportModel.findOne(findFilter).sort({ createdAt: -1 }).lean()),
       ]);
 
+      // Only include subsystems that returned data so a missing subsystem
+      // doesn't drag the rolling average toward NEUTRAL_SCORE forever.
       const breakdown: SubsystemBreakdown[] = [
         scoreBoxCount(box as Record<string, unknown> | null),
         scoreShipmentDiff(diff as Record<string, unknown> | null),
         scoreRfid(rfid as Record<string, unknown> | null),
         scoreWeight(weight as Record<string, unknown> | null),
         scoreAnomaly(anomaly as Record<string, unknown> | null),
-        scoreCompliance(null),
       ];
 
       let weighted = 0;
@@ -718,6 +719,15 @@ export const insightsRouter = router({
 
       for (const ev of audits) {
         const created = ev.createdAt as Date | undefined;
+        // Audit events sometimes carry severity in the payload (e.g. the
+        // anomaly-analyze writer copies parsed.severity). Surface it so the
+        // UI doesn't blanket everything as "low".
+        const payload = (ev.payload as Record<string, unknown> | undefined) ?? {};
+        const sevRaw = payload.severity;
+        const severity: "low" | "medium" | "high" =
+          sevRaw === "high" || sevRaw === "medium" || sevRaw === "low"
+            ? sevRaw
+            : "low";
         items.push({
           id: String(ev._id ?? ""),
           type: "audit",
@@ -727,7 +737,7 @@ export const insightsRouter = router({
             (ev.eventType as string) ??
             "Audit event"
           ).slice(0, SUMMARY_MAX_CHARS),
-          severity: "low",
+          severity,
           draftId: (ev.draftId as string | undefined) ?? undefined,
           icon: "audit",
         });
@@ -898,19 +908,19 @@ export const insightsRouter = router({
         ),
       ]);
 
-      // Compliance is keyed off draft only (no draftId on ComplianceRecord);
-      // for the bundle we return the most recent compliance record for the
-      // user as a best-effort.
+      // Compliance is embedded on the draft as `complianceData`. Prefer it so
+      // we return compliance for THIS draft (not the user's most recent record,
+      // which may belong to a different shipment).
       let compliance: Record<string, unknown> | null = null;
       if (draft) {
-        try {
-          const recent = await ComplianceRecordModel.findOne({ userId })
-            .sort({ timestamp: -1 })
-            .lean();
-          compliance = (recent as Record<string, unknown> | null) ?? null;
-        } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
-          console.warn("[insights] draftBundle — compliance fetch failed:", message);
+        const draftCompliance = (draft as unknown as Record<string, unknown>)
+          .complianceData;
+        if (
+          draftCompliance &&
+          typeof draftCompliance === "object" &&
+          Object.keys(draftCompliance as Record<string, unknown>).length > 0
+        ) {
+          compliance = draftCompliance as Record<string, unknown>;
         }
       }
 
@@ -938,7 +948,6 @@ export const insightsRouter = router({
 
       const now = Date.now();
       const twentyFourHoursAgo = new Date(now - 24 * 60 * 60 * 1000);
-      const fortyEightHoursAgo = new Date(now - 48 * 60 * 60 * 1000);
 
       const [
         activeShipments,
@@ -963,6 +972,8 @@ export const insightsRouter = router({
           "drafts",
           DraftModel.find({ userId })
             .select({ _id: 1 })
+            .sort({ timestamp: -1 })
+            .limit(AVG_TRUST_SAMPLE_SIZE)
             .lean() as Promise<Record<string, unknown>[]>,
         ),
         safeFind(
@@ -978,7 +989,7 @@ export const insightsRouter = router({
 
       const [avgTrustScore, avgTrustScore24hAgo] = await Promise.all([
         computeAvgTrustScore(userId, draftIds, undefined),
-        computeAvgTrustScore(userId, draftIds, fortyEightHoursAgo),
+        computeAvgTrustScore(userId, draftIds, twentyFourHoursAgo),
       ]);
 
       const ticks = recentTicks

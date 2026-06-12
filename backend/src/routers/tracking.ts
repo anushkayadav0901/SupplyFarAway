@@ -123,8 +123,13 @@ export const trackingRouter = router({
   latest: protectedProcedure
     .input(z.object({ draftId: z.string() }))
     .query(async ({ ctx, input }) => {
-      requireUserId(ctx);
-      const ping = await TrackingPingModel.findOne({ draftId: input.draftId })
+      const userId = requireUserId(ctx);
+      // Scope by userId — previously any authenticated user could read another
+      // user's latest ping by guessing the draftId (IDOR).
+      const ping = await TrackingPingModel.findOne({
+        draftId: input.draftId,
+        userId,
+      })
         .sort({ createdAt: -1 })
         .lean();
 
@@ -149,8 +154,12 @@ export const trackingRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      requireUserId(ctx);
-      const pings = await TrackingPingModel.find({ draftId: input.draftId })
+      const userId = requireUserId(ctx);
+      // Scope by userId — same IDOR concern as `latest`.
+      const pings = await TrackingPingModel.find({
+        draftId: input.draftId,
+        userId,
+      })
         .sort({ createdAt: -1 })
         .limit(input.limit)
         .lean();

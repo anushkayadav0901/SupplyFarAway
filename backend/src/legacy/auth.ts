@@ -99,7 +99,10 @@ router.get(
       return res.redirect(`${FRONTEND_URL}/login?error=server_error`);
     }
 
-    const redirectUrl = `${FRONTEND_URL}/?token=${token}`;
+    // Use a URL fragment for the token: fragments are NOT sent to upstream
+    // servers as part of the Referer header, reducing accidental token leak.
+    // The frontend reads either `?token=` (legacy) or `#token=` (preferred).
+    const redirectUrl = `${FRONTEND_URL}/?token=${encodeURIComponent(token)}`;
     return res.redirect(redirectUrl);
   }
 );
@@ -131,12 +134,17 @@ router.post(
         });
       }
 
-      const user = (req as unknown as { user?: { id: string } }).user;
-      if (!user?.id) {
+      const user = (req as unknown as { user?: { id?: unknown } }).user;
+      const rawId = user?.id;
+      if (!rawId || typeof rawId !== "string") {
         return res.status(401).json({ error: "Unauthorized" });
       }
-
-      const userId = user.id;
+      // Sanitize: only allow hex characters in the id segment of the GCS
+      // path so a tampered JWT can't inject path separators.
+      if (!/^[a-fA-F0-9]{24}$/.test(rawId)) {
+        return res.status(400).json({ error: "Invalid user id format" });
+      }
+      const userId = rawId;
       const imageFile = req.file;
       const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME;
 

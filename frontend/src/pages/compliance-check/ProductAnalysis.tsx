@@ -83,14 +83,31 @@ const ProductAnalysis: React.FC = () => {
   };
 
   const handleFile = (file: File): void => {
-    if (file && file.type.startsWith("image/")) {
-      setSelectedImage(file);
-      setAnalysisResult(null);
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
       setToastProps({
-        type: "success",
-        message: `Image uploaded successfully!`,
+        type: "error",
+        message: "Only image files are supported. Please choose a JPG, PNG, WebP, or GIF.",
       });
+      return;
     }
+    // Defence-in-depth: enforce the same 10MB cap that the server enforces so
+    // the user gets feedback before uploading a large image and waiting for
+    // a 413.
+    const MAX_BYTES = 10 * 1024 * 1024;
+    if (file.size > MAX_BYTES) {
+      setToastProps({
+        type: "error",
+        message: `Image is too large (${(file.size / (1024 * 1024)).toFixed(1)} MB). Max allowed is 10 MB.`,
+      });
+      return;
+    }
+    setSelectedImage(file);
+    setAnalysisResult(null);
+    setToastProps({
+      type: "success",
+      message: `Image uploaded successfully!`,
+    });
   };
 
   const handleRemoveImage = (): void => {

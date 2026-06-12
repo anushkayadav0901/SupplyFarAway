@@ -667,7 +667,17 @@ function RouteMap(): React.ReactElement {
   };
 
   const handleBackClick = () => {
-    window.close();
+    // window.close() is a no-op for tabs the user opened directly (only works
+    // for tabs opened via window.open from JS). Fall back to history-back so
+    // the close button always does something.
+    try {
+      window.close();
+    } catch {
+      // ignore — fall through to history navigation
+    }
+    if (!window.closed && window.history.length > 1) {
+      window.history.back();
+    }
   };
 
   const handleMapStyleChange = (style: string) => {

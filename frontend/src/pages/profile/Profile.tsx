@@ -204,7 +204,12 @@ const Profile: React.FC = () => {
 
   const loading = meLoading || draftsLoading;
   const user = meData?.user;
-  const rawDrafts: any[] = draftsData?.drafts ?? [];
+  // Reference-stable when draftsData hasn't changed — prevents the
+  // processing effect below from re-firing on every render.
+  const rawDrafts = React.useMemo<any[]>(
+    () => draftsData?.drafts ?? [],
+    [draftsData?.drafts],
+  );
 
   // Redirect if not logged in or error
   useEffect(() => {
@@ -347,22 +352,33 @@ const Profile: React.FC = () => {
     setFilteredDrafts(filtered);
   }, [searchQuery, startDate, endDate, draftsData]);
 
+  const logoutTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  React.useEffect(() => {
+    return () => {
+      if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
+    };
+  }, []);
+
   const handleLogout = (): void => {
     setToastProps({
       type: "success",
       message: "You have successfully logged out!",
     });
-    setTimeout(() => {
-      // Remove the token BEFORE navigating so the destination page never
-      // sees a "still authed" state. navigate(...) is synchronous in
-      // react-router (state change), so ordering matters.
-      localStorage.removeItem("token");
+    // Clear the token immediately so any in-flight tRPC request stops
+    // sending the Authorization header. Defer the navigation slightly so
+    // the success toast is visible.
+    localStorage.removeItem("token");
+    if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
+    logoutTimerRef.current = setTimeout(() => {
       navigate("/");
-    }, 2000);
+    }, 1200);
   };
 
   const handleNavigation = (path: string): void => {
-    navigate(`/${path}/${userId}`);
+    // Always navigate using the authenticated user's id rather than the URL
+    // param so a spoofed /profile/:userId path can't propagate further.
+    const myId = meData?.user?.id ? String(meData.user.id) : userId;
+    navigate(`/${path}/${myId ?? ""}`);
   };
 
   const prefersReducedMotion = useReducedMotion();
@@ -607,23 +623,33 @@ const Profile: React.FC = () => {
               {/* Date Filters */}
               <div className="flex gap-2 flex-1">
                 <div className="flex-1">
-                  <label className="block text-sm text-gray-600 mb-1">
+                  <label
+                    htmlFor="profile-start-date"
+                    className="block text-sm text-gray-600 mb-1"
+                  >
                     Start Date
                   </label>
                   <input
+                    id="profile-start-date"
                     type="date"
                     value={startDate}
+                    max={endDate || undefined}
                     onChange={(e) => setStartDate(e.target.value)}
                     className="w-full px-4 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="block text-sm text-gray-600 mb-1">
+                  <label
+                    htmlFor="profile-end-date"
+                    className="block text-sm text-gray-600 mb-1"
+                  >
                     End Date
                   </label>
                   <input
+                    id="profile-end-date"
                     type="date"
                     value={endDate}
+                    min={startDate || undefined}
                     onChange={(e) => setEndDate(e.target.value)}
                     className="w-full px-4 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                   />

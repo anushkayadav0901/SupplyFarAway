@@ -85,7 +85,10 @@ const DashboardHero: React.FC = () => {
   const navigate = useNavigate();
 
   const tickerQuery = trpc.insights.operationsTicker.useQuery(undefined, {
-    refetchInterval: 4000,
+    // Pause polling while the tab is hidden — saves bandwidth & CPU.
+    refetchInterval: () =>
+      typeof document !== "undefined" && document.hidden ? false : 4000,
+    refetchIntervalInBackground: false,
     retry: false,
   });
 

@@ -120,21 +120,15 @@ function MovexDashboard() {
     navigate("/docs");
   };
 
+  // Bug fix: previously these handlers called localStorage.clear(), which
+  // also wiped the theme preference and any other persisted UI state. The
+  // tRPC mutations that own per-feature state are responsible for clearing
+  // their own caches — navigation alone is the correct contract here.
   const complianceCheck = (): void => {
-    const token = localStorage.getItem("token");
-    localStorage.clear();
-    if (token) {
-      localStorage.setItem("token", token);
-    }
     navigate("/compliance");
   };
 
   const routeOptimization = (): void => {
-    const token = localStorage.getItem("token");
-    localStorage.clear();
-    if (token) {
-      localStorage.setItem("token", token);
-    }
     navigate("/route-optimization");
   };
 

@@ -13,11 +13,11 @@ export const trucksRouter = router({
   register: protectedProcedure
     .input(
       z.object({
-        plate: z.string().min(1),
-        capacityKg: z.number().positive(),
-        baseCity: z.string().min(1),
-        driverName: z.string().min(1),
-        phone: z.string().optional(),
+        plate: z.string().min(1).max(20).trim(),
+        capacityKg: z.number().positive().max(200000),
+        baseCity: z.string().min(1).max(120).trim(),
+        driverName: z.string().min(1).max(120).trim(),
+        phone: z.string().max(30).trim().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -29,7 +29,7 @@ export const trucksRouter = router({
         capacityKg: input.capacityKg,
         baseCity: input.baseCity,
         driverName: input.driverName,
-        phone: input.phone,
+        phone: input.phone ? input.phone : undefined,
       });
 
       return truck;

@@ -65,6 +65,14 @@ const anomalyReportSchema = new Schema({
   },
 });
 
+// Hot path: history list per-user, newest first.
+anomalyReportSchema.index({ userId: 1, createdAt: -1 });
+// Hot path: insights.operationsTicker + fraud.summary count
+// high-severity events in the last 24h, scoped per user.
+anomalyReportSchema.index({ userId: 1, severity: 1, createdAt: -1 });
+// Hot path: shipmentTrustScore + draftBundle find latest by (userId, draftId).
+anomalyReportSchema.index({ userId: 1, draftId: 1, createdAt: -1 });
+
 export type AnomalyReportDocument = InferSchemaType<typeof anomalyReportSchema> & {
   _id: mongoose.Types.ObjectId;
 };

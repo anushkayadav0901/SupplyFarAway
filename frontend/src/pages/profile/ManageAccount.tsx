@@ -120,13 +120,23 @@ const ManageAccount: React.FC = () => {
     },
   });
 
+  const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current);
+    };
+  }, []);
+
   const deleteAccountMutation = trpc.auth.deleteAccount.useMutation({
     onSuccess: () => {
       setToastProps({ type: "success", message: "Account deleted successfully!" });
-      setTimeout(() => {
-        localStorage.removeItem("token");
+      // Remove token immediately so any tab in the same origin stops
+      // sending authenticated requests.
+      localStorage.removeItem("token");
+      if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current);
+      deleteTimerRef.current = setTimeout(() => {
         navigate("/");
-      }, 2000);
+      }, 1500);
     },
     onError: (error: { message?: string }) => {
       setToastProps({ type: "error", message: error.message || "Failed to delete account." });
@@ -191,10 +201,11 @@ const ManageAccount: React.FC = () => {
       setToastProps({ type: "error", message: "Passwords do not match." });
       return;
     }
-    if (!newPassword || newPassword.length < 6) {
+    // Backend enforces min 8 chars — match here to avoid round-trip failure.
+    if (!newPassword || newPassword.length < 8) {
       setToastProps({
         type: "error",
-        message: "Password must be at least 6 characters long.",
+        message: "Password must be at least 8 characters long.",
       });
       return;
     }
@@ -215,8 +226,24 @@ const ManageAccount: React.FC = () => {
       });
       return;
     }
+    // Final irreversible-action confirmation. window.confirm is keyboard
+    // accessible and announced by screen readers.
+    const ok = window.confirm(
+      "This will permanently delete your account and all associated data. This cannot be undone. Continue?",
+    );
+    if (!ok) return;
     deleteAccountMutation.mutate();
   };
+
+  // Client-side guards must mirror the server multer config so we don't
+  // waste a 10MB upload only to be rejected on the backend.
+  const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
+  const ALLOWED_PHOTO_TYPES = new Set([
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+  ]);
 
   // Legacy: photo upload stays as axios (POST /api/user/upload-photo is a multipart/form-data endpoint via multer)
   const handlePhotoUpload = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
@@ -225,6 +252,20 @@ const ManageAccount: React.FC = () => {
       setToastProps({
         type: "error",
         message: "Please select a photo to upload.",
+      });
+      return;
+    }
+    if (!ALLOWED_PHOTO_TYPES.has(profilePhoto.type)) {
+      setToastProps({
+        type: "error",
+        message: "Only JPEG, PNG, WebP, or GIF images are allowed.",
+      });
+      return;
+    }
+    if (profilePhoto.size > MAX_PHOTO_BYTES) {
+      setToastProps({
+        type: "error",
+        message: "File too large. Maximum allowed size is 10 MB.",
       });
       return;
     }
@@ -265,10 +306,23 @@ const ManageAccount: React.FC = () => {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const file = e.target.files?.[0];
     if (file) {
+      // Revoke any previous object URL to avoid leaking memory when the
+      // user re-selects a different file before uploading.
+      setPreviewPhoto((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return URL.createObjectURL(file);
+      });
       setProfilePhoto(file);
-      setPreviewPhoto(URL.createObjectURL(file));
     }
   };
+
+  // Revoke the preview object URL on unmount so it isn't held forever.
+  useEffect(() => {
+    return () => {
+      if (previewPhoto) URL.revokeObjectURL(previewPhoto);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleCancelEdit = (section: "username" | "password" | "profile"): void => {
     if (section === "username") {
@@ -461,13 +515,17 @@ const ManageAccount: React.FC = () => {
 
               {/* Photo Upload - LEGACY: uses multipart/form-data via axios */}
               <form onSubmit={handlePhotoUpload} className="mt-6">
-                <label className="block text-gray-700 font-medium mb-2">
+                <label
+                  htmlFor="profile-photo-input"
+                  className="block text-gray-700 font-medium mb-2"
+                >
                   Upload Profile Photo
                 </label>
                 <div className="flex items-center gap-4">
                   <input
+                    id="profile-photo-input"
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
                     onChange={handlePhotoChange}
                     ref={fileInputRef}
                     className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"

@@ -35,7 +35,10 @@ const Toast = ({ type, message }: ToastProps) => {
       case "info":
         toast.info(message, toastOptions);
         break;
+      // Accept both "warning" and the shorter "warn" alias — callers
+      // throughout the codebase use either spelling.
       case "warning":
+      case "warn":
         toast.warn(message, toastOptions);
         break;
       default:

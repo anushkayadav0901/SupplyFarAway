@@ -44,6 +44,9 @@ const weightCheckSchema = new Schema(
   }
 );
 
+// Compound index for the hot history-list query: find by userId sorted by createdAt desc.
+weightCheckSchema.index({ userId: 1, createdAt: -1 });
+
 export type WeightCheckDocument = InferSchemaType<typeof weightCheckSchema> & {
   _id: mongoose.Types.ObjectId;
 };

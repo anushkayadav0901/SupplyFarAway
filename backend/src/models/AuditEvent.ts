@@ -33,6 +33,11 @@ const auditEventSchema = new Schema(
   { strict: false }
 );
 
+// Hot path: audit.recent / insights.operationsTicker list per-user, newest first.
+auditEventSchema.index({ userId: 1, createdAt: -1 });
+// Hot path: audit.forDraft list per-user-and-draft, oldest first.
+auditEventSchema.index({ userId: 1, draftId: 1, createdAt: 1 });
+
 export type AuditEventDocument = InferSchemaType<typeof auditEventSchema> & {
   _id: mongoose.Types.ObjectId;
 };

@@ -81,6 +81,7 @@ export const weightCheckRouter = router({
         deviationPct,
         thresholdPct,
         flagged,
+        createdAt: new Date(),
       });
 
       await writeAudit(

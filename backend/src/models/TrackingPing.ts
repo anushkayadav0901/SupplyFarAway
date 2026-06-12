@@ -49,6 +49,10 @@ const trackingPingSchema = new Schema(
   }
 );
 
+// Compound index for fast latest/history queries scoped by draftId, newest first.
+trackingPingSchema.index({ draftId: 1, createdAt: -1 });
+trackingPingSchema.index({ userId: 1, createdAt: -1 });
+
 export type TrackingPingDocument = InferSchemaType<typeof trackingPingSchema> & {
   _id: mongoose.Types.ObjectId;
 };

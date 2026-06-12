@@ -13,6 +13,9 @@ const productAnalysisSchema = new Schema({
   timestamp: { type: Date, default: Date.now },
 });
 
+// Compound index for history list queries (per-user, newest first).
+productAnalysisSchema.index({ userId: 1, timestamp: -1 });
+
 export type ProductAnalysisDocument = InferSchemaType<typeof productAnalysisSchema> & {
   _id: mongoose.Types.ObjectId;
 };

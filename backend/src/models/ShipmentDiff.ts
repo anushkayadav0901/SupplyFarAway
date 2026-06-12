@@ -41,6 +41,9 @@ const shipmentDiffSchema = new Schema({
   },
 });
 
+// Compound index for the hot history-list query: find by userId sorted by createdAt desc.
+shipmentDiffSchema.index({ userId: 1, createdAt: -1 });
+
 export type ShipmentDiffDocument = InferSchemaType<typeof shipmentDiffSchema> & {
   _id: mongoose.Types.ObjectId;
 };

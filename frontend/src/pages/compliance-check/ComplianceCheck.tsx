@@ -321,23 +321,28 @@ const ComplianceForm: React.FC = () => {
     checked: boolean
   ): void => {
     if (responseReceived) return;
-    const docVer = formData.DocumentVerification as Record<
-      string,
-      { checked: boolean; subItems: Record<string, boolean> }
-    >;
-    setFormData((prev) => ({
-      ...prev,
-      DocumentVerification: {
-        ...prev.DocumentVerification,
-        [docName]: {
-          ...docVer[docName],
-          subItems: {
-            ...docVer[docName].subItems,
-            [subItem]: checked,
+    // Read prev inside the updater so rapid checkbox clicks can't be lost to
+    // a stale snapshot of formData (race condition that previously dropped
+    // sub-item toggles when toggling several boxes quickly).
+    setFormData((prev) => {
+      const prevDocVer = prev.DocumentVerification as Record<
+        string,
+        { checked: boolean; subItems: Record<string, boolean> }
+      >;
+      return {
+        ...prev,
+        DocumentVerification: {
+          ...prev.DocumentVerification,
+          [docName]: {
+            ...prevDocVer[docName],
+            subItems: {
+              ...prevDocVer[docName].subItems,
+              [subItem]: checked,
+            },
           },
         },
-      },
-    }));
+      };
+    });
   };
 
   const handleNextTab = (): void => {
@@ -605,24 +610,39 @@ const ComplianceForm: React.FC = () => {
       />
       <div className="max-w-7xl mx-auto bg-white mt-6 shadow-lg rounded-2xl mb-6 overflow-x-auto border border-gray-100">
         <div className="flex border-b border-gray-200 whitespace-nowrap bg-gradient-to-r from-gray-50 to-white">
-          {tabOrder.map((tab: string) => (
-            <button
-              key={tab}
-              onClick={() => !responseReceived && setActiveTab(tab)}
-              className={`flex-shrink-0 px-6 py-4 text-sm sm:text-base font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 relative ${
-                activeTab === tab
-                  ? "text-blue-600 bg-white"
-                  : responseReceived
-                  ? "text-gray-400 cursor-not-allowed"
-                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50/50"
-              }`}
-            >
-              {tab.replace(/([A-Z])/g, " $1").trim()}
-              {activeTab === tab && (
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 to-blue-500 rounded-t-full" />
-              )}
-            </button>
-          ))}
+          {tabOrder.map((tab: string, tabIdx: number) => {
+            const currentIdx = tabOrder.indexOf(activeTab);
+            // Allow free navigation to already-visited tabs, but only allow
+            // forward jumps if every tab in between has its mandatory fields
+            // filled. This prevents step-skipping via the tab buttons (the
+            // arrow-key skip equivalent).
+            const isFutureTab = tabIdx > currentIdx;
+            const isLocked =
+              responseReceived ||
+              (isFutureTab && !areCurrentTabMandatoryFieldsFilled());
+            return (
+              <button
+                key={tab}
+                onClick={() => {
+                  if (!isLocked) setActiveTab(tab);
+                }}
+                aria-disabled={isLocked}
+                disabled={isLocked}
+                className={`flex-shrink-0 px-6 py-4 text-sm sm:text-base font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 relative ${
+                  activeTab === tab
+                    ? "text-blue-600 bg-white"
+                    : isLocked
+                    ? "text-gray-400 cursor-not-allowed"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50/50"
+                }`}
+              >
+                {tab.replace(/([A-Z])/g, " $1").trim()}
+                {activeTab === tab && (
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 to-blue-500 rounded-t-full" />
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
       <div className="max-w-7xl mx-auto bg-white shadow-xl rounded-2xl p-6 sm:p-8 border border-gray-100">

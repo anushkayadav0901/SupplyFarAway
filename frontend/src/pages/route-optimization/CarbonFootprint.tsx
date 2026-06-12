@@ -61,12 +61,10 @@ function CarbonFootprint(): React.ReactElement {
   const { draftId } = useParams<{ draftId: string }>();
   const prefersReducedMotion = useReducedMotion();
 
-  const showToast = (type: string, message: string) => {
-    setToastProps({ type, message });
-    setTimeout(() => setToastProps({ type: "", message: "" }), 3000);
-  };
+  // (Dead helper removed — was firing an uncleared setTimeout that updated
+  // state after unmount when the user navigated away mid-toast.)
 
-  const { data: rawCarbonData, isLoading: loading, isError, error, refetch } = trpc.logistics.getCarbonFootprint.useQuery(
+  const { data: rawCarbonData, isLoading: loading, isError, refetch } = trpc.logistics.getCarbonFootprint.useQuery(
     { draftId: draftId ?? "" },
     { enabled: !!draftId }
   );
@@ -89,9 +87,13 @@ function CarbonFootprint(): React.ReactElement {
         datasets: [
           {
             label: "CO2e Emissions (kg)",
-            data: carbonData.routeAnalysis.map((leg) =>
-              parseFloat(leg.emissions.replace(" kg CO2e", ""))
-            ),
+            // Extract the first numeric token from the emissions string so
+            // minor format drift (e.g. "1.5kg CO2e" vs "1.5 kg CO2e") doesn't
+            // produce NaN bars in the chart.
+            data: carbonData.routeAnalysis.map((leg) => {
+              const match = String(leg.emissions ?? "").match(/-?\d+(\.\d+)?/);
+              return match ? parseFloat(match[0]) : 0;
+            }),
             backgroundColor: "rgba(22, 163, 74, 0.5)",
             borderColor: "rgba(22, 163, 74, 1)",
             borderWidth: 1,
