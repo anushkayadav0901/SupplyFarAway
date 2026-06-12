@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
-  FaUserCircle,
   FaSignOutAlt,
   FaLeaf,
   FaUser,
@@ -354,8 +353,11 @@ const Profile: React.FC = () => {
       message: "You have successfully logged out!",
     });
     setTimeout(() => {
-      navigate("/");
+      // Remove the token BEFORE navigating so the destination page never
+      // sees a "still authed" state. navigate(...) is synchronous in
+      // react-router (state change), so ordering matters.
       localStorage.removeItem("token");
+      navigate("/");
     }, 2000);
   };
 

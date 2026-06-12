@@ -11,8 +11,12 @@ import CardSkeleton from "../../components/skeletons/CardSkeleton";
 import { trpc } from "../../lib/trpc";
 
 // ─── constants ────────────────────────────────────────────────────────────────
-const RISK_HIGH = 70;
-const RISK_MED = 40;
+// Risk score color map (per product spec):
+//   emerald  0 – 30
+//   amber    31 – 60
+//   red      61 – 100
+const RISK_HIGH = 61;
+const RISK_MED = 31;
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -378,6 +382,37 @@ export default function ShipmentDiff() {
                 </div>
               </form>
             </section>
+
+            {/* Compare error — descriptive, persistent, form is re-enabled below
+                because mutation.isPending is back to false once mutateAsync rejects. */}
+            {compareMutation.error && !isLoading && (
+              <section
+                className="bg-red-50 border border-red-200 rounded-2xl p-5 shadow-sm"
+                role="alert"
+                aria-labelledby="compare-error-heading"
+              >
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" aria-hidden="true" />
+                  <div className="flex-1 min-w-0">
+                    <p id="compare-error-heading" className="text-sm font-semibold text-red-700">
+                      Comparison failed
+                    </p>
+                    <p className="text-sm text-red-600 mt-1 break-words">
+                      {compareMutation.error.message ||
+                        "The diff pipeline returned an unparseable response. Please retry."}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => compareMutation.reset()}
+                    aria-label="Dismiss error"
+                    className="text-red-500 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-400 rounded"
+                  >
+                    <X className="w-4 h-4" aria-hidden="true" />
+                  </button>
+                </div>
+              </section>
+            )}
 
             {/* Loading skeleton */}
             {isLoading && !result && (

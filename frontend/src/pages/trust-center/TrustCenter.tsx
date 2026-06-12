@@ -370,7 +370,11 @@ const TrustCenter: React.FC = () => {
   );
 
   const bundle = bundleQuery.data;
-  const trustScore = scoreQuery.data?.score ?? 0;
+  // shipmentTrustScore failure (or pre-load): show neutral 70 / "watch" per contract.
+  const trustScore =
+    scoreQuery.data?.score ??
+    (draftId ? 70 : 0);
+  const trustVerdict = scoreQuery.data?.verdict ?? (draftId ? "watch" : undefined);
 
   type SubsystemDoc = Record<string, unknown> | null;
   const subsystemsData: Record<Subsystem, SubsystemDoc> = useMemo(
@@ -447,7 +451,19 @@ const TrustCenter: React.FC = () => {
                   aria-label="Loading trust gauge"
                 />
               ) : (
-                <TrustGauge value={trustScore} label="Shipment Trust" />
+                <TrustGauge
+                  value={trustScore}
+                  label="Shipment Trust"
+                  subLabel={
+                    trustVerdict
+                      ? trustVerdict === "trusted"
+                        ? "Trusted"
+                        : trustVerdict === "high-risk"
+                          ? "High risk"
+                          : "Watch"
+                      : undefined
+                  }
+                />
               )}
             </div>
             <div>
@@ -611,7 +627,13 @@ const TrustCenter: React.FC = () => {
                     c={c}
                     idx={idx}
                     prefersReduced={prefersReduced}
-                    onClick={() => navigate(c.meta.link)}
+                    onClick={() =>
+                      navigate(
+                        draftId
+                          ? `${c.meta.link}?draftId=${encodeURIComponent(draftId)}`
+                          : c.meta.link
+                      )
+                    }
                   />
                 ))}
                 {/* Show more affordance (extra directive) */}

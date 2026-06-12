@@ -8,7 +8,11 @@ import { FaTrash, FaImage } from "react-icons/fa";
 import Toast from "./../../components/Toast";
 import Header from "../../components/Header";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+// Fall back to local dev when VITE_BACKEND_URL is unset so the upload never
+// targets "undefined/api/analyze-product".
+const BACKEND_URL =
+  (import.meta.env.VITE_BACKEND_URL as string | undefined) ||
+  "http://localhost:5000";
 
 interface ToastProps {
   type: string;
@@ -128,8 +132,15 @@ const ProductAnalysis: React.FC = () => {
       setAnalysisResult(response.data as AnalysisResult);
     } catch (error: unknown) {
       console.error("Error analyzing image:", error);
-      const errMsg =
-        error instanceof Error ? error.message : "Failed to analyze image";
+      // Prefer the server-provided error message (multer / route returns JSON
+      // with { error: "..." }) over the generic axios status message.
+      let errMsg = "Failed to analyze image";
+      if (axios.isAxiosError(error)) {
+        const serverMsg = (error.response?.data as { error?: string } | undefined)?.error;
+        errMsg = serverMsg || error.message || errMsg;
+      } else if (error instanceof Error) {
+        errMsg = error.message;
+      }
       setAnalysisResult({ error: errMsg });
     } finally {
       setIsLoading(false);

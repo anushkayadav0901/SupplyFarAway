@@ -83,6 +83,8 @@ export default function BoxCount() {
 
   const [yoloOnline, setYoloOnline] = useState<boolean | null>(null);
   const [cameraError, setCameraError] = useState<string>("");
+  // Persistent inline validation error for the declared-count field — see start()
+  const [declaredError, setDeclaredError] = useState<string>("");
   const [detections, setDetections] = useState<YoloDetection[]>([]);
   const [classCounts, setClassCounts] = useState<Record<string, number>>({});
   const [suspectedCount, setSuspectedCount] = useState<number>(0);
@@ -145,6 +147,20 @@ export default function BoxCount() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
     // stopSession captured via ref to avoid stale closure issues
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
+
+  // Tab visibility — stop the camera when the user switches away mid-session.
+  // This protects the user's camera LED and bandwidth when the tab is hidden.
+  useEffect(() => {
+    const handler = () => {
+      if (document.visibilityState === "hidden" && mode === "live") {
+        // Tear down stream + timers; saveSession via stopSession to persist.
+        void stopSession();
+      }
+    };
+    document.addEventListener("visibilitychange", handler);
+    return () => document.removeEventListener("visibilitychange", handler);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
@@ -311,9 +327,11 @@ export default function BoxCount() {
   const start = async () => {
     const n = parseInt(declaredCount, 10);
     if (!n || n <= 0) {
-      toast.error("Enter a valid declared box count first.");
+      // Persisted inline error — toasts auto-dismiss and the user loses context.
+      setDeclaredError("Enter a positive declared box count before starting.");
       return;
     }
+    setDeclaredError("");
     declaredCountRef.current = n;
     setMode("starting");
     setLog([]);
@@ -455,12 +473,32 @@ export default function BoxCount() {
                       min={1}
                       step={1}
                       value={declaredCount}
-                      onChange={(e) => setDeclaredCount(e.target.value)}
+                      onChange={(e) => {
+                        setDeclaredCount(e.target.value);
+                        // Clear the inline error as soon as the user types a positive integer.
+                        const n = parseInt(e.target.value, 10);
+                        if (n > 0) setDeclaredError("");
+                      }}
                       placeholder="e.g. 24"
                       aria-label="Declared box count"
                       aria-required="true"
-                      className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 text-slate-800"
+                      aria-invalid={declaredError ? true : undefined}
+                      aria-describedby={declaredError ? "declaredCountError" : undefined}
+                      className={`w-full px-4 py-3 rounded-xl border-2 focus:outline-none focus:ring-2 text-slate-800 ${
+                        declaredError
+                          ? "border-red-400 focus:border-red-500 focus:ring-red-200"
+                          : "border-slate-200 focus:border-blue-500 focus:ring-blue-200"
+                      }`}
                     />
+                    {declaredError && (
+                      <p
+                        id="declaredCountError"
+                        role="alert"
+                        className="mt-2 text-sm text-red-600 font-medium"
+                      >
+                        {declaredError}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-1">
@@ -488,7 +526,9 @@ export default function BoxCount() {
                   onClick={() => void start()}
                   whileTap={shouldReduceMotion ? {} : { scale: 0.98 }}
                   whileHover={shouldReduceMotion ? {} : { scale: 1.01 }}
-                  className="mt-5 w-full sm:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md shadow-blue-200 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  disabled={!declared || declared <= 0}
+                  aria-disabled={!declared || declared <= 0}
+                  className="mt-5 w-full sm:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-md shadow-blue-200 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 >
                   Start Live Camera
                 </motion.button>

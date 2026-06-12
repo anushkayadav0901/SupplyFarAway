@@ -240,18 +240,9 @@ function ConfirmDialog({ open, truckPlate, onConfirm, onCancel }: ConfirmDialogP
 
 export default function TruckRegistry() {
   const [form, setForm] = useState<TruckForm>(EMPTY_FORM);
-  const [submitting, setSubmitting] = useState(false);
   // Confirm dialog state (extra directive)
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [confirmPlate, setConfirmPlate] = useState("");
-
-  const mountedRef = useRef(true);
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
 
   const utils = trpc.useUtils();
 
@@ -302,14 +293,34 @@ export default function TruckRegistry() {
     [trucks]
   );
 
+  // Plate uniqueness is not enforced server-side. Per slice directive, allow
+  // duplicates but flag them so the operator can clean up the registry.
+  // Plates are compared case-insensitively after trimming.
+  const duplicatePlates = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const t of trucks) {
+      const key = t.plate.trim().toLowerCase();
+      if (!key) continue;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    const dupes = new Set<string>();
+    for (const [k, n] of counts) {
+      if (n > 1) dupes.add(k);
+    }
+    return dupes;
+  }, [trucks]);
+
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   }, []);
 
   const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
+    (e: React.FormEvent) => {
       e.preventDefault();
+      // Defence-in-depth — button is disabled while pending, but guard against
+      // a duplicate submit racing past the disabled state.
+      if (registerMutation.isPending) return;
 
       const capacityNum = Number(form.capacityKg);
       if (!form.plate.trim()) {
@@ -329,18 +340,13 @@ export default function TruckRegistry() {
         return;
       }
 
-      setSubmitting(true);
-      try {
-        await registerMutation.mutateAsync({
-          plate: form.plate.trim(),
-          capacityKg: capacityNum,
-          baseCity: form.baseCity.trim(),
-          driverName: form.driverName.trim(),
-          phone: form.phone.trim() || undefined,
-        });
-      } finally {
-        if (mountedRef.current) setSubmitting(false);
-      }
+      registerMutation.mutate({
+        plate: form.plate.trim(),
+        capacityKg: capacityNum,
+        baseCity: form.baseCity.trim(),
+        driverName: form.driverName.trim(),
+        phone: form.phone.trim() || undefined,
+      });
     },
     [form, registerMutation]
   );
@@ -352,7 +358,9 @@ export default function TruckRegistry() {
   }, []);
 
   const handleRemoveConfirm = useCallback(() => {
-    if (confirmId) removeMutation.mutate({ truckId: confirmId });
+    if (confirmId && !removeMutation.isPending) {
+      removeMutation.mutate({ truckId: confirmId });
+    }
     setConfirmId(null);
     setConfirmPlate("");
   }, [confirmId, removeMutation]);
@@ -462,11 +470,11 @@ export default function TruckRegistry() {
                     type="submit"
                     whileHover={{ scale: 1.01 }}
                     whileTap={{ scale: 0.97 }}
-                    disabled={submitting}
+                    disabled={registerMutation.isPending}
                     aria-label="Register new truck"
                     className="px-8 py-3 bg-blue-600 hover:bg-blue-700 hover:shadow-md hover:shadow-blue-200 disabled:bg-slate-400 text-white font-semibold rounded-xl shadow-sm transition-all duration-150 disabled:cursor-not-allowed min-w-[180px] flex items-center justify-center gap-3"
                   >
-                    {submitting ? (
+                    {registerMutation.isPending ? (
                       <>
                         Registering…
                         <span
@@ -551,12 +559,16 @@ export default function TruckRegistry() {
                     {trucks.map((truck) => {
                       const id = getTruckId(truck);
                       const pct = utilizationById.get(id) ?? 50;
+                      const isDuplicate = duplicatePlates.has(
+                        truck.plate.trim().toLowerCase()
+                      );
                       return (
                         <TruckCard
                           key={id}
                           truck={truck}
                           id={id}
                           pct={pct}
+                          isDuplicate={isDuplicate}
                           removePending={removeMutation.isPending}
                           onRemoveRequest={handleRemoveRequest}
                         />
@@ -585,6 +597,7 @@ interface TruckCardProps {
   truck: TruckLike;
   id: string;
   pct: number;
+  isDuplicate: boolean;
   removePending: boolean;
   onRemoveRequest: (id: string, plate: string) => void;
 }
@@ -593,6 +606,7 @@ const TruckCard = ({
   truck,
   id,
   pct,
+  isDuplicate,
   removePending,
   onRemoveRequest,
 }: TruckCardProps) => {
@@ -604,7 +618,11 @@ const TruckCard = ({
       exit={{ opacity: 0, y: 6 }}
       whileHover={{ y: -2 }}
       transition={{ duration: 0.18 }}
-      className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-center gap-4 hover:border-blue-200 hover:shadow-md transition-all"
+      className={`bg-white border rounded-2xl p-4 shadow-sm flex items-center gap-4 hover:shadow-md transition-all ${
+        isDuplicate
+          ? "border-amber-300 hover:border-amber-400"
+          : "border-slate-200 hover:border-blue-200"
+      }`}
     >
       {/* Capacity ring: stable fill from plate hash (extra directive) */}
       <CapacityRing pct={pct} capacityKg={truck.capacityKg} />
@@ -614,6 +632,16 @@ const TruckCard = ({
           <span className="font-bold text-slate-800 text-sm tracking-wide truncate">
             {truck.plate}
           </span>
+          {isDuplicate && (
+            <span
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200"
+              title="Another truck shares this plate"
+              aria-label="Duplicate plate"
+            >
+              <AlertTriangle className="w-3 h-3" aria-hidden="true" />
+              Duplicate plate
+            </span>
+          )}
           <span className="inline-block w-1 h-1 rounded-full bg-slate-300" aria-hidden="true" />
           <span className="text-xs text-slate-500 truncate">{truck.baseCity}</span>
         </div>

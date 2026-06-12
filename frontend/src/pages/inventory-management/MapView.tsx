@@ -113,13 +113,12 @@ function MapView({ draftId }: MapViewProps): React.ReactElement {
             originalRoute: routesData,
           };
 
-          // Fetch userId then update draft with mapData
-          const userResponse = await utils.auth.getMe.fetch();
-          const userId = (userResponse as any)?.user?.id;
-
+          // Persist the freshly-generated mapData onto the draft. Ownership is
+          // enforced server-side via requireUserId + scoped findOne, so we do
+          // NOT include a userId here (writing it would overwrite the field).
           await updateDraftMutation.mutateAsync({
             id: draftId,
-            updateData: { mapData, userId },
+            updateData: { mapData },
           });
         }
 

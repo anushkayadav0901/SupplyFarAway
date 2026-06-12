@@ -54,18 +54,20 @@ export const auditRouter = router({
 
   /**
    * Return all audit events for a given draft, oldest first.
+   * Scoped to the calling user so callers cannot peek at other users' drafts.
    */
   forDraft: protectedProcedure
     .input(
       z.object({
-        draftId: z.string(),
+        draftId: z.string().min(1).max(MAX_DRAFT_ID_LENGTH),
       }),
     )
     .query(async ({ ctx, input }) => {
-      requireUserId(ctx);
-      const events = await AuditEventModel.find({ draftId: input.draftId }).sort(
-        { createdAt: 1 },
-      );
+      const userId = requireUserId(ctx);
+      const events = await AuditEventModel.find({
+        userId,
+        draftId: input.draftId,
+      }).sort({ createdAt: 1 });
       return events;
     }),
 

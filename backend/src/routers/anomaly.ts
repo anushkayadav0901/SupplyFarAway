@@ -172,17 +172,26 @@ Rules for severity:
         });
       }
 
+      // Be defensive: accept missing/empty flags array, accept missing summary.
+      // Severity and riskScore must still be present and well-formed.
       if (
-        !Array.isArray(parsed.flags) ||
         !VALID_SEVERITIES.includes(parsed.severity) ||
-        typeof parsed.riskScore !== "number" ||
-        typeof parsed.summary !== "string"
+        typeof parsed.riskScore !== "number"
       ) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: `Gemini response has unexpected shape. Raw: ${rawText.slice(0, ERR_SNIPPET_LEN)}`,
         });
       }
+
+      // Normalise optional fields so downstream code can rely on them.
+      const safeFlags = Array.isArray(parsed.flags)
+        ? parsed.flags.filter((f) => typeof f === "string")
+        : [];
+      const safeSummary =
+        typeof parsed.summary === "string" && parsed.summary.trim().length > 0
+          ? parsed.summary
+          : `Severity ${parsed.severity}, risk ${parsed.riskScore}`;
 
       // Clamp riskScore to valid range even if AI returns out-of-bounds value.
       const riskScore = clampRiskScore(parsed.riskScore);
@@ -197,10 +206,10 @@ Rules for severity:
         originCity,
         destinationCity,
         routeDeviationKm,
-        flags: parsed.flags,
+        flags: safeFlags,
         severity: parsed.severity,
         riskScore,
-        summary: parsed.summary,
+        summary: safeSummary,
         createdAt: new Date(),
       });
 
@@ -212,7 +221,7 @@ Rules for severity:
         {
           severity: parsed.severity,
           riskScore,
-          flags: parsed.flags,
+          flags: safeFlags,
           resultId: String(report._id),
         },
       );

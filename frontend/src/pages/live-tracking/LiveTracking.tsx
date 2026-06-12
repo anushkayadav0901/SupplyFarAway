@@ -24,7 +24,10 @@ const ETA_RING_CAP_MINUTES = 240; // 4 hours = full ring
 const DEFAULT_SPEED_KMH = 40;
 const ADVANCE_STEP_DEG = 0.005;
 const ADVANCE_RATE_LIMIT_MS = 1000; // 1 click per second
-const DEFAULT_CENTER = { lat: 37.7749, lng: -122.4194 }; // San Francisco
+// Auto-refetch the latest ping every 4s so the map marker animates between
+// updates without manual refresh. History refetches less aggressively.
+const LATEST_REFETCH_MS = 4000;
+const HISTORY_REFETCH_MS = 10000;
 
 // Env key — supports both VITE_GOOGLE_MAPS_KEY and legacy VITE_GOOGLE_API_KEY
 const MAPS_KEY: string =
@@ -289,9 +292,12 @@ function GoogleMapView({ ping }: GoogleMapViewProps) {
       .then((mod) => {
         if (!cancelled) {
           setLib({
-            LoadScript: mod.LoadScript as unknown as GoogleMapViewProps["ping"] extends infer _P
-              ? React.ComponentType<React.PropsWithChildren<{ googleMapsApiKey: string; libraries?: string[] }>>
-              : never,
+            LoadScript: mod.LoadScript as unknown as React.ComponentType<
+              React.PropsWithChildren<{
+                googleMapsApiKey: string;
+                libraries?: string[];
+              }>
+            >,
             GoogleMap: mod.GoogleMap as unknown as React.ComponentType<
               React.PropsWithChildren<{
                 mapContainerStyle: React.CSSProperties;
@@ -424,12 +430,28 @@ export default function LiveTracking() {
 
   const latestQuery = trpc.tracking.latest.useQuery(
     { draftId },
-    { enabled: Boolean(draftId.trim()), retry: false }
+    {
+      enabled: Boolean(draftId.trim()),
+      retry: false,
+      // Auto-refetch so the map marker animates between updates (V-live-tracking
+      // directive). refetchOnWindowFocus off to avoid redundant fetches; the
+      // interval already covers freshness. staleTime > 0 prevents react-query
+      // from issuing overlapping fetches.
+      refetchInterval: LATEST_REFETCH_MS,
+      refetchOnWindowFocus: false,
+      staleTime: LATEST_REFETCH_MS - 500,
+    }
   );
 
   const historyQuery = trpc.tracking.history.useQuery(
     { draftId, limit: 50 },
-    { enabled: Boolean(draftId.trim()), retry: false }
+    {
+      enabled: Boolean(draftId.trim()),
+      retry: false,
+      refetchInterval: HISTORY_REFETCH_MS,
+      refetchOnWindowFocus: false,
+      staleTime: HISTORY_REFETCH_MS - 500,
+    }
   );
 
   // Sync latest ping from query (V4: no stale closure issues)
@@ -441,18 +463,38 @@ export default function LiveTracking() {
     };
   }, []);
 
+  // Track which draftId we've already seeded the destination fields for so
+  // that subsequent polls don't clobber what the user is typing.
+  const seededDestForDraftRef = useRef<string | null>(null);
+
+  // Clear stale ping state whenever the active draftId changes. Without this,
+  // switching from a draft with pings to one without would leave the previous
+  // ping rendered on the map indefinitely.
+  useEffect(() => {
+    setLatestPing(null);
+    seededDestForDraftRef.current = null;
+  }, [draftId]);
+
   useEffect(() => {
     if (!latestQuery.data) return;
     if (!mountedRef.current) return;
     const p = latestQuery.data as unknown as PingResult;
     setLatestPing(p);
-    setDestinationLat(String(p.destinationLat));
-    setDestinationLng(String(p.destinationLng));
+    // Only seed destination inputs once per draftId, so live polling never
+    // clobbers what the user is typing.
+    if (seededDestForDraftRef.current !== p.draftId) {
+      setDestinationLat(String(p.destinationLat));
+      setDestinationLng(String(p.destinationLng));
+      seededDestForDraftRef.current = p.draftId;
+    }
   }, [latestQuery.data]);
 
   const handlePingSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
+      // Defence-in-depth: guard against duplicate submits racing past the
+      // disabled button state.
+      if (pingMutation.isPending) return;
       const parsedLat = parseFloat(lat);
       const parsedLng = parseFloat(lng);
       const parsedSpeed = parseFloat(speedKmh);
@@ -469,6 +511,16 @@ export default function LiveTracking() {
       }
       if (isNaN(parsedDestLat) || isNaN(parsedDestLng)) {
         toast.error("Destination latitude and longitude are required.");
+        return;
+      }
+      // Coordinate bounds (matches server validation; surface friendlier errors
+      // here so the user doesn't have to wait for a round-trip).
+      if (parsedLat < -90 || parsedLat > 90 || parsedDestLat < -90 || parsedDestLat > 90) {
+        toast.error("Latitude must be between -90 and 90.");
+        return;
+      }
+      if (parsedLng < -180 || parsedLng > 180 || parsedDestLng < -180 || parsedDestLng > 180) {
+        toast.error("Longitude must be between -180 and 180.");
         return;
       }
 
@@ -537,21 +589,10 @@ export default function LiveTracking() {
     });
   }, [latestPing, pingMutation]);
 
-  const mapCenter = useMemo(() => {
-    if (!latestPing) return DEFAULT_CENTER;
-    return {
-      lat: (latestPing.lat + latestPing.destinationLat) / 2,
-      lng: (latestPing.lng + latestPing.destinationLng) / 2,
-    };
-  }, [latestPing]);
-
   const history = useMemo(
     () => (historyQuery.data as unknown as PingResult[] | undefined) ?? [],
     [historyQuery.data]
   );
-
-  // Suppress unused var warning — mapCenter used below
-  void mapCenter;
 
   return (
     <div className="min-h-screen bg-[var(--color-neutral-100)]">

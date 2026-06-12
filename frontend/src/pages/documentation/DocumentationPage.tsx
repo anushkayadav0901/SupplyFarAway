@@ -3,10 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Header from "../../components/Header";
 import Sidebar from "./Sidebar";
 import ContentRenderer from "./ContentRenderer";
-import {
-  navigationStructure,
-  getAllSections,
-} from "../../constants/docs_constants";
+import { getAllSections } from "../../constants/docs_constants";
 
 interface SectionRecord {
   id: string;

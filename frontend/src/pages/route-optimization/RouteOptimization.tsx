@@ -157,11 +157,8 @@ const RouteOptimization: React.FC = () => {
 
   useEffect(() => {
     const fetchDraft = async () => {
-      let draftId = localStorage.getItem("routeDraftId");
-      if (!draftId) {
-        const params = new URLSearchParams(location.search);
-        draftId = params.get("draftId");
-      }
+      const params = new URLSearchParams(location.search);
+      const draftId = params.get("draftId");
 
       if (draftId) {
         await fetchDraftFromServer(draftId);
@@ -169,7 +166,10 @@ const RouteOptimization: React.FC = () => {
     };
 
     fetchDraft();
-  }, [location, navigate]);
+    // fetchDraftFromServer is stable for the lifetime of the page; rerunning on
+    // location change is the desired behaviour (handles ?draftId= updates).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location]);
 
   const getTopThreeRoutes = (routeList: Route[], metric: keyof Route): Route[] => {
     return [...routeList]

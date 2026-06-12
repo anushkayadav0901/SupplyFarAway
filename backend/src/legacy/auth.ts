@@ -41,7 +41,12 @@ const SIGNED_URL_EXPIRY_MS = 365 * 24 * 60 * 60 * 1_000;
 
 const isProduction = process.env.NODE_ENV === "production";
 const FRONTEND_URL = isProduction
-  ? process.env.FRONTEND_URL
+  ? (process.env.FRONTEND_URL ??
+      (() => {
+        throw new Error(
+          "[legacy/auth] FRONTEND_URL must be set in production environment",
+        );
+      })())
   : "http://localhost:5173";
 
 // ---------------------------------------------------------------------------

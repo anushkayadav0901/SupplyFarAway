@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { toast } from "react-toastify";
 import {
@@ -118,34 +119,43 @@ function ChainCard({
   );
   const shortened = fullHash.slice(0, 8);
 
-  // Clipboard API with document.execCommand fallback (audit-log directive)
+  // Clipboard API with document.execCommand fallback (audit-log directive).
+  // navigator.clipboard is only available in secure contexts (https/localhost);
+  // on plain http it is undefined, so we must guard the property access
+  // rather than relying on .catch().
   const handleCopy = () => {
-    const doCopy = () => {
+    const fallbackCopy = () => {
+      try {
+        const el = document.createElement("textarea");
+        el.value = fullHash;
+        el.style.position = "fixed";
+        el.style.opacity = "0";
+        document.body.appendChild(el);
+        el.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(el);
+        if (ok) {
+          toast.success(`Hash copied · ${shortened}`);
+        } else {
+          toast.error("Could not copy hash.");
+        }
+      } catch {
+        toast.error("Could not copy hash.");
+      }
+    };
+
+    if (
+      typeof navigator !== "undefined" &&
+      navigator.clipboard &&
+      typeof navigator.clipboard.writeText === "function"
+    ) {
       navigator.clipboard
         .writeText(fullHash)
         .then(() => toast.success(`Hash copied · ${shortened}`))
-        .catch(() => {
-          // Fallback for environments without Clipboard API
-          try {
-            const el = document.createElement("textarea");
-            el.value = fullHash;
-            el.style.position = "fixed";
-            el.style.opacity = "0";
-            document.body.appendChild(el);
-            el.select();
-            const ok = document.execCommand("copy");
-            document.body.removeChild(el);
-            if (ok) {
-              toast.success(`Hash copied · ${shortened}`);
-            } else {
-              toast.error("Could not copy hash.");
-            }
-          } catch {
-            toast.error("Could not copy hash.");
-          }
-        });
-    };
-    doCopy();
+        .catch(() => fallbackCopy());
+    } else {
+      fallbackCopy();
+    }
   };
 
   return (
@@ -239,17 +249,36 @@ function ChainCard({
 
 export default function AuditLog() {
   const prefersReduced = useReducedMotion();
+  const [searchParams] = useSearchParams();
+  const urlDraftId = searchParams.get("draftId") ?? "";
 
-  const [draftId, setDraftId] = useState("");
+  const [draftId, setDraftId] = useState(urlDraftId);
   const [eventType, setEventType] = useState<string>(EVENT_TYPES[0]);
   const [summary, setSummary] = useState("");
   const [payloadRaw, setPayloadRaw] = useState("");
 
-  const [queryMode, setQueryMode] = useState<"recent" | "forDraft">("recent");
-  const [filterDraftId, setFilterDraftId] = useState("");
+  const [queryMode, setQueryMode] = useState<"recent" | "forDraft">(
+    urlDraftId ? "forDraft" : "recent"
+  );
+  const [filterDraftId, setFilterDraftId] = useState(urlDraftId);
   const [recentLimit, setRecentLimit] = useState(30);
-  const [activeDraftId, setActiveDraftId] = useState("");
+  const [activeDraftId, setActiveDraftId] = useState(urlDraftId);
   const [showAll, setShowAll] = useState(false);
+
+  // Sync deep-link param into local state if the URL changes after mount
+  // (e.g., user lands here directly from Trust Center → audit chain link).
+  const lastUrlDraftIdRef = useRef(urlDraftId);
+  useEffect(() => {
+    if (urlDraftId !== lastUrlDraftIdRef.current) {
+      lastUrlDraftIdRef.current = urlDraftId;
+      if (urlDraftId) {
+        setDraftId(urlDraftId);
+        setFilterDraftId(urlDraftId);
+        setActiveDraftId(urlDraftId);
+        setQueryMode("forDraft");
+      }
+    }
+  }, [urlDraftId]);
 
   const utils = trpc.useUtils();
 

@@ -40,9 +40,19 @@ const PageLoadingSkeleton: React.FC = () => (
 );
 
 const ProtectedRoute: React.FC = () => {
+  // Gate the request on the presence of a token so an anonymous visit to a
+  // protected URL doesn't fire an UNAUTHORIZED request before redirecting.
+  const hasToken =
+    typeof window !== "undefined" && !!localStorage.getItem("token");
+
   const { data, isLoading, isError } = trpc.auth.getMe.useQuery(undefined, {
     retry: false,
+    enabled: hasToken,
   });
+
+  if (!hasToken) {
+    return <Navigate to="/" replace />;
+  }
 
   if (isLoading) {
     return <PageLoadingSkeleton />;

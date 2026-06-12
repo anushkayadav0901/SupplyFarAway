@@ -32,16 +32,22 @@ interface ScanResult {
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
-/** Trim whitespace, remove empty lines, deduplicate, preserve order. */
+/**
+ * Trim whitespace, remove empty entries, deduplicate (case-insensitive),
+ * preserve original order and original casing of the first occurrence.
+ * Accepts comma-separated OR newline-separated input (mixed is fine — we
+ * split on any of: newline, carriage return, comma, tab, semicolon).
+ */
 function parseTags(raw: string): string[] {
   const seen = new Set<string>();
   const result: string[] = [];
-  for (const line of raw.split("\n")) {
-    const t = line.trim();
-    if (t.length > 0 && !seen.has(t)) {
-      seen.add(t);
-      result.push(t);
-    }
+  for (const piece of raw.split(/[\n\r,;\t]+/)) {
+    const t = piece.trim();
+    if (t.length === 0) continue;
+    const key = t.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(t);
   }
   return result;
 }
@@ -433,7 +439,7 @@ export default function RfidVerification() {
                   <div>
                     <label htmlFor="manifestInput" className="block text-sm font-medium text-slate-700 mb-1.5">
                       Manifest Tags
-                      <span className="ml-1 text-xs text-slate-400 font-normal">(one per line)</span>
+                      <span className="ml-1 text-xs text-slate-400 font-normal">(one per line or comma-separated)</span>
                       {manifestTagCount > 0 && (
                         <span className="ml-2 text-xs font-semibold text-blue-600">
                           {manifestTagCount} tag{manifestTagCount === 1 ? "" : "s"}
@@ -461,7 +467,7 @@ export default function RfidVerification() {
                   <div>
                     <label htmlFor="scannedInput" className="block text-sm font-medium text-slate-700 mb-1.5">
                       Scanned Tags
-                      <span className="ml-1 text-xs text-slate-400 font-normal">(one per line)</span>
+                      <span className="ml-1 text-xs text-slate-400 font-normal">(one per line or comma-separated)</span>
                     </label>
                     <textarea
                       id="scannedInput"

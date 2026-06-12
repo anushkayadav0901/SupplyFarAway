@@ -206,8 +206,6 @@ export default function LoadAggregation() {
 
   // Track which offer's matches are currently shown
   const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
-  // Track "previous" selected offer so AnimatePresence can fade out stale matches
-  const [prevMatchKey, setPrevMatchKey] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const scanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -230,14 +228,14 @@ export default function LoadAggregation() {
   });
 
   const cancelOffer = trpc.loadMatch.cancel.useMutation({
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       toast.success("Offer cancelled.");
       utils.loadMatch.listMine.invalidate().catch(() => null);
-      if (selectedOfferId) {
-        utils.loadMatch.findMatches
-          .invalidate({ offerId: selectedOfferId })
-          .catch(() => null);
-      }
+      // If the cancelled offer was the one whose matches panel is open,
+      // close it — matches are no longer relevant for a cancelled offer.
+      setSelectedOfferId((current) =>
+        current === variables.offerId ? null : current,
+      );
     },
     onError: (err) => {
       toast.error(err.message || "Failed to cancel offer.");
@@ -271,6 +269,9 @@ export default function LoadAggregation() {
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
+      // Defence-in-depth: the button is also disabled, but guard against a
+      // duplicate submit racing past the disabled state.
+      if (createOffer.isPending) return;
       if (!originCity.trim()) {
         toast.error("Origin city is required.");
         return;
@@ -301,20 +302,14 @@ export default function LoadAggregation() {
 
   const handleFindMatches = useCallback(
     (offerId: string) => {
-      if (offerId === selectedOfferId) {
-        setSelectedOfferId(null);
-        setPrevMatchKey(null);
-      } else {
-        // Stash old selection so AnimatePresence can exit it
-        setPrevMatchKey(selectedOfferId);
-        setSelectedOfferId(offerId);
-      }
+      setSelectedOfferId((current) => (current === offerId ? null : offerId));
     },
-    [selectedOfferId]
+    []
   );
 
   const handleCancel = useCallback(
     (offerId: string) => {
+      if (cancelOffer.isPending) return;
       cancelOffer.mutate({ offerId });
     },
     [cancelOffer]
@@ -535,7 +530,6 @@ export default function LoadAggregation() {
                       onCancel={handleCancel}
                       cancelPending={cancelOffer.isPending}
                       onRefetchMatches={() => matchQuery.refetch()}
-                      prevMatchKey={prevMatchKey}
                     />
                   ))}
                 </div>
@@ -577,7 +571,6 @@ interface OfferCardProps {
   onCancel: (id: string) => void;
   cancelPending: boolean;
   onRefetchMatches: () => void;
-  prevMatchKey: string | null;
 }
 
 const OfferCard = ({

@@ -1,6 +1,10 @@
 import React from "react";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL as string;
+// VITE_BACKEND_URL is configured per environment. Fall back to local dev
+// so the button never sends the browser to "undefined/auth/google".
+const BACKEND_URL =
+  (import.meta.env.VITE_BACKEND_URL as string | undefined) ||
+  "http://localhost:5000";
 
 const GoogleLogin = () => {
   const handleGoogleLogin = () => {

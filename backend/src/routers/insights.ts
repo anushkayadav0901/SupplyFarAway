@@ -68,6 +68,9 @@ const BOX_MED_THRESHOLD = 5;
 /** Weight deviation above which severity escalates to "high". */
 const WEIGHT_HIGH_DEVIATION = 15;
 
+/** Hard cap for recentTicks length returned by operationsTicker. */
+const RECENT_TICKS_MAX = 12;
+
 const SUBSYSTEM_WEIGHTS: Record<Subsystem, number> = {
   boxCount: 1.0,
   shipmentDiff: 1.2,
@@ -529,6 +532,7 @@ export const insightsRouter = router({
         pings,
         loads,
         trucks,
+        compliances,
       ] = await Promise.all([
         safeFind(
           "boxCount",
@@ -572,15 +576,16 @@ export const insightsRouter = router({
             .limit(limit)
             .lean() as Promise<Record<string, unknown>[]>,
         ),
-        draftId
-          ? safeFind(
-              "tracking",
-              TrackingPingModel.find(baseFilter)
-                .sort({ createdAt: -1 })
-                .limit(limit)
-                .lean() as Promise<Record<string, unknown>[]>,
-            )
-          : Promise.resolve([] as Record<string, unknown>[]),
+        // Tracking pings — show whenever the user has them. Filter by draftId
+        // when provided; otherwise return the user's most recent global pings.
+        safeFind(
+          "tracking",
+          TrackingPingModel.find(baseFilter)
+            .sort({ createdAt: -1 })
+            .limit(limit)
+            .lean() as Promise<Record<string, unknown>[]>,
+        ),
+        // LoadOffer has no draftId field — only surface in global view.
         draftId
           ? Promise.resolve([] as Record<string, unknown>[])
           : safeFind(
@@ -590,12 +595,24 @@ export const insightsRouter = router({
                 .limit(limit)
                 .lean() as Promise<Record<string, unknown>[]>,
             ),
+        // Truck has no draftId field — only surface in global view.
         draftId
           ? Promise.resolve([] as Record<string, unknown>[])
           : safeFind(
               "trucks",
               TruckModel.find({ userId })
                 .sort({ createdAt: -1 })
+                .limit(limit)
+                .lean() as Promise<Record<string, unknown>[]>,
+            ),
+        // ComplianceRecord has no draftId field — only surface in global view.
+        // Uses `timestamp` (not `createdAt`) per schema.
+        draftId
+          ? Promise.resolve([] as Record<string, unknown>[])
+          : safeFind(
+              "compliance",
+              ComplianceRecordModel.find({ userId })
+                .sort({ timestamp: -1 })
                 .limit(limit)
                 .lean() as Promise<Record<string, unknown>[]>,
             ),
@@ -750,6 +767,46 @@ export const insightsRouter = router({
           summary: `Truck ${t.plate} registered`,
           severity: "low",
           icon: "truck",
+        });
+      }
+
+      for (const c of compliances) {
+        // ComplianceRecord uses `timestamp` (not `createdAt`).
+        const ts = (c.timestamp as Date | undefined) ?? (c.createdAt as Date | undefined);
+        const cType = (c.type as string | undefined) ?? "compliance";
+        const formData = (c.formData as Record<string, unknown> | undefined) ?? {};
+        const productName =
+          (formData.productName as string | undefined) ??
+          (formData.shipmentId as string | undefined);
+        const summary = productName
+          ? `Compliance check (${cType}) — ${productName}`
+          : `Compliance check (${cType})`;
+        // ComplianceRecord may carry a riskLevel.riskScore in complianceResponse.
+        const response = (c.complianceResponse as Record<string, unknown> | undefined) ?? {};
+        const responseRiskLevel = response.riskLevel as
+          | Record<string, unknown>
+          | undefined;
+        const rawScore =
+          typeof response.riskScore === "number"
+            ? (response.riskScore as number)
+            : typeof responseRiskLevel?.riskScore === "number"
+              ? (responseRiskLevel.riskScore as number)
+              : null;
+        const severity: "low" | "medium" | "high" =
+          rawScore === null
+            ? "low"
+            : rawScore > RISK_HIGH_THRESHOLD
+              ? "high"
+              : rawScore > RISK_MED_THRESHOLD
+                ? "medium"
+                : "low";
+        items.push({
+          id: String(c._id ?? ""),
+          type: "compliance",
+          timestamp: (ts ?? new Date()).toISOString(),
+          summary: summary.slice(0, SUMMARY_MAX_CHARS),
+          severity,
+          icon: "shield",
         });
       }
 
@@ -912,7 +969,7 @@ export const insightsRouter = router({
           "recentTicks",
           AuditEventModel.find({ userId })
             .sort({ createdAt: -1 })
-            .limit(10)
+            .limit(RECENT_TICKS_MAX)
             .lean() as Promise<Record<string, unknown>[]>,
         ),
       ]);
@@ -924,15 +981,17 @@ export const insightsRouter = router({
         computeAvgTrustScore(userId, draftIds, fortyEightHoursAgo),
       ]);
 
-      const ticks = recentTicks.map((ev) => {
-        const created = ev.createdAt as Date | undefined;
-        return {
-          type: (ev.eventType as string) ?? "audit",
-          summary: ((ev.summary as string) ?? "Event").slice(0, SUMMARY_MAX_CHARS),
-          ts: (created ?? new Date()).toISOString(),
-          severity: "low" as const,
-        };
-      });
+      const ticks = recentTicks
+        .slice(0, RECENT_TICKS_MAX)
+        .map((ev) => {
+          const created = ev.createdAt as Date | undefined;
+          return {
+            type: (ev.eventType as string) ?? "audit",
+            summary: ((ev.summary as string) ?? "Event").slice(0, SUMMARY_MAX_CHARS),
+            ts: (created ?? new Date()).toISOString(),
+            severity: "low" as const,
+          };
+        });
 
       return {
         activeShipments,

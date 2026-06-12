@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   Line,
@@ -266,11 +267,14 @@ const HistoryRow = React.memo(function HistoryRow({ r }: HistoryRowProps) {
 // Main
 // ---------------------------------------------------------------------------
 
-import React from "react";
-
 export default function AnomalyDetection() {
   const prefersReduced = useReducedMotion();
-  const [form, setForm] = useState<FormState>(initialForm);
+  const [searchParams] = useSearchParams();
+  const initialDraftId = searchParams.get("draftId") ?? "";
+  const [form, setForm] = useState<FormState>({
+    ...initialForm,
+    draftId: initialDraftId,
+  });
   const [pulsing, setPulsing] = useState(false);
   const pulseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showAllHistory, setShowAllHistory] = useState(false);

@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Activity,
@@ -76,6 +76,22 @@ const OperationsTicker: React.FC<OperationsTickerProps> = ({
   limit = 12,
   intervalMs = 4000,
 }) => {
+  // Pause animation on hover or when the tab is hidden so the marquee
+  // doesn't drain CPU off-screen.
+  const [isHovered, setIsHovered] = useState(false);
+  const [isDocVisible, setIsDocVisible] = useState(
+    typeof document === "undefined" ? true : !document.hidden,
+  );
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const onVisChange = () => setIsDocVisible(!document.hidden);
+    document.addEventListener("visibilitychange", onVisChange);
+    return () => document.removeEventListener("visibilitychange", onVisChange);
+  }, []);
+
+  const isAnimating = !isHovered && isDocVisible;
+
   const { data, isLoading } = trpc.insights.operationsTicker.useQuery(undefined, {
     refetchInterval: intervalMs,
     retry: false,
@@ -145,7 +161,11 @@ const OperationsTicker: React.FC<OperationsTickerProps> = ({
   const loop = [...ticks, ...ticks];
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div
+      className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <div className="flex items-center justify-between gap-2 px-4 py-2 border-b border-slate-100">
         <div className="flex items-center gap-2">
           <Activity size={14} className="text-blue-600" />
@@ -168,8 +188,12 @@ const OperationsTicker: React.FC<OperationsTickerProps> = ({
         <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-white to-transparent z-10" />
         <motion.div
           className="flex gap-3 py-3 px-4"
-          animate={{ x: ["0%", "-50%"] }}
-          transition={{ duration: 40, ease: "linear", repeat: Infinity }}
+          animate={isAnimating ? { x: ["0%", "-50%"] } : { x: "0%" }}
+          transition={
+            isAnimating
+              ? { duration: 40, ease: "linear", repeat: Infinity }
+              : { duration: 0 }
+          }
           style={{ width: "max-content" }}
         >
           {loop.map((tick, idx) => {
