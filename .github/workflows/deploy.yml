@@ -42,21 +42,31 @@ jobs:
     name: Backend → GCP VM
     runs-on: ubuntu-latest
     steps:
-      - name: SSH to VM, pull, build, restart
+      - name: SSH to VM — pull, rebuild backend + SPA, restart
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: supplychainfaraway.duckdns.org
           username: ayux
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script_stop: true
+          command_timeout: 10m
           script: |
             set -e
             cd /home/ayux/app
             git fetch --all --tags
             git reset --hard origin/main
-            cd backend
+
+            # Backend
+            cd /home/ayux/app/backend
             npm ci
             npm run build
             sudo systemctl restart supplychain-backend.service
             sleep 2
             sudo systemctl is-active supplychain-backend.service
+
+            # Caddy-served SPA at supplychainfaraway.duckdns.org root
+            cd /home/ayux/app/frontend
+            npm ci
+            npm run build
+            sudo find /var/www/supplychain -mindepth 1 -delete
+            sudo cp -r dist/. /var/www/supplychain/
