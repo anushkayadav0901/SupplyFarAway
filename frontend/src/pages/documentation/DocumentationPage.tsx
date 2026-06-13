@@ -82,7 +82,7 @@ const DocumentationPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-neutral-100 p-4 sm:p-6">
+    <div className="min-h-screen bg-gray-100 p-4 sm:p-6">
 
       <div className="max-w-7xl mx-auto mt-4 sm:mt-6">
         <div className="flex gap-4 sm:gap-6 relative">

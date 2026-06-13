@@ -173,7 +173,7 @@ const ComplianceResponse: React.FC<{ response: ComplianceData | undefined; }> = 
 
   return (
     <ErrorBoundary>
-      <div className="bg-indigo-50 rounded-xl p-6 shadow-lg">
+      <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
         <div>
           <h2 className="text-3xl font-bold text-indigo-800 mb-6 flex items-center">
             <span className="mr-2">
@@ -616,7 +616,7 @@ function ExportReport(): React.ReactElement {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-neutral-100 p-4 sm:p-6 flex flex-col">
+      <div className="min-h-screen bg-gray-100 p-4 sm:p-6 flex flex-col">
         <div className="flex flex-1 items-center justify-center min-h-[400px]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mx-auto"></div>
@@ -632,8 +632,8 @@ function ExportReport(): React.ReactElement {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-neutral-100 p-4 sm:p-6 flex flex-col">
-        <div className="text-center bg-white p-6 rounded-2xl shadow-xl">
+      <div className="min-h-screen bg-gray-100 p-4 sm:p-6 flex flex-col">
+        <div className="text-center bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
           <p className="text-red-600 mb-4 font-medium">{error}</p>
           <button
             className="bg-gray-900 py-2 px-6 rounded-lg hover:bg-gray-800 text-white font-semibold focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
@@ -648,8 +648,8 @@ function ExportReport(): React.ReactElement {
 
   if (!draft) {
     return (
-      <div className="min-h-screen bg-neutral-100 p-4 sm:p-6 flex flex-col">
-        <div className="text-center bg-white p-6 rounded-2xl shadow-xl">
+      <div className="min-h-screen bg-gray-100 p-4 sm:p-6 flex flex-col">
+        <div className="text-center bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
           <p className="text-red-600 mb-4 font-medium">Draft not found.</p>
           <button
             className="bg-gray-900 py-2 px-6 rounded-lg hover:bg-gray-800 text-white font-semibold focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
@@ -673,8 +673,8 @@ function ExportReport(): React.ReactElement {
     !draft.formData.IntendedUseDetails
   ) {
     return (
-      <div className="min-h-screen bg-neutral-100 p-4 sm:p-6 flex flex-col">
-        <div className="text-center bg-white p-6 rounded-2xl shadow-xl">
+      <div className="min-h-screen bg-gray-100 p-4 sm:p-6 flex flex-col">
+        <div className="text-center bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
           <p className="text-red-600 mb-4 font-medium">
             Incomplete draft data. Form data is missing or invalid.
           </p>
@@ -695,9 +695,9 @@ function ExportReport(): React.ReactElement {
   });
 
   return (
-    <div className="min-h-screen bg-neutral-100 p-4 sm:p-6 flex flex-col">
+    <div className="min-h-screen bg-gray-100 p-4 sm:p-6 flex flex-col">
 
-      <div className="max-w-5xl mx-auto my-8 bg-white shadow-xl rounded-2xl overflow-hidden flex-grow">
+      <div className="max-w-5xl mx-auto my-8 bg-white border border-gray-200 shadow-sm rounded-xl overflow-hidden flex-grow">
         {/* Header */}
         <div className="bg-indigo-700 p-6 sm:p-8 text-white relative">
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
@@ -732,7 +732,7 @@ function ExportReport(): React.ReactElement {
                 exit={{ opacity: 0, y: -4 }}
                 transition={{ duration: 0.15, ease: "easeOut" }}
                 role="menu"
-                className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-10"
+                className="absolute right-0 mt-2 w-48 bg-white rounded-lg border border-gray-200 shadow-sm z-10"
               >
                 <PDFDownloadLink
                   document={

@@ -28,7 +28,7 @@ const ComplianceResponseSkeleton = () => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.15, ease: "easeOut" }}
-        className="mt-6 bg-blue-50 shadow-custom-medium rounded-lg p-8"
+        className="mt-6 bg-gray-50 border border-gray-200 rounded-lg p-8"
       >
         <motion.div
           variants={containerVariants}
@@ -78,7 +78,7 @@ const ComplianceResponseSkeleton = () => {
             <div className="h-6 w-48 bg-gray-300 rounded animate-pulse mb-2" />
             <div className="overflow-x-auto mt-2">
               <div className="min-w-full bg-white rounded-lg shadow-sm">
-                <div className="bg-blue-100 h-10 w-full animate-pulse" />
+                <div className="bg-gray-200 h-10 w-full animate-pulse" />
                 <div className="space-y-2 p-2">
                   {[1, 2, 3, 4].map((_, index) => (
                     <motion.div

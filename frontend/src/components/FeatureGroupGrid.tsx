@@ -95,10 +95,10 @@ const FeatureGroupGrid: React.FC = () => {
       {GROUPS.map((group) => (
         <div key={group.id}>
           <div className="mb-5">
-            <span className="inline-flex items-center px-3 py-1 rounded-full bg-primary-50 text-primary-700 text-[11px] font-semibold uppercase tracking-wider border border-primary-200">
+            <span className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-gray-900 text-[11px] font-semibold uppercase tracking-wider border border-gray-300">
               {group.label}
             </span>
-            <p className="text-sm text-tertiary-500 mt-1.5">
+            <p className="text-sm text-gray-500 mt-1.5">
               {group.description}
             </p>
           </div>
@@ -110,21 +110,21 @@ const FeatureGroupGrid: React.FC = () => {
                 <button
                   key={item.path}
                   onClick={() => navigate(item.path)}
-                  className="text-left bg-white rounded-2xl border border-tertiary-200 hover:border-primary-300 p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                  className="text-left bg-white rounded-2xl border border-gray-200 hover:border-gray-400 p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
                 >
                   <div className="flex items-start justify-between gap-3 mb-3">
-                    <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-primary-50 text-primary-600">
+                    <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gray-100 text-gray-900">
                       <Icon size={20} />
                     </span>
                     <ChevronRight
                       size={16}
-                      className="text-tertiary-300"
+                      className="text-gray-300"
                     />
                   </div>
-                  <h3 className="text-base font-bold text-tertiary-900 leading-snug">
+                  <h3 className="text-base font-bold text-gray-900 leading-snug">
                     {item.title}
                   </h3>
-                  <p className="text-sm text-tertiary-500 leading-relaxed mt-1">
+                  <p className="text-sm text-gray-500 leading-relaxed mt-1">
                     {item.desc}
                   </p>
                 </button>

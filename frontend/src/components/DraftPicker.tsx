@@ -95,7 +95,7 @@ export default function DraftPicker({
         <div
           id="draft-picker-list"
           role="listbox"
-          className="absolute right-0 mt-2 w-72 max-h-80 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-lg z-30"
+          className="absolute right-0 mt-2 w-72 max-h-80 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-sm z-30"
         >
           {draftsQuery.isLoading ? (
             <div className="p-4 text-xs text-slate-500">Loading drafts…</div>

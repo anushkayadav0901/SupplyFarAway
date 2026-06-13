@@ -13,6 +13,9 @@ import {
   Play,
   Square,
   Leaf,
+  Sun,
+  Cloud,
+  CloudRain,
 } from "lucide-react";
 import MapView from "../inventory/MapView";
 import PageLead from "../../components/PageLead";
@@ -70,6 +73,70 @@ function modeLabel(state: string): string {
   if (state === "air") return "Air";
   if (state === "sea") return "Sea";
   return "Land";
+}
+
+// ---------------------------------------------------------------------------
+// WeatherTile — current conditions for one city
+// ---------------------------------------------------------------------------
+
+interface WeatherData {
+  city: string;
+  country: string;
+  tempC: number;
+  condition: string;
+  description: string;
+  windKmh: number;
+  humidity: number;
+}
+
+function weatherIcon(condition: string | undefined) {
+  if (!condition) return <Cloud className="w-5 h-5 text-gray-400" />;
+  const c = condition.toLowerCase();
+  if (c.includes("rain") || c.includes("drizzle") || c.includes("thunder"))
+    return <CloudRain className="w-5 h-5 text-blue-500" />;
+  if (c.includes("cloud")) return <Cloud className="w-5 h-5 text-gray-400" />;
+  return <Sun className="w-5 h-5 text-amber-400" />;
+}
+
+function WeatherTile({
+  data,
+  label,
+}: {
+  data: WeatherData | null | undefined;
+  label: string;
+}) {
+  if (!data) {
+    return (
+      <div className="border border-gray-200 rounded-lg p-4">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
+          {label}
+        </p>
+        <p className="text-sm text-gray-400">Weather unavailable</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border border-gray-200 rounded-lg p-4">
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
+        {label}
+      </p>
+      <div className="flex items-center gap-2 mb-2">
+        {weatherIcon(data.condition)}
+        <span className="text-2xl font-bold text-slate-800">{data.tempC}&deg;C</span>
+      </div>
+      <p className="text-sm font-semibold text-slate-700">
+        {data.city}, {data.country}
+      </p>
+      <p className="text-xs text-gray-500 capitalize mt-0.5">{data.description}</p>
+      <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+        <span className="flex items-center gap-1">
+          <Wind className="w-3 h-3" /> {data.windKmh} km/h
+        </span>
+        <span>{data.humidity}% humidity</span>
+      </div>
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -175,6 +242,12 @@ export default function RoutePlanning() {
   const historyQuery = trpc.logistics.getRouteHistory.useQuery(undefined, {
     retry: false,
   });
+
+  // Weather for origin + destination (fetched once routes are generated)
+  const weatherQuery = trpc.logistics.weather.useQuery(
+    { from: from.trim(), to: to.trim() },
+    { enabled: routes.length > 0, retry: false }
+  );
   const savedRoutes = (historyQuery.data?.routeHistory ?? []) as unknown as SavedRoute[];
 
   const handlePlanRoute = (e: React.FormEvent) => {
@@ -275,6 +348,14 @@ export default function RoutePlanning() {
               <CardSkeleton height={88} />
               <CardSkeleton height={88} />
               <CardSkeleton height={88} />
+            </div>
+          )}
+
+          {/* Weather strip — shown after routes are generated */}
+          {weatherQuery.data && (
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <WeatherTile data={weatherQuery.data.origin} label="Origin" />
+              <WeatherTile data={weatherQuery.data.destination} label="Destination" />
             </div>
           )}
 

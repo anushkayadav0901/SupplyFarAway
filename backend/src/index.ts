@@ -4,7 +4,6 @@ import cors from "cors";
 import mongoose from "mongoose";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 
-import passport from "./config/passport.js";
 import connectMongoDB from "./lib/db.js";
 import { appRouter } from "./routers/_app.js";
 import { createContext } from "./context.js";
@@ -72,8 +71,6 @@ app.use(
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   }),
 );
-app.use(passport.initialize());
-
 // ---------------------------------------------------------------------------
 // Health check
 // ---------------------------------------------------------------------------

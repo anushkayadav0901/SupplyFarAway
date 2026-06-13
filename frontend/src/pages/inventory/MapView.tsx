@@ -255,14 +255,14 @@ function MapView({ draftId, inlineRoutes }: MapViewProps): React.ReactElement {
   // Friendly empty state when there is nothing to render
   if (!loading && !error && !hasInline && !hasDraft) {
     return (
-      <div className="relative h-96 rounded-lg overflow-hidden shadow-md bg-gray-100 flex items-center justify-center">
+      <div className="relative h-96 rounded-lg overflow-hidden shadow-sm bg-gray-100 flex items-center justify-center">
         <p className="text-slate-500 text-sm">Plan or pick a route to see the map</p>
       </div>
     );
   }
 
   return (
-    <div className="relative h-96 rounded-lg overflow-hidden shadow-md">
+    <div className="relative h-96 rounded-lg overflow-hidden shadow-sm">
       <div
         ref={mapRef}
         style={{ width: "100%", height: "100%" }}

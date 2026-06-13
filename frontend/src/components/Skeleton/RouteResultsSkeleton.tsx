@@ -1,21 +1,6 @@
 import React from "react";
-import { motion } from "framer-motion";
 
 const RouteResultsSkeleton = () => {
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.05 } },
-  };
-
-  const itemVariants = {
-    hidden: { x: -10, opacity: 0 },
-    visible: {
-      x: 0,
-      opacity: 1,
-      transition: { duration: 0.15, ease: "easeOut" },
-    },
-  };
-
   return (
     <div className="w-full max-w-4xl mx-auto p-4">
       {/* Filter Buttons Skeleton */}
@@ -29,17 +14,11 @@ const RouteResultsSkeleton = () => {
       </div>
 
       {/* Routes List Skeleton */}
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="space-y-4"
-      >
+      <div className="space-y-4">
         {[1, 2, 3].map((_, index) => (
-          <motion.div
+          <div
             key={index}
-            variants={itemVariants}
-            className="bg-white p-4 rounded-lg shadow-md border border-gray-200 flex flex-col sm:flex-row items-start justify-between gap-4"
+            className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-col sm:flex-row items-start justify-between gap-4"
           >
             {/* Route Info Skeleton */}
             <div className="flex-1 space-y-2">
@@ -69,9 +48,9 @@ const RouteResultsSkeleton = () => {
                 ))}
               </div>
             </div>
-          </motion.div>
+          </div>
         ))}
-      </motion.div>
+      </div>
     </div>
   );
 };

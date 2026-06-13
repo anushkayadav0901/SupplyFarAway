@@ -852,6 +852,48 @@ ${legLines}
     }),
 
   // -------------------------------------------------------------------------
+  // GET /api/weather  (public)
+  // Fetch current weather for origin and destination cities via OpenWeather.
+  // -------------------------------------------------------------------------
+  weather: publicProcedure
+    .input(
+      z.object({
+        from: z.string().min(1),
+        to: z.string().min(1),
+      })
+    )
+    .query(async ({ input }) => {
+      const apiKey = process.env.OPENWEATHER_API_KEY;
+      if (!apiKey)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "OPENWEATHER_API_KEY not set",
+        });
+
+      const fetchCity = async (q: string) => {
+        const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(q)}&appid=${apiKey}&units=metric`;
+        const res = await axios.get(url).catch(() => null);
+        if (!res || res.status !== 200) return null;
+        const d = res.data as any;
+        return {
+          city: d.name as string,
+          country: d.sys?.country as string,
+          tempC: Math.round(d.main?.temp ?? 0),
+          condition: d.weather?.[0]?.main as string,
+          description: d.weather?.[0]?.description as string,
+          windKmh: Math.round((d.wind?.speed ?? 0) * 3.6),
+          humidity: d.main?.humidity as number,
+        };
+      };
+
+      const [origin, destination] = await Promise.all([
+        fetchCity(input.from),
+        fetchCity(input.to),
+      ]);
+      return { origin, destination };
+    }),
+
+  // -------------------------------------------------------------------------
   // POST /api/choose-route  (protected)
   // Choose a route: update existing draft or create a new one with
   // Gemini-normalised country codes.
