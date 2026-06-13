@@ -5,7 +5,6 @@ import { Copy, Send } from "lucide-react";
 import { motion } from "framer-motion";
 import { FaTrash, FaImage } from "react-icons/fa";
 import Toast from "./../../components/Toast";
-import Header from "../../components/Header";
 
 // Fall back to local dev when VITE_BACKEND_URL is unset so the upload never
 // targets "undefined/api/analyze-product".
@@ -200,7 +199,6 @@ const ProductAnalysis: React.FC = () => {
   return (
     <div className="min-h-screen bg-neutral-100 p-4 sm:p-6">
       {/* Header */}
-      <Header title="Product Analysis" page="compliance" />
 
       {/* Main Content */}
       <div className="flex flex-col items-center px-4 sm:px-6 py-12">

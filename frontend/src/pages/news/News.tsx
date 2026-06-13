@@ -8,7 +8,6 @@ import {
   FaChevronUp,
 } from "react-icons/fa";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import Header from "../../components/Header";
 import Toast from "./../../components/Toast";
 import { trpc } from "../../lib/trpc";
 
@@ -275,7 +274,6 @@ const News: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-neutral-100 p-4 sm:p-6">
-      <Header title="News" />
       <motion.div
         variants={containerVariants}
         initial="hidden"

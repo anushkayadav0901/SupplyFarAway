@@ -4,7 +4,6 @@ import { toast } from "react-toastify";
 import axios from "axios";
 import Papa from "papaparse";
 import { ShieldCheck, Upload, FileText, Camera, Send } from "lucide-react";
-import Header from "../../components/Header";
 import DraftPicker from "../../components/DraftPicker";
 import InsightsRail from "../../components/InsightsRail";
 import ComplianceResponse from "./ComplianceResponse";
@@ -465,7 +464,6 @@ export default function Compliance() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Header title="Regulatory Compliance" page="compliance" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-6">
 
         {/* Draft context card */}

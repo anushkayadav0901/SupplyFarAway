@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { toast } from "react-toastify";
 import { Truck, Boxes, Plus, Trash2, Users, RefreshCcw } from "lucide-react";
-import Header from "../../components/Header";
 import CardSkeleton from "../../components/skeletons/CardSkeleton";
 import { trpc } from "../../lib/trpc";
 import LoadAggregation from "./LoadAggregation";
@@ -68,7 +67,6 @@ export default function Fleet() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Header title="Fleet &amp; Load Management" page="fleet" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-6">
 
         {/* Navigation Tabs */}

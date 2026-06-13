@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Header from "../../components/Header";
 import Sidebar from "./Sidebar";
 import ContentRenderer from "./ContentRenderer";
 import { getAllSections } from "../../constants/docs_constants";
@@ -85,7 +84,6 @@ const DocumentationPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-neutral-100 p-4 sm:p-6">
-      <Header title="Documentation" />
 
       <div className="max-w-7xl mx-auto mt-4 sm:mt-6">
         <div className="flex gap-4 sm:gap-6 relative">

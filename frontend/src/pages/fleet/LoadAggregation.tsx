@@ -3,7 +3,6 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { toast } from "react-toastify";
 import { MapPin, Package, RefreshCcw, Truck } from "lucide-react";
 
-import Header from "../../components/Header";
 import InsightsRail from "../../components/InsightsRail";
 import CountUp from "../../components/CountUp";
 import CardSkeleton from "../../components/skeletons/CardSkeleton";
@@ -553,7 +552,6 @@ export default function LoadAggregation({ asTab = false }: { asTab?: boolean }) 
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Header title="Small Truck Load Aggregation" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         {inner}
       </main>

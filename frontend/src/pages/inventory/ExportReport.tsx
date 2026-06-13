@@ -10,7 +10,6 @@ import {
   Plane,
   MoreHorizontal,
 } from "lucide-react";
-import Header from "../../components/Header";
 import {
   Document,
   Page,
@@ -618,7 +617,6 @@ function ExportReport(): React.ReactElement {
   if (loading) {
     return (
       <div className="min-h-screen bg-neutral-100 p-4 sm:p-6 flex flex-col">
-        <Header title="Export Report" page="export" />
         <div className="flex flex-1 items-center justify-center min-h-[400px]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mx-auto"></div>
@@ -635,7 +633,6 @@ function ExportReport(): React.ReactElement {
   if (error) {
     return (
       <div className="min-h-screen bg-neutral-100 p-4 sm:p-6 flex flex-col">
-        <Header title="Export Report" page="export" />
         <div className="text-center bg-white p-6 rounded-2xl shadow-xl">
           <p className="text-red-600 mb-4 font-medium">{error}</p>
           <button
@@ -652,7 +649,6 @@ function ExportReport(): React.ReactElement {
   if (!draft) {
     return (
       <div className="min-h-screen bg-neutral-100 p-4 sm:p-6 flex flex-col">
-        <Header title="Export Report" page="export" />
         <div className="text-center bg-white p-6 rounded-2xl shadow-xl">
           <p className="text-red-600 mb-4 font-medium">Draft not found.</p>
           <button
@@ -678,7 +674,6 @@ function ExportReport(): React.ReactElement {
   ) {
     return (
       <div className="min-h-screen bg-neutral-100 p-4 sm:p-6 flex flex-col">
-        <Header title="Export Report" page="export" />
         <div className="text-center bg-white p-6 rounded-2xl shadow-xl">
           <p className="text-red-600 mb-4 font-medium">
             Incomplete draft data. Form data is missing or invalid.
@@ -701,7 +696,6 @@ function ExportReport(): React.ReactElement {
 
   return (
     <div className="min-h-screen bg-neutral-100 p-4 sm:p-6 flex flex-col">
-      <Header title="Export Report" page="export" />
 
       <div className="max-w-5xl mx-auto my-8 bg-white shadow-xl rounded-2xl overflow-hidden flex-grow">
         {/* Header */}

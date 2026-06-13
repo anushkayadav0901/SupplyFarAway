@@ -1,6 +1,7 @@
 import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { trpc } from "../lib/trpc";
+import NavBar from "./NavBar";
 
 // V1: Loading skeleton that matches a typical protected page layout
 // (Header bar + content placeholder) so navigation doesn't flash blank.
@@ -60,7 +61,14 @@ const ProtectedRoute: React.FC = () => {
 
   const isAuthenticated = !!data && !isError;
 
-  return isAuthenticated ? <Outlet /> : <Navigate to="/" replace />;
+  if (!isAuthenticated) return <Navigate to="/" replace />;
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <NavBar />
+      <Outlet />
+    </div>
+  );
 };
 
 export default ProtectedRoute;

@@ -14,7 +14,6 @@ import {
   booleanOptions,
   transportOptions,
 } from "../../constants/constants";
-import Header from "../../components/Header";
 import Toast from "../../components/Toast";
 import { trpc } from "../../lib/trpc";
 
@@ -600,10 +599,6 @@ const ComplianceForm: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-neutral-100 p-4 sm:p-6">
-      <Header
-        title="Compliance Check Form"
-        page="compliance"
-      />
       <div className="max-w-7xl mx-auto bg-white mt-6 shadow-lg rounded-2xl mb-6 overflow-x-auto border border-gray-100">
         <div className="flex border-b border-gray-200 whitespace-nowrap bg-gray-50">
           {tabOrder.map((tab: string, tabIdx: number) => {

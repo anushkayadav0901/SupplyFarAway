@@ -12,7 +12,6 @@ import {
 import { useNavigate } from "react-router-dom";
 import Toast from "../../components/Toast";
 import { countryOptions } from "../../constants/constants";
-import Header from "../../components/Header";
 import { trpc } from "../../lib/trpc";
 
 // ---------------------------------------------------------------------------
@@ -483,7 +482,6 @@ const InventoryManagement: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-neutral-100 p-2 sm:p-4 md:p-6">
-      <Header title="Inventory" page="inventory" />
 
       <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 py-6 md:py-8">
         {/* Search bar */}

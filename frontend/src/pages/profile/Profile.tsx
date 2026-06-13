@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Settings, History, BarChart2 } from "lucide-react";
-import Header from "../../components/Header";
 import ManageAccount from "./ManageAccount";
 import HistoryTab from "./History";
 import AnalysisTab from "./Analysis";
@@ -12,7 +11,6 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Header title="Profile" page="profile" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-6">
 
         {/* Navigation Tabs */}

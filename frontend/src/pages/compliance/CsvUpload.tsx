@@ -2,7 +2,6 @@ import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Papa from "papaparse";
 import Toast from "./../../components/Toast";
-import Header from "../../components/Header";
 import { trpc } from "../../lib/trpc";
 
 interface ToastProps {
@@ -423,7 +422,6 @@ const CsvUploadPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-neutral-100 p-4 sm:p-6">
       {/* Header - Unchanged */}
-      <Header title="CSV Upload" page="compliance" />
       {/* Main Content */}
       <div className="flex flex-col items-center px-4 sm:px-6 py-12">
         {/* Upload Card */}
