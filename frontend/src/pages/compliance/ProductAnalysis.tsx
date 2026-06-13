@@ -221,7 +221,7 @@ const ProductAnalysis: React.FC = () => {
               {/* Upload Zone */}
               <div className="mb-6">
                 <div
-                  className={`border-2 border-dashed rounded-xl p-10 text-center transition-colors duration-150 ${
+                  className={`border-2 border-dashed rounded-xl p-10 text-center ${
                     isDragging
                       ? "border-blue-400 bg-blue-50"
                       : "border-slate-200 bg-slate-50 hover:border-blue-300 hover:bg-blue-50/40 cursor-pointer"
@@ -247,7 +247,7 @@ const ProductAnalysis: React.FC = () => {
                       <div className="flex flex-col sm:flex-row justify-center gap-3">
                         <button
                           onClick={(e) => { e.stopPropagation(); handleRemoveImage(); }}
-                          className="px-4 py-2 text-sm text-slate-600 border border-slate-300 hover:bg-slate-100 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                          className="px-4 py-2 text-sm text-slate-600 border border-slate-300 hover:bg-slate-100 rounded-lg font-medium flex items-center justify-center gap-2"
                           disabled={isLoading}
                         >
                           <FaTrash className="w-3 h-3" />
@@ -255,7 +255,7 @@ const ProductAnalysis: React.FC = () => {
                         </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); void handleAnalyze(); }}
-                          className="px-5 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-60"
+                          className="px-5 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-60"
                           disabled={isLoading}
                         >
                           {isLoading ? "Analyzing..." : "Analyze Product"}
@@ -284,7 +284,7 @@ const ProductAnalysis: React.FC = () => {
 
               {/* Loading State */}
               {isLoading && (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-700 animate-pulse mb-6">
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-700 mb-6">
                   Scanning product characteristics and retrieving HS code...
                 </div>
               )}
@@ -305,7 +305,7 @@ const ProductAnalysis: React.FC = () => {
                           <button
                             title="Copy HS Code"
                             onClick={() => handleCopy(analysisResult.data!["HS Code"])}
-                            className="p-2 text-slate-400 hover:text-blue-600 transition-colors rounded-lg hover:bg-blue-50"
+                            className="p-2 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-blue-50"
                           >
                             <Copy size={15} />
                           </button>
@@ -318,7 +318,7 @@ const ProductAnalysis: React.FC = () => {
                           <button
                             title="Copy Description"
                             onClick={() => handleCopy(analysisResult.data!["Product Description"])}
-                            className="p-2 text-slate-400 hover:text-blue-600 transition-colors rounded-lg hover:bg-blue-50 shrink-0"
+                            className="p-2 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 shrink-0"
                           >
                             <Copy size={15} />
                           </button>
@@ -363,7 +363,7 @@ const ProductAnalysis: React.FC = () => {
 
                       <button
                         onClick={handleSendToCompliance}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                        className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                       >
                         <Send size={16} />
                         Send to Compliance Check

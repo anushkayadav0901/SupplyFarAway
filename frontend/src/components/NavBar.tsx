@@ -79,13 +79,13 @@ function NavBar() {
               target="_blank"
               rel="noreferrer"
               aria-label="View source on GitHub"
-              className="hidden sm:inline-flex w-9 h-9 items-center justify-center rounded-full text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+              className="hidden sm:inline-flex w-9 h-9 items-center justify-center rounded-full text-slate-500 hover:text-slate-900 hover:bg-slate-100"
             >
               <GitHubGlyph />
             </a>
             <button
               onClick={() => navigate("/inventory")}
-              className={`text-sm font-semibold px-4 sm:px-5 py-2 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
+              className={`text-sm font-semibold px-4 sm:px-5 py-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
                 active("/inventory")
                   ? "bg-blue-700 text-white"
                   : "bg-blue-600 hover:bg-blue-700 text-white"
@@ -135,7 +135,7 @@ function NavLink({
   return (
     <button
       onClick={onClick}
-      className={`text-sm font-medium px-3 py-2 rounded-full inline-flex items-center gap-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
+      className={`text-sm font-medium px-3 py-2 rounded-full inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
         active
           ? "bg-blue-50 text-blue-700"
           : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
@@ -191,7 +191,7 @@ function MobileNav({
               <li key={item.path}>
                 <button
                   onClick={() => navigate(item.path)}
-                  className={`w-full text-left px-4 py-3 rounded-2xl inline-flex items-center gap-3 text-sm font-medium transition-colors ${
+                  className={`w-full text-left px-4 py-3 rounded-2xl inline-flex items-center gap-3 text-sm font-medium ${
                     isActive
                       ? "bg-blue-50 text-blue-700"
                       : "text-slate-800 hover:bg-slate-100"

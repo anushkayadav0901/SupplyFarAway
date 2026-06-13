@@ -114,7 +114,7 @@ function LiveTrackingRow({ route }: { route: SavedRoute }) {
       <button
         onClick={() => setTracking((t) => !t)}
         title={tracking ? "Stop tracking" : "Start tracking"}
-        className={`ml-3 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
+        className={`ml-3 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border ${
           tracking
             ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
             : "bg-white text-slate-600 border-slate-300 hover:border-blue-400 hover:text-blue-600"
@@ -199,91 +199,92 @@ export default function RoutePlanning() {
   const selectedRoute = selectedIndex !== null ? routes[selectedIndex] : null;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12">
 
-        <PageLead
-          title="Plan a global shipping route"
-          sub="From and to. Gemini returns 7 options with cost, time, carbon, and a live map. Toggle live tracking on any saved route."
-          right={<DraftPicker value={draftId} onSelect={setDraftId} />}
-        />
+      <PageLead
+        title="Plan a global shipping route"
+        sub="From and to. Gemini returns 7 options with cost, time, carbon, and a live map. Toggle live tracking on any saved route."
+        right={<DraftPicker value={draftId} onSelect={setDraftId} />}
+      />
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-          {/* Left: form + results */}
-          <div className="lg:col-span-5 space-y-6">
+        {/* Left: form + results */}
+        <div className="lg:col-span-5 space-y-12">
 
-            {/* Plan form */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-              <h3 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <Compass className="w-5 h-5 text-blue-600" /> Plan Route
-              </h3>
-              <form onSubmit={handlePlanRoute} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">
-                      From
-                    </label>
-                    <input
-                      type="text"
-                      value={from}
-                      onChange={(e) => setFrom(e.target.value)}
-                      placeholder="e.g. Mumbai, India"
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">
-                      To
-                    </label>
-                    <input
-                      type="text"
-                      value={to}
-                      onChange={(e) => setTo(e.target.value)}
-                      placeholder="e.g. Rotterdam, Netherlands"
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                </div>
+          {/* Plan form — kept as card: input container exception */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <h2 className="text-xl font-bold text-slate-900 mb-5 flex items-center gap-2">
+              <Compass className="w-5 h-5 text-blue-600" /> Plan Route
+            </h2>
+            <form onSubmit={handlePlanRoute} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">
-                    Cargo weight (kg)
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    From
                   </label>
                   <input
-                    type="number"
-                    min="0.1"
-                    step="any"
-                    value={weight}
-                    onChange={(e) => setWeight(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    type="text"
+                    value={from}
+                    onChange={(e) => setFrom(e.target.value)}
+                    placeholder="e.g. Mumbai, India"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
                   />
                 </div>
-                <button
-                  type="submit"
-                  disabled={generateMutation.isPending}
-                  className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold text-sm rounded-xl transition-colors"
-                >
-                  {generateMutation.isPending ? "Generating routes..." : "Plan Route"}
-                </button>
-              </form>
-            </div>
-
-            {/* Loading skeleton */}
-            {generateMutation.isPending && (
-              <div className="space-y-3">
-                <CardSkeleton height={88} />
-                <CardSkeleton height={88} />
-                <CardSkeleton height={88} />
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    To
+                  </label>
+                  <input
+                    type="text"
+                    value={to}
+                    onChange={(e) => setTo(e.target.value)}
+                    placeholder="e.g. Rotterdam, Netherlands"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  />
+                </div>
               </div>
-            )}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Cargo weight (kg)
+                </label>
+                <input
+                  type="number"
+                  min="0.1"
+                  step="any"
+                  value={weight}
+                  onChange={(e) => setWeight(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={generateMutation.isPending}
+                className="w-full px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold rounded-lg"
+              >
+                {generateMutation.isPending ? "Generating routes..." : "Plan Route"}
+              </button>
+            </form>
+          </div>
 
-            {/* Route results */}
-            {!generateMutation.isPending && routes.length > 0 && (
+          {/* Loading skeleton */}
+          {generateMutation.isPending && (
+            <div className="space-y-3">
+              <CardSkeleton height={88} />
+              <CardSkeleton height={88} />
+              <CardSkeleton height={88} />
+            </div>
+          )}
+
+          {/* Route results — flat section, result buttons are the result primitives */}
+          {!generateMutation.isPending && routes.length > 0 && (
+            <section>
+              <h2 className="text-xl font-bold text-slate-900 mb-5">
+                {routes.length} Routes — select one
+              </h2>
               <div className="space-y-3">
-                <h3 className="text-sm font-bold text-slate-700">
-                  {routes.length} Routes — select one
-                </h3>
                 {routes.map((route, idx) => {
                   const isSelected = selectedIndex === idx;
                   const primaryMode = route.routeDirections[0]?.state ?? "land";
@@ -292,7 +293,7 @@ export default function RoutePlanning() {
                       key={idx}
                       type="button"
                       onClick={() => setSelectedIndex(idx)}
-                      className={`w-full text-left p-4 rounded-2xl border transition-all ${
+                      className={`w-full text-left p-4 rounded-xl border ${
                         isSelected
                           ? "bg-blue-50 border-blue-500 shadow-sm"
                           : "bg-white border-slate-200 hover:border-slate-300"
@@ -343,124 +344,123 @@ export default function RoutePlanning() {
                   );
                 })}
               </div>
-            )}
+            </section>
+          )}
 
-            {/* Empty state — no routes yet */}
-            {!generateMutation.isPending && routes.length === 0 && (
-              <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center">
-                <RouteIcon className="w-10 h-10 mx-auto text-slate-300 mb-3" />
-                <p className="text-sm font-semibold text-slate-600">No routes planned yet</p>
-                <p className="text-xs text-slate-400 mt-1">
-                  Enter an origin and destination above, then click Plan Route.
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Right: map + active shipments */}
-          <div className="lg:col-span-7 space-y-6">
-
-            {/* Route visualization */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-              <h3 className="text-base font-bold text-slate-800 mb-3 flex items-center gap-2">
-                <Navigation className="w-5 h-5 text-blue-600" /> Route Visualization
-              </h3>
-              <MapView
-                inlineRoutes={selectedRoute ? selectedRoute.routeDirections.map((d) => ({
-                  id: d.id,
-                  waypoints: d.waypoints,
-                  state: d.state as "land" | "sea" | "air",
-                })) : undefined}
-              />
-
-              {/* Selected route detail strip */}
-              {selectedRoute && (
-                <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
-                  <p className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-2">
-                    Route legs
-                  </p>
-                  <div className="space-y-1.5">
-                    {selectedRoute.routeDirections.map((leg, i) => (
-                      <div key={leg.id} className="flex items-center gap-2 text-xs text-slate-600">
-                        <span className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded ${modeColor(leg.state)}`}>
-                          {modeLabel(leg.state)}
-                        </span>
-                        <span className="truncate">
-                          {leg.waypoints[0]} → {leg.waypoints[leg.waypoints.length - 1]}
-                        </span>
-                        {selectedRoute.distanceByLeg[i] !== undefined && (
-                          <span className="ml-auto shrink-0 text-slate-400">
-                            {selectedRoute.distanceByLeg[i].toFixed(0)} km
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-3 pt-2 border-t border-slate-200 grid grid-cols-3 gap-2 text-center text-xs">
-                    <div>
-                      <p className="text-slate-400">Total Distance</p>
-                      <p className="font-bold text-slate-700">{selectedRoute.totalDistance?.toFixed(0)} km</p>
-                    </div>
-                    <div>
-                      <p className="text-slate-400">Est. Cost</p>
-                      <p className="font-bold text-slate-700">${selectedRoute.totalCost?.toFixed(0)}</p>
-                    </div>
-                    <div>
-                      <p className="text-slate-400">Carbon</p>
-                      <p className="font-bold text-emerald-600">{selectedRoute.totalCarbonScore?.toFixed(0)} kg CO2</p>
-                    </div>
-                  </div>
-                </div>
-              )}
+          {/* Empty state — no routes yet, flat inline nudge */}
+          {!generateMutation.isPending && routes.length === 0 && (
+            <div className="py-10 text-center">
+              <RouteIcon className="w-10 h-10 mx-auto text-slate-300 mb-3" />
+              <p className="text-sm font-semibold text-slate-600">No routes planned yet</p>
+              <p className="text-sm text-slate-500 mt-1">
+                Enter an origin and destination above, then click Plan Route.
+              </p>
             </div>
+          )}
+        </div>
 
-            {/* Active shipments — live tracking */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-blue-600" /> Active Shipments
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Toggle live tracking on any saved route.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => historyQuery.refetch()}
-                  className="text-xs font-semibold text-slate-500 hover:text-slate-700 flex items-center gap-1"
-                >
-                  <RefreshCcw className="w-3 h-3" /> Refresh
-                </button>
-              </div>
+        {/* Right: map + active shipments — no outer cards */}
+        <div className="lg:col-span-7 space-y-12">
 
-              {historyQuery.isLoading ? (
-                <div className="space-y-2">
-                  <CardSkeleton height={48} />
-                  <CardSkeleton height={48} />
-                </div>
-              ) : historyQuery.error ? (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700">
-                  Failed to load shipments.{" "}
-                  <button onClick={() => historyQuery.refetch()} className="underline">
-                    Retry
-                  </button>
-                </div>
-              ) : savedRoutes.length === 0 ? (
-                <div className="py-8 text-center text-slate-400">
-                  <Wind className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                  <p className="text-xs">No saved routes yet. Plan and save a route to track it here.</p>
-                </div>
-              ) : (
-                <div>
-                  {savedRoutes.map((route) => (
-                    <LiveTrackingRow key={route._id} route={route} />
+          {/* Route visualization — bare map, result panel only when needed */}
+          <section>
+            <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+              <Navigation className="w-5 h-5 text-blue-600" /> Route Visualization
+            </h2>
+            <MapView
+              inlineRoutes={selectedRoute ? selectedRoute.routeDirections.map((d) => ({
+                id: d.id,
+                waypoints: d.waypoints,
+                state: d.state as "land" | "sea" | "air",
+              })) : undefined}
+            />
+
+            {/* Selected route detail — result panel exception */}
+            {selectedRoute && (
+              <div className="mt-5 p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
+                  Route legs
+                </p>
+                <div className="space-y-1.5">
+                  {selectedRoute.routeDirections.map((leg, i) => (
+                    <div key={leg.id} className="flex items-center gap-2 text-xs text-slate-600">
+                      <span className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded ${modeColor(leg.state)}`}>
+                        {modeLabel(leg.state)}
+                      </span>
+                      <span className="truncate">
+                        {leg.waypoints[0]} → {leg.waypoints[leg.waypoints.length - 1]}
+                      </span>
+                      {selectedRoute.distanceByLeg[i] !== undefined && (
+                        <span className="ml-auto shrink-0 text-slate-400">
+                          {selectedRoute.distanceByLeg[i].toFixed(0)} km
+                        </span>
+                      )}
+                    </div>
                   ))}
                 </div>
-              )}
+                <div className="mt-4 pt-3 border-t border-slate-200 grid grid-cols-3 gap-2 text-center text-xs">
+                  <div>
+                    <p className="text-slate-400">Total Distance</p>
+                    <p className="font-bold text-slate-700">{selectedRoute.totalDistance?.toFixed(0)} km</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400">Est. Cost</p>
+                    <p className="font-bold text-slate-700">${selectedRoute.totalCost?.toFixed(0)}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400">Carbon</p>
+                    <p className="font-bold text-emerald-600">{selectedRoute.totalCarbonScore?.toFixed(0)} kg CO2</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* Active shipments — flat section, no card wrapper */}
+          <section className="border-t border-slate-200 pt-12">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-blue-600" /> Active Shipments
+              </h2>
+              <button
+                type="button"
+                onClick={() => historyQuery.refetch()}
+                className="text-xs font-semibold text-slate-500 hover:text-slate-700 flex items-center gap-1"
+              >
+                <RefreshCcw className="w-3 h-3" /> Refresh
+              </button>
             </div>
-          </div>
+            <p className="text-sm text-slate-500 mb-5">
+              Toggle live tracking on any saved route.
+            </p>
+
+            {historyQuery.isLoading ? (
+              <div className="space-y-2">
+                <CardSkeleton height={48} />
+                <CardSkeleton height={48} />
+              </div>
+            ) : historyQuery.error ? (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-700">
+                Failed to load shipments.{" "}
+                <button onClick={() => historyQuery.refetch()} className="underline">
+                  Retry
+                </button>
+              </div>
+            ) : savedRoutes.length === 0 ? (
+              <div className="py-8 text-center text-slate-400">
+                <Wind className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">No saved routes yet. Plan and save a route to track it here.</p>
+              </div>
+            ) : (
+              <div>
+                {savedRoutes.map((route) => (
+                  <LiveTrackingRow key={route._id} route={route} />
+                ))}
+              </div>
+            )}
+          </section>
         </div>
+      </div>
     </div>
   );
 }

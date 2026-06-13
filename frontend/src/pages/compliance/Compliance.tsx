@@ -464,428 +464,389 @@ export default function Compliance() {
     ];
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12">
 
-        <PageLead
-          title="Screen for export compliance"
-          sub="Pick a draft — Gemini extracts the HS code, regulatory flags, and dual-use warnings. Or drop a CSV / product photo to skip the form."
-          right={<DraftPicker value={draftId} onSelect={setDraftId} />}
-        />
+      <PageLead
+        title="Screen for export compliance"
+        sub="Pick a draft — Gemini extracts the HS code, regulatory flags, and dual-use warnings. Or drop a CSV / product photo to skip the form."
+        right={<DraftPicker value={draftId} onSelect={setDraftId} />}
+      />
 
-        {/* Mode tabs */}
-        <div className="flex border-b border-slate-200 gap-1 overflow-x-auto pb-px">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveMode(tab.id)}
-              className={`flex items-center gap-2 px-5 py-3 border-b-2 font-semibold text-sm transition-all rounded-t-xl ${
-                activeMode === tab.id
-                  ? "border-blue-600 text-blue-600 bg-blue-50/50"
-                  : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100/50"
-              }`}
-            >
-              {tab.icon}
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      {/* Mode tabs */}
+      <div className="flex border-b border-slate-200 gap-6 overflow-x-auto pb-px">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveMode(tab.id)}
+            className={`flex items-center gap-2 px-1 py-3 border-b-2 font-semibold text-sm transition-colors whitespace-nowrap ${
+              activeMode === tab.id
+                ? "border-blue-600 text-blue-700"
+                : "border-transparent text-slate-500 hover:text-slate-900"
+            }`}
+          >
+            {tab.icon}
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-8 space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-8 space-y-8">
 
-            {/* ---- FORM TAB ---- */}
-            {activeMode === "form" && (
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-                <div>
-                  <h3 className="text-base font-bold text-slate-800">
-                    Verify Shipment Details
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    3 fields required — AI infers compliance from the full draft
-                    context.
-                  </p>
-                </div>
+          {/* ---- FORM TAB ---- */}
+          {activeMode === "form" && (
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">
+                  Verify Shipment Details
+                </h2>
+                <p className="text-sm text-slate-500 mt-1">
+                  3 fields required — AI infers compliance from the full draft context.
+                </p>
+              </div>
 
-                {!draftId && (
-                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600">
-                    No draft selected. Fill fields manually or pick a draft
-                    above to auto-populate.
-                  </div>
-                )}
+              {!draftId && (
+                <p className="text-sm text-slate-500">
+                  No draft selected. Fill fields manually or pick a draft above to auto-populate.
+                </p>
+              )}
 
-                <form onSubmit={handleFormSubmit} className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-600 mb-1">
-                        Origin Country
-                      </label>
-                      <input
-                        type="text"
-                        value={originCountry}
-                        onChange={(e) => setOriginCountry(e.target.value)}
-                        placeholder="e.g. US"
-                        className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-600 mb-1">
-                        Destination Country
-                      </label>
-                      <input
-                        type="text"
-                        value={destinationCountry}
-                        onChange={(e) => setDestinationCountry(e.target.value)}
-                        placeholder="e.g. CA"
-                        className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        required
-                      />
-                    </div>
-                  </div>
-
+              <form onSubmit={handleFormSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">
-                      HS Code
-                      <span className="ml-1 text-slate-400 font-normal">
-                        (optional — AI will infer if blank)
-                      </span>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      Origin Country
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. 8517.12"
-                      value={hsCode}
-                      onChange={(e) => setHsCode(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      value={originCountry}
+                      onChange={(e) => setOriginCountry(e.target.value)}
+                      placeholder="e.g. US"
+                      className="w-full px-4 py-3 rounded-lg border border-slate-300 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
                     />
                   </div>
-
-                  {checkMutation.isPending && (
-                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-700 animate-pulse">
-                      AI is running compliance check against WCO standards...
-                    </div>
-                  )}
-
-                  <div className="flex justify-end pt-1">
-                    <button
-                      type="submit"
-                      disabled={checkMutation.isPending}
-                      className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold text-sm rounded-xl transition-all shadow-sm"
-                    >
-                      {checkMutation.isPending
-                        ? "Checking..."
-                        : "Run Compliance Check"}
-                    </button>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      Destination Country
+                    </label>
+                    <input
+                      type="text"
+                      value={destinationCountry}
+                      onChange={(e) => setDestinationCountry(e.target.value)}
+                      placeholder="e.g. CA"
+                      className="w-full px-4 py-3 rounded-lg border border-slate-300 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    />
                   </div>
-                </form>
-              </div>
-            )}
-
-            {/* ---- CSV TAB ---- */}
-            {activeMode === "csv" && (
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-                <div>
-                  <h3 className="text-base font-bold text-slate-800">
-                    CSV Bulk Import
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Upload a CSV to create a compliance draft instantly.
-                  </p>
                 </div>
 
-                {!csvFile ? (
-                  <div
-                    className={`border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center gap-3 transition-colors duration-150 ${
-                      isDragging
-                        ? "border-blue-400 bg-blue-50"
-                        : "border-slate-200 bg-slate-50 hover:border-blue-300 hover:bg-blue-50/40"
-                    }`}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      setIsDragging(true);
-                    }}
-                    onDragLeave={() => setIsDragging(false)}
-                    onDrop={handleCsvDrop}
-                  >
-                    <Upload className="w-8 h-8 text-slate-400" />
-                    <p className="text-sm text-slate-600 font-medium">
-                      {isDragging ? "Drop your file here" : "Drag & drop CSV"}
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      or click to browse
-                    </p>
-                    <input
-                      type="file"
-                      accept=".csv"
-                      ref={csvInputRef}
-                      onChange={handleCsvFileChange}
-                      className="hidden"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => csvInputRef.current?.click()}
-                      className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-all"
-                    >
-                      Select CSV File
-                    </button>
-                  </div>
-                ) : (
-                  <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800">
-                        {csvFile.name}
-                      </p>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Parsed successfully — ready to import.
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={handleCsvReset}
-                        className="px-3 py-1.5 text-xs text-slate-600 border border-slate-300 hover:bg-slate-100 rounded-lg font-medium transition-all"
-                      >
-                        Remove
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleCsvSubmit}
-                        disabled={csvDraftMutation.isPending}
-                        className="px-4 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg font-semibold transition-all"
-                      >
-                        {csvDraftMutation.isPending
-                          ? "Importing..."
-                          : "Import Draft"}
-                      </button>
-                    </div>
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    HS Code{" "}
+                    <span className="text-slate-400 font-normal">
+                      (optional — AI will infer if blank)
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 8517.12"
+                    value={hsCode}
+                    onChange={(e) => setHsCode(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg border border-slate-300 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+
+                {checkMutation.isPending && (
+                  <p className="text-sm text-blue-700">
+                    AI is running compliance check against WCO standards...
+                  </p>
                 )}
 
-                {csvError && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
-                    {csvError}
-                  </div>
-                )}
-
-                {csvDraftMutation.isPending && (
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-700 animate-pulse">
-                    Creating draft from CSV...
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-700">
-                      Need a template?
-                    </p>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Download with all required column headers pre-filled.
-                    </p>
-                  </div>
+                <div className="flex justify-end pt-1">
                   <button
-                    type="button"
-                    onClick={handleDownloadTemplate}
-                    className="px-4 py-2 text-xs bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-semibold transition-all"
+                    type="submit"
+                    disabled={checkMutation.isPending}
+                    className="px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold rounded-lg"
                   >
-                    Download Template
+                    {checkMutation.isPending
+                      ? "Checking..."
+                      : "Run Compliance Check"}
                   </button>
                 </div>
-              </div>
-            )}
+              </form>
+            </div>
+          )}
 
-            {/* ---- IMAGE TAB ---- */}
-            {activeMode === "image" && (
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          {/* ---- CSV TAB ---- */}
+          {activeMode === "csv" && (
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">
+                  CSV Bulk Import
+                </h2>
+                <p className="text-sm text-slate-500 mt-1">
+                  Upload a CSV to create a compliance draft instantly.
+                </p>
+              </div>
+
+              {!csvFile ? (
+                <div
+                  className={`border-2 border-dashed rounded-lg p-10 flex flex-col items-center justify-center gap-3 ${
+                    isDragging
+                      ? "border-blue-400 bg-blue-50"
+                      : "border-slate-200 bg-slate-50 hover:border-blue-300 hover:bg-blue-50/40"
+                  }`}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={handleCsvDrop}
+                >
+                  <Upload className="w-8 h-8 text-slate-400" />
+                  <p className="text-sm font-medium text-slate-600">
+                    {isDragging ? "Drop your file here" : "Drag & drop CSV"}
+                  </p>
+                  <p className="text-sm text-slate-400">or click to browse</p>
+                  <input
+                    type="file"
+                    accept=".csv"
+                    ref={csvInputRef}
+                    onChange={handleCsvFileChange}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => csvInputRef.current?.click()}
+                    className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg"
+                  >
+                    Select CSV File
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-3 py-3 border-b border-slate-200">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">
+                      {csvFile.name}
+                    </p>
+                    <p className="text-sm text-slate-500 mt-0.5">
+                      Parsed successfully — ready to import.
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleCsvReset}
+                      className="px-5 py-3 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50 text-sm font-semibold rounded-lg"
+                    >
+                      Remove
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCsvSubmit}
+                      disabled={csvDraftMutation.isPending}
+                      className="px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold rounded-lg"
+                    >
+                      {csvDraftMutation.isPending ? "Importing..." : "Import Draft"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {csvError && (
+                <p className="text-sm text-red-600">{csvError}</p>
+              )}
+
+              {csvDraftMutation.isPending && (
+                <p className="text-sm text-blue-700">Creating draft from CSV...</p>
+              )}
+
+              <div className="flex items-center justify-between pt-2 border-t border-slate-200">
                 <div>
-                  <h3 className="text-base font-bold text-slate-800">
-                    Product Image Inference
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Upload a product photo — AI extracts HS code, perishability,
-                    and required docs.
+                  <p className="text-sm font-medium text-slate-700">
+                    Need a template?
+                  </p>
+                  <p className="text-sm text-slate-500 mt-0.5">
+                    Download with all required column headers pre-filled.
                   </p>
                 </div>
+                <button
+                  type="button"
+                  onClick={handleDownloadTemplate}
+                  className="px-5 py-3 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50 text-sm font-semibold rounded-lg"
+                >
+                  Download Template
+                </button>
+              </div>
+            </div>
+          )}
 
-                {!selectedImage ? (
-                  <div
-                    className="border-2 border-dashed border-slate-200 rounded-xl p-10 flex flex-col items-center justify-center gap-3 bg-slate-50 hover:border-blue-300 hover:bg-blue-50/40 transition-colors duration-150 cursor-pointer"
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={handleImageDrop}
-                    onClick={() => imageInputRef.current?.click()}
-                  >
-                    <Camera className="w-8 h-8 text-slate-400" />
-                    <p className="text-sm text-slate-600 font-medium">
-                      Drag & drop or click to upload
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      JPG, PNG, WebP — max 10 MB
-                    </p>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      ref={imageInputRef}
-                      onChange={handleImageInputChange}
-                      className="hidden"
-                    />
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="border border-slate-200 rounded-xl overflow-hidden flex items-center justify-center bg-slate-50 min-h-48">
-                        {previewUrl && (
-                          <img
-                            src={previewUrl}
-                            alt="Product preview"
-                            className="max-h-48 object-contain p-2"
-                          />
-                        )}
-                      </div>
-                      <div className="flex flex-col justify-center gap-3">
-                        <p className="text-sm font-semibold text-slate-800 truncate">
-                          {selectedImage.name}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {(selectedImage.size / 1024).toFixed(1)} KB
-                        </p>
-                        <div className="flex gap-2 flex-wrap">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedImage(null);
-                              setImageResult(null);
-                              if (imageInputRef.current)
-                                imageInputRef.current.value = "";
-                            }}
-                            className="px-3 py-1.5 text-xs text-slate-600 border border-slate-300 hover:bg-slate-100 rounded-lg font-medium transition-all"
-                          >
-                            Remove
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void handleAnalyzeImage()}
-                            disabled={isAnalyzing}
-                            className="px-4 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg font-semibold transition-all"
-                          >
-                            {isAnalyzing ? "Analyzing..." : "Analyze Product"}
-                          </button>
-                        </div>
+          {/* ---- IMAGE TAB ---- */}
+          {activeMode === "image" && (
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">
+                  Product Image Inference
+                </h2>
+                <p className="text-sm text-slate-500 mt-1">
+                  Upload a product photo — AI extracts HS code, perishability,
+                  and required docs.
+                </p>
+              </div>
+
+              {!selectedImage ? (
+                <div
+                  className="border-2 border-dashed border-slate-200 rounded-lg p-10 flex flex-col items-center justify-center gap-3 bg-slate-50 hover:border-blue-300 hover:bg-blue-50/40 cursor-pointer"
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={handleImageDrop}
+                  onClick={() => imageInputRef.current?.click()}
+                >
+                  <Camera className="w-8 h-8 text-slate-400" />
+                  <p className="text-sm font-medium text-slate-600">
+                    Drag & drop or click to upload
+                  </p>
+                  <p className="text-sm text-slate-400">
+                    JPG, PNG, WebP — max 10 MB
+                  </p>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    ref={imageInputRef}
+                    onChange={handleImageInputChange}
+                    className="hidden"
+                  />
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div className="border border-slate-200 rounded-lg overflow-hidden flex items-center justify-center bg-slate-50 min-h-48">
+                      {previewUrl && (
+                        <img
+                          src={previewUrl}
+                          alt="Product preview"
+                          className="max-h-48 object-contain p-2"
+                        />
+                      )}
+                    </div>
+                    <div className="flex flex-col justify-center gap-3">
+                      <p className="text-sm font-semibold text-slate-800 truncate">
+                        {selectedImage.name}
+                      </p>
+                      <p className="text-sm text-slate-500">
+                        {(selectedImage.size / 1024).toFixed(1)} KB
+                      </p>
+                      <div className="flex gap-2 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedImage(null);
+                            setImageResult(null);
+                            if (imageInputRef.current)
+                              imageInputRef.current.value = "";
+                          }}
+                          className="px-5 py-3 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50 text-sm font-semibold rounded-lg"
+                        >
+                          Remove
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleAnalyzeImage()}
+                          disabled={isAnalyzing}
+                          className="px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold rounded-lg"
+                        >
+                          {isAnalyzing ? "Analyzing..." : "Analyze Product"}
+                        </button>
                       </div>
                     </div>
-
-                    {isAnalyzing && (
-                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-700 animate-pulse">
-                        AI is scanning product characteristics and retrieving HS
-                        code...
-                      </div>
-                    )}
-
-                    {imageResult?.error && (
-                      <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
-                        {imageResult.error}
-                      </div>
-                    )}
-
-                    {imageResult?.data && (
-                      <div className="space-y-3">
-                        <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-slate-600">
-                              HS Code
-                            </span>
-                            <span className="text-sm font-bold text-slate-800">
-                              {imageResult.data["HS Code"]}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-slate-600">
-                              Description
-                            </span>
-                            <span className="text-xs text-slate-700 text-right max-w-[60%]">
-                              {imageResult.data["Product Description"]}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-slate-600">
-                              Perishable
-                            </span>
-                            <span
-                              className={`text-xs font-semibold ${imageResult.data.Perishable ? "text-orange-600" : "text-emerald-600"}`}
-                            >
-                              {imageResult.data.Perishable ? "Yes" : "No"}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-slate-600">
-                              Hazardous
-                            </span>
-                            <span
-                              className={`text-xs font-semibold ${imageResult.data.Hazardous ? "text-red-600" : "text-emerald-600"}`}
-                            >
-                              {imageResult.data.Hazardous ? "Yes" : "No"}
-                            </span>
-                          </div>
-                        </div>
-
-                        {imageResult.data["Required Export Document List"]
-                          ?.length > 0 && (
-                          <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                            <p className="text-xs font-semibold text-blue-800 mb-2">
-                              Required Export Documents
-                            </p>
-                            <ul className="space-y-1">
-                              {imageResult.data[
-                                "Required Export Document List"
-                              ].map((doc, i) => (
-                                <li
-                                  key={i}
-                                  className="text-xs text-slate-700 flex items-center gap-2"
-                                >
-                                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />
-                                  {doc}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
-                        {imageResult.draftId && (
-                          <button
-                            type="button"
-                            onClick={handleSendImageToDraft}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-all shadow-sm"
-                          >
-                            <Send className="w-4 h-4" />
-                            Send to Compliance Form
-                          </button>
-                        )}
-                      </div>
-                    )}
                   </div>
-                )}
-              </div>
-            )}
 
-            {/* ---- Results ---- */}
-            {complianceResult && (
-              <ComplianceResponse
-                response={
-                  complianceResult as {
-                    complianceResponse?: Record<string, unknown>;
-                    [key: string]: unknown;
-                  }
+                  {isAnalyzing && (
+                    <p className="text-sm text-blue-700">
+                      AI is scanning product characteristics and retrieving HS code...
+                    </p>
+                  )}
+
+                  {imageResult?.error && (
+                    <p className="text-sm text-red-600">{imageResult.error}</p>
+                  )}
+
+                  {imageResult?.data && (
+                    <div className="space-y-5 border-t border-slate-200 pt-5">
+                      <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                        <div>
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-0.5">HS Code</p>
+                          <p className="text-sm font-bold text-slate-900">{imageResult.data["HS Code"]}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-0.5">Description</p>
+                          <p className="text-sm text-slate-700">{imageResult.data["Product Description"]}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-0.5">Perishable</p>
+                          <p className={`text-sm font-semibold ${imageResult.data.Perishable ? "text-orange-600" : "text-emerald-600"}`}>
+                            {imageResult.data.Perishable ? "Yes" : "No"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-0.5">Hazardous</p>
+                          <p className={`text-sm font-semibold ${imageResult.data.Hazardous ? "text-red-600" : "text-emerald-600"}`}>
+                            {imageResult.data.Hazardous ? "Yes" : "No"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {imageResult.data["Required Export Document List"]?.length > 0 && (
+                        <div>
+                          <p className="text-sm font-medium text-slate-700 mb-2">Required Export Documents</p>
+                          <ul className="space-y-1">
+                            {imageResult.data["Required Export Document List"].map((doc, i) => (
+                              <li key={i} className="text-sm text-slate-600 flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />
+                                {doc}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {imageResult.draftId && (
+                        <button
+                          type="button"
+                          onClick={handleSendImageToDraft}
+                          className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg"
+                        >
+                          <Send className="w-4 h-4" />
+                          Send to Compliance Form
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ---- Results ---- */}
+          {complianceResult && (
+            <ComplianceResponse
+              response={
+                complianceResult as {
+                  complianceResponse?: Record<string, unknown>;
+                  [key: string]: unknown;
                 }
-              />
-            )}
-          </div>
-
-          <aside className="lg:col-span-4">
-            <InsightsRail
-              draftId={draftId || undefined}
-              title="Regulatory Logs"
+              }
             />
-          </aside>
+          )}
         </div>
-      </main>
+
+        <aside className="lg:col-span-4">
+          <InsightsRail
+            draftId={draftId || undefined}
+            title="Regulatory Logs"
+          />
+        </aside>
+      </div>
     </div>
   );
 }

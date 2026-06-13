@@ -422,13 +422,13 @@ const InventoryManagement: React.FC = () => {
     routeOpt: string | undefined
   ): React.ReactElement => {
     if (compliance === "compliant" && routeOpt === "done") {
-      return <Truck size={20} className="text-emerald-500" />;
+      return <Truck size={16} className="text-emerald-500 shrink-0" />;
     } else if (compliance === "compliant") {
-      return <CheckCircle2 size={20} className="text-emerald-600" />;
+      return <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />;
     } else if (compliance === "nonCompliant") {
-      return <AlertTriangle size={20} className="text-red-600" />;
+      return <AlertTriangle size={16} className="text-red-600 shrink-0" />;
     } else {
-      return <Clock size={20} className="text-amber-500" />;
+      return <Clock size={16} className="text-amber-500 shrink-0" />;
     }
   };
 
@@ -478,65 +478,61 @@ const InventoryManagement: React.FC = () => {
   ];
 
   const isWide = viewportWidth >= 600;
+  const filteredDrafts = getFilteredDrafts();
 
   return (
-    <div className="p-2 sm:p-4 md:p-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12">
+      <PageLead
+        title="Active shipment drafts"
+        sub="Every shipment in flight. Filter by status, jump into a draft to verify, or export the manifest as a PDF."
+        right={
+          <input
+            type="search"
+            aria-label="Search drafts"
+            placeholder="HS Code, product, country…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-64 px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        }
+      />
 
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 py-6 md:py-8 space-y-6">
-        <PageLead
-          title="Active shipment drafts"
-          sub="Every shipment in flight. Filter by status, jump into a draft to verify, or export the manifest as a PDF."
-          right={
-            <input
-              type="search"
-              aria-label="Search drafts"
-              placeholder="HS Code, product, country…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-64 px-4 py-2 bg-white border border-slate-300 rounded-xl text-slate-800 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
-            />
-          }
-        />
-
-        {/* Tabs */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm mb-6 overflow-x-auto">
-          <div className="flex border-b border-slate-200 min-w-max">
-            {tabs.map((tab) => (
-              <button
-                key={tab.value}
-                onClick={() => setActiveTab(tab.value)}
-                className={`px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors duration-150 border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset ${
-                  activeTab === tab.value
-                    ? "border-blue-600 text-slate-900 bg-slate-50"
-                    : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50"
-                }`}
-              >
-                {tab.label(isWide)}
-              </button>
-            ))}
-          </div>
+      <section>
+        {/* Flat tab bar */}
+        <div className="flex border-b border-slate-200 gap-6 pb-px overflow-x-auto">
+          {tabs.map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => setActiveTab(tab.value)}
+              className={`px-1 py-3 border-b-2 text-sm font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset ${
+                activeTab === tab.value
+                  ? "border-blue-600 text-blue-700"
+                  : "border-transparent text-slate-500 hover:text-slate-900"
+              }`}
+            >
+              {tab.label(isWide)}
+            </button>
+          ))}
         </div>
 
-        <div style={{ minHeight: 400 }}>
+        <div className="mt-6" style={{ minHeight: 320 }}>
           {loading ? (
-            <div className="space-y-4">
+            <div className="space-y-0">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 animate-pulse">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-5 h-5 bg-slate-200 rounded-full" />
-                    <div className="h-5 bg-slate-200 rounded w-24" />
-                    <div className="h-5 bg-slate-200 rounded-full w-20 ml-2" />
+                <div key={i} className="flex items-center gap-4 py-4 border-b border-slate-100">
+                  <div className="w-4 h-4 bg-slate-200 rounded-full shrink-0" />
+                  <div className="flex-1 flex gap-6">
+                    <div className="h-4 bg-slate-100 rounded w-20" />
+                    <div className="h-4 bg-slate-100 rounded w-32" />
+                    <div className="h-4 bg-slate-100 rounded w-24" />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="h-4 bg-slate-100 rounded w-full" />
-                    <div className="h-4 bg-slate-100 rounded w-full" />
-                  </div>
+                  <div className="h-4 bg-slate-100 rounded-full w-24" />
                 </div>
               ))}
             </div>
-          ) : getFilteredDrafts().length === 0 ? (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm px-6 py-10 sm:py-14 text-center">
-              <p className="text-slate-500 font-semibold text-lg sm:text-xl mb-1">
+          ) : filteredDrafts.length === 0 ? (
+            <div className="py-14 text-center">
+              <p className="text-slate-700 font-semibold text-lg mb-1">
                 {activeTab === "non-compliant"
                   ? "No non-compliant drafts"
                   : activeTab === "compliant"
@@ -545,7 +541,7 @@ const InventoryManagement: React.FC = () => {
                   ? "Nothing ready for shipment yet"
                   : "No drafts available"}
               </p>
-              <p className="text-slate-400 text-sm sm:text-base mb-6">
+              <p className="text-sm text-slate-500 mb-6">
                 {activeTab === "yet-to-be-checked"
                   ? "Create your first draft to get started!"
                   : activeTab === "non-compliant"
@@ -559,250 +555,243 @@ const InventoryManagement: React.FC = () => {
               {activeTab !== "yet-to-be-checked" && (
                 <button
                   onClick={() => setActiveTab("yet-to-be-checked")}
-                  className="px-5 py-2 border-2 border-blue-600 text-blue-600 font-semibold rounded-xl text-sm hover:border-blue-700 hover:text-blue-700 hover:bg-blue-50 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                  className="px-5 py-3 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50 text-sm font-semibold rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                 >
                   View pending drafts
                 </button>
               )}
             </div>
           ) : (
-            <div>
-            {getFilteredDrafts().map((draft, index) => (
-              <div key={draft._id} className="mb-4 sm:mb-6">
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:-translate-y-0.5 hover:shadow transition-all duration-150">
-                  <div className="p-4 sm:p-6">
-                    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-                      <div className="flex-1 space-y-3">
-                        <div className="flex items-center gap-2 sm:gap-3">
-                          {getStatusIcon(
-                            draft.statuses?.compliance,
-                            draft.statuses?.routeOptimization
-                          )}
-                          <span className="font-bold text-slate-900 text-base sm:text-lg">
-                            Draft {index + 1}
-                          </span>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs sm:text-sm font-semibold ${getStatusChipClass(draft.statuses?.compliance, draft.statuses?.routeOptimization)}`}>
-                            {getStatusLabel(draft.statuses?.compliance, draft.statuses?.routeOptimization)}
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                          <div>
-                            <p className="text-slate-500 font-semibold text-xs sm:text-sm">HS Code</p>
-                            <p className="text-slate-900 font-medium text-xs sm:text-sm">
-                              {draft.formData?.ShipmentDetails?.["HS Code"] || "N/A"}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-slate-500 font-semibold text-xs sm:text-sm">Created</p>
-                            <p className="text-slate-900 font-medium text-xs sm:text-sm">
-                              {new Date(draft.timestamp).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div>
-                          <p className="text-slate-500 font-semibold text-xs sm:text-sm">Product Description</p>
-                          <p className="text-slate-900 font-medium text-xs sm:text-sm mt-0.5">
-                            {draft.formData?.ShipmentDetails?.["Product Description"] || "N/A"}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
-                        {!(draft.statuses?.compliance === "compliant" &&
-                          draft.statuses?.routeOptimization === "done") && (
-                          <button
-                            onClick={() => handleActionClick(draft)}
-                            className="px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs sm:text-sm shadow-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
-                          >
-                            {draft.statuses?.compliance === "compliant" &&
-                            draft.statuses?.routeOptimization === "notDone"
-                              ? "Optimize Route"
-                              : "Check Compliance"}
-                          </button>
-                        )}
-
-                        {draft.statuses?.compliance === "compliant" &&
-                          draft.statuses?.routeOptimization === "done" && (
-                            <button
-                              onClick={() => {
-                                setExportDraft(draft);
-                                setOpenExportDialog(true);
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-xs font-semibold text-slate-500 uppercase tracking-wide border-b border-slate-200">
+                    <th className="px-4 py-3 text-left w-8">#</th>
+                    <th className="px-4 py-3 text-left">Status</th>
+                    <th className="px-4 py-3 text-left">HS Code</th>
+                    <th className="px-4 py-3 text-left">Product</th>
+                    <th className="px-4 py-3 text-left hidden sm:table-cell">Origin</th>
+                    <th className="px-4 py-3 text-left hidden sm:table-cell">Destination</th>
+                    <th className="px-4 py-3 text-left hidden md:table-cell">Created</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredDrafts.map((draft, index) => {
+                    const compliance = draft.statuses?.compliance;
+                    const routeOpt = draft.statuses?.routeOptimization;
+                    const sd = draft.formData?.ShipmentDetails;
+                    const isExpanded = expandedDraftId === draft._id;
+                    return (
+                      <React.Fragment key={draft._id}>
+                        <tr className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                          <td className="px-4 py-3 text-slate-400 font-medium">{index + 1}</td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${getStatusChipClass(compliance, routeOpt)}`}>
+                              {getStatusIcon(compliance, routeOpt)}
+                              {getStatusLabel(compliance, routeOpt)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 font-mono text-slate-700 text-xs">
+                            {sd?.["HS Code"] || "—"}
+                          </td>
+                          <td className="px-4 py-3 text-slate-900 max-w-[200px] truncate">
+                            {sd?.["Product Description"] || "—"}
+                          </td>
+                          <td className="px-4 py-3 text-slate-600 hidden sm:table-cell">
+                            {sd?.["Origin Country"] || "—"}
+                          </td>
+                          <td className="px-4 py-3 text-slate-600 hidden sm:table-cell">
+                            {sd?.["Destination Country"] || "—"}
+                          </td>
+                          <td className="px-4 py-3 text-slate-500 hidden md:table-cell">
+                            {new Date(draft.timestamp).toLocaleDateString()}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                              {!(compliance === "compliant" && routeOpt === "done") && (
+                                <button
+                                  onClick={() => handleActionClick(draft)}
+                                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                                >
+                                  {compliance === "compliant" && routeOpt === "notDone"
+                                    ? "Optimize Route"
+                                    : "Check Compliance"}
+                                </button>
+                              )}
+                              {compliance === "compliant" && routeOpt === "done" && (
+                                <button
+                                  onClick={() => {
+                                    setExportDraft(draft);
+                                    setOpenExportDialog(true);
+                                  }}
+                                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
+                                >
+                                  Export Report
+                                </button>
+                              )}
+                              <button
+                                onClick={() =>
+                                  setExpandedDraftId(isExpanded ? null : draft._id)
+                                }
+                                aria-expanded={isExpanded}
+                                aria-controls={`map-peek-${draft._id}`}
+                                className="px-3 py-1.5 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50 text-xs font-semibold rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                              >
+                                {isExpanded ? "Hide map" : "Map"}
+                              </button>
+                              <button
+                                onClick={() => handleDeleteDraft(draft._id)}
+                                aria-label={`Delete draft ${index + 1}`}
+                                className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                        {/* Map peek row */}
+                        <tr
+                          id={`map-peek-${draft._id}`}
+                          style={{ display: isExpanded ? "table-row" : "none" }}
+                        >
+                          <td colSpan={8} className="px-4 pb-4">
+                            <div
+                              style={{
+                                height: "20rem",
+                                borderRadius: "8px",
+                                overflow: "hidden",
+                                border: "1px solid #e2e8f0",
                               }}
-                              className="px-3 sm:px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs sm:text-sm shadow-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
                             >
-                              Export Report
-                            </button>
-                          )}
-
-                        <button
-                          onClick={() =>
-                            setExpandedDraftId(
-                              expandedDraftId === draft._id ? null : draft._id
-                            )
-                          }
-                          aria-expanded={expandedDraftId === draft._id}
-                          aria-controls={`map-peek-${draft._id}`}
-                          className="px-2.5 sm:px-3 py-1.5 border-2 border-blue-600 text-blue-600 font-semibold rounded-xl text-xs sm:text-sm hover:border-blue-700 hover:text-blue-700 hover:bg-blue-50 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-                        >
-                          {expandedDraftId === draft._id ? "Hide map" : "Show map"}
-                        </button>
-
-                        <button
-                          onClick={() => handleDeleteDraft(draft._id)}
-                          aria-label={`Delete draft ${index + 1}`}
-                          className="p-2 text-red-500 bg-red-50 hover:bg-red-100 rounded-xl transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Map peek panel */}
-                  <div
-                    id={`map-peek-${draft._id}`}
-                    style={{
-                      maxHeight: expandedDraftId === draft._id ? "24rem" : "0",
-                      overflow: "hidden",
-                      transition: "max-height 300ms ease-in-out",
-                    }}
-                  >
-                    <div
-                      style={{
-                        margin: "0 16px 16px",
-                        border: "1px solid #e2e8f0",
-                        borderRadius: "12px",
-                        height: "24rem",
-                        backgroundColor: "#ffffff",
-                        overflow: "hidden",
-                      }}
-                    >
-                      {expandedDraftId === draft._id && (
-                        <MapView draftId={String(draft._id)} />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+                              <MapView draftId={String(draft._id)} />
+                            </div>
+                          </td>
+                        </tr>
+                      </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
+      </section>
 
-        {activeTab === "yet-to-be-checked" && (
-          <button
-            onClick={handleDialogOpen}
-            aria-label="Create new draft"
-            className="fixed bottom-4 sm:bottom-6 left-4 sm:left-6 w-12 sm:w-16 h-12 sm:h-16 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow transition-all duration-150 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
-          >
-            <Plus size={24} className="sm:w-7 sm:h-7" />
-          </button>
-        )}
+      {activeTab === "yet-to-be-checked" && (
+        <button
+          onClick={handleDialogOpen}
+          aria-label="Create new draft"
+          className="fixed bottom-4 sm:bottom-6 left-4 sm:left-6 w-12 sm:w-16 h-12 sm:h-16 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+        >
+          <Plus size={24} className="sm:w-7 sm:h-7" />
+        </button>
+      )}
 
-        {/* Export Report Dialog */}
-        <Modal open={openExportDialog} onClose={() => setOpenExportDialog(false)} maxWidth="sm">
-          <div className="px-6 pt-6 pb-2 text-center">
-            <h2 className="text-xl font-bold text-slate-900">Shipment Manifest Report</h2>
-          </div>
-          <div className="px-6 py-4 flex flex-col gap-4 text-sm text-slate-700">
-            {exportDraft && (() => {
-              const sd = exportDraft.formData?.ShipmentDetails;
-              return (
-                <>
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 font-mono text-xs">
-                    <p><strong>Draft ID:</strong> {exportDraft._id}</p>
-                    <p><strong>Created:</strong> {new Date(exportDraft.timestamp).toLocaleString()}</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-slate-400 font-semibold uppercase">Origin</p>
-                      <p className="font-semibold text-slate-900">{sd?.["Origin Country"] || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-400 font-semibold uppercase">Destination</p>
-                      <p className="font-semibold text-slate-900">{sd?.["Destination Country"] || "N/A"}</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-slate-400 font-semibold uppercase">Weight</p>
-                      <p className="font-semibold text-slate-900">{sd?.["Gross Weight"] != null ? `${sd["Gross Weight"]} kg` : "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-400 font-semibold uppercase">HS Code</p>
-                      <p className="font-semibold text-slate-900">{sd?.["HS Code"] || "N/A"}</p>
-                    </div>
+      {/* Export Report Dialog */}
+      <Modal open={openExportDialog} onClose={() => setOpenExportDialog(false)} maxWidth="sm">
+        <div className="px-6 pt-6 pb-4 border-b border-slate-200">
+          <h2 className="text-xl font-bold text-slate-900">Shipment Manifest Report</h2>
+        </div>
+        <div className="px-6 py-6 flex flex-col gap-5">
+          {exportDraft && (() => {
+            const sd = exportDraft.formData?.ShipmentDetails;
+            return (
+              <>
+                {/* Meta block qualifies as a result panel — mono text, returned data */}
+                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 font-mono text-xs text-slate-600 space-y-0.5">
+                  <p><strong>Draft ID:</strong> {exportDraft._id}</p>
+                  <p><strong>Created:</strong> {new Date(exportDraft.timestamp).toLocaleString()}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Origin</p>
+                    <p className="font-semibold text-slate-900 text-sm">{sd?.["Origin Country"] || "N/A"}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400 font-semibold uppercase">Cargo Description</p>
-                    <p className="text-slate-900">{sd?.["Product Description"] || "N/A"}</p>
+                    <p className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Destination</p>
+                    <p className="font-semibold text-slate-900 text-sm">{sd?.["Destination Country"] || "N/A"}</p>
                   </div>
-                  <div className="p-3 rounded-xl border border-emerald-200 flex justify-between items-center text-xs font-semibold bg-emerald-50 text-emerald-800">
-                    <span>Regulatory Review:</span>
-                    <span className="uppercase">Approved &amp; Compliant</span>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Weight</p>
+                    <p className="font-semibold text-slate-900 text-sm">{sd?.["Gross Weight"] != null ? `${sd["Gross Weight"]} kg` : "N/A"}</p>
                   </div>
-                </>
-              );
-            })()}
-          </div>
-          <div className="px-6 pb-6 flex justify-center gap-3 flex-wrap">
-            <button
-              onClick={() => {
-                if (!exportDraft) return;
-                const sd = exportDraft.formData?.ShipmentDetails;
-                const reportPayload = {
-                  draftId: exportDraft._id,
-                  created: exportDraft.timestamp,
-                  origin: sd?.["Origin Country"] ?? "N/A",
-                  destination: sd?.["Destination Country"] ?? "N/A",
-                  hsCode: sd?.["HS Code"] ?? "N/A",
-                  grossWeight: sd?.["Gross Weight"] ?? "N/A",
-                  productDescription: sd?.["Product Description"] ?? "N/A",
-                  complianceStatus: "Approved & Compliant",
-                  statuses: exportDraft.statuses,
-                };
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(reportPayload, null, 2));
-                const downloadAnchor = document.createElement("a");
-                downloadAnchor.setAttribute("href", dataStr);
-                downloadAnchor.setAttribute("download", `shipment-report-${exportDraft._id}.json`);
-                document.body.appendChild(downloadAnchor);
-                downloadAnchor.click();
-                downloadAnchor.remove();
-              }}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
-            >
-              Download JSON
-            </button>
-            <button
-              onClick={() => window.print()}
-              className="px-4 py-2 border-2 border-blue-600 text-blue-600 font-semibold rounded-xl text-sm hover:bg-blue-50 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
-            >
-              Print Manifest
-            </button>
-            <button
-              onClick={() => setOpenExportDialog(false)}
-              className="px-4 py-2 text-slate-500 font-semibold rounded-xl text-sm hover:bg-slate-100 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
-            >
-              Close
-            </button>
-          </div>
-        </Modal>
+                  <div>
+                    <p className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">HS Code</p>
+                    <p className="font-semibold text-slate-900 text-sm font-mono">{sd?.["HS Code"] || "N/A"}</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Cargo Description</p>
+                  <p className="text-slate-900 text-sm">{sd?.["Product Description"] || "N/A"}</p>
+                </div>
+                <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Regulatory Review</span>
+                  <span className="text-xs font-semibold text-emerald-700 uppercase">Approved &amp; Compliant</span>
+                </div>
+              </>
+            );
+          })()}
+        </div>
+        <div className="px-6 pb-6 flex justify-center gap-3 flex-wrap">
+          <button
+            onClick={() => {
+              if (!exportDraft) return;
+              const sd = exportDraft.formData?.ShipmentDetails;
+              const reportPayload = {
+                draftId: exportDraft._id,
+                created: exportDraft.timestamp,
+                origin: sd?.["Origin Country"] ?? "N/A",
+                destination: sd?.["Destination Country"] ?? "N/A",
+                hsCode: sd?.["HS Code"] ?? "N/A",
+                grossWeight: sd?.["Gross Weight"] ?? "N/A",
+                productDescription: sd?.["Product Description"] ?? "N/A",
+                complianceStatus: "Approved & Compliant",
+                statuses: exportDraft.statuses,
+              };
+              const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(reportPayload, null, 2));
+              const downloadAnchor = document.createElement("a");
+              downloadAnchor.setAttribute("href", dataStr);
+              downloadAnchor.setAttribute("download", `shipment-report-${exportDraft._id}.json`);
+              document.body.appendChild(downloadAnchor);
+              downloadAnchor.click();
+              downloadAnchor.remove();
+            }}
+            className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+          >
+            Download JSON
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="px-5 py-3 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50 text-sm font-semibold rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+          >
+            Print Manifest
+          </button>
+          <button
+            onClick={() => setOpenExportDialog(false)}
+            className="px-5 py-3 text-slate-500 text-sm font-semibold rounded-lg hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+          >
+            Close
+          </button>
+        </div>
+      </Modal>
 
-        {/* Delete Dialog */}
-        <Modal open={openDeleteDialog} onClose={handleDeleteCancel} maxWidth="sm">
-          <div className="px-6 pt-6 pb-4 border-b border-slate-200">
-            <h2 className="text-xl font-bold text-red-600">Warning: Deleting Draft</h2>
-          </div>
-          <div className="px-6 py-6">
-            <p className="text-slate-700 mb-3">
-              This choice may negatively affect your sustainability rating and
-              disrupt overall analysis records.
-            </p>
-            <p className="text-slate-700 font-semibold text-sm mb-2">
-              Please enter your email to proceed:
-            </p>
+      {/* Delete Dialog */}
+      <Modal open={openDeleteDialog} onClose={handleDeleteCancel} maxWidth="sm">
+        <div className="px-6 pt-6 pb-4 border-b border-slate-200">
+          <h2 className="text-xl font-bold text-red-600">Warning: Deleting Draft</h2>
+        </div>
+        <div className="px-6 py-6 space-y-4">
+          <p className="text-slate-700 text-sm">
+            This choice may negatively affect your sustainability rating and
+            disrupt overall analysis records.
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              Enter your email to proceed
+            </label>
             <input
               type="email"
               value={deleteEmail}
@@ -811,199 +800,173 @@ const InventoryManagement: React.FC = () => {
                 setDeleteEmailError("");
               }}
               placeholder="Email"
-              className={`w-full px-4 py-2.5 border rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-colors duration-150 ${
+              className={`w-full px-4 py-3 border rounded-lg text-base text-slate-800 focus:outline-none focus:ring-2 focus:border-transparent ${
                 deleteEmailError
                   ? "border-red-500 focus:ring-red-500"
-                  : "border-slate-300 focus:ring-blue-500"
+                  : "border-slate-300 focus:ring-blue-500 focus:border-blue-500"
               }`}
             />
             {deleteEmailError && (
               <p className="text-red-600 text-xs mt-1">{deleteEmailError}</p>
             )}
           </div>
-          <div className="px-6 pb-6 flex justify-between gap-3">
-            <button
-              onClick={handleDeleteCancel}
-              className="px-6 py-2 border-2 border-slate-400 text-slate-600 font-semibold rounded-xl text-sm hover:bg-slate-50 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleDeleteConfirm}
-              className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2"
-            >
-              Delete
-            </button>
-          </div>
-        </Modal>
+        </div>
+        <div className="px-6 pb-6 flex justify-between gap-3">
+          <button
+            onClick={handleDeleteCancel}
+            className="px-5 py-3 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50 text-sm font-semibold rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleDeleteConfirm}
+            className="px-5 py-3 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2"
+          >
+            Delete
+          </button>
+        </div>
+      </Modal>
 
-        {/* Create Draft Dialog */}
-        <Modal open={openDialog} onClose={handleDialogClose} maxWidth="md">
-          <div className="px-6 pt-6 pb-2 border-b border-slate-200">
-            <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Create New Draft</h2>
-          </div>
-          <div className="px-4 sm:px-6 py-6 overflow-y-auto">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleCreateDraft();
-              }}
-              className="w-full bg-white rounded-xl"
-            >
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 w-full">
-                <div className="w-full">
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Origin Country</label>
-                  <select
-                    name="originCountry"
-                    value={newDraft.originCountry}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150 appearance-none"
-                  >
-                    <option value="" disabled>
-                      Select Origin Country
-                    </option>
-                    {countryOptions.map(
-                      (option: { value: string; label: string }) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      )
-                    )}
-                  </select>
-                  <p className="text-red-600 text-xs mt-1 min-h-[1.2em]">
-                    {formErrors.originCountry || ""}
-                  </p>
-                </div>
-
-                <div className="w-full">
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Destination Country</label>
-                  <select
-                    name="destinationCountry"
-                    value={newDraft.destinationCountry}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150 appearance-none"
-                  >
-                    <option value="" disabled>
-                      Select Destination
-                    </option>
-                    {countryOptions.map(
-                      (option: { value: string; label: string }) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      )
-                    )}
-                  </select>
-                  <p className="text-red-600 text-xs mt-1 min-h-[1.2em]">
-                    {formErrors.destinationCountry || ""}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 w-full mt-2">
-                <div className="w-full">
-                  <label htmlFor="hsCode" className="block text-sm font-medium text-slate-700 mb-1.5">
-                    HS Code
-                  </label>
-                  <input
-                    type="text"
-                    id="hsCode"
-                    name="hsCode"
-                    value={newDraft.hsCode}
-                    onChange={handleInputChange}
-                    required
-                    placeholder="e.g. 8471.30"
-                    className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
-                  />
-                  <p className="text-red-600 text-xs mt-1 min-h-[1.2em]">
-                    {formErrors.hsCode || ""}
-                  </p>
-                </div>
-
-                <div className="w-full">
-                  <label htmlFor="weight" className="block text-sm font-medium text-slate-700 mb-1.5">
-                    Weight (kg)
-                  </label>
-                  <input
-                    type="number"
-                    id="weight"
-                    name="weight"
-                    value={newDraft.weight}
-                    onChange={handleInputChange}
-                    required
-                    min="0"
-                    step="0.1"
-                    placeholder="e.g. 500"
-                    className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
-                  />
-                  <p className="text-red-600 text-xs mt-1 min-h-[1.2em]">
-                    {formErrors.weight || ""}
-                  </p>
-                </div>
-              </div>
-
-              <div className="w-full mt-4">
-                <label htmlFor="productDescription" className="block text-sm font-medium text-slate-700 mb-1.5">
-                  Product Description
-                </label>
-                <textarea
-                  id="productDescription"
-                  name="productDescription"
-                  value={newDraft.productDescription}
+      {/* Create Draft Dialog */}
+      <Modal open={openDialog} onClose={handleDialogClose} maxWidth="md">
+        <div className="px-6 pt-6 pb-4 border-b border-slate-200">
+          <h2 className="text-xl font-bold text-slate-900">Create New Draft</h2>
+        </div>
+        <div className="px-6 py-6 overflow-y-auto">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleCreateDraft();
+            }}
+            className="space-y-4"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Origin Country</label>
+                <select
+                  name="originCountry"
+                  value={newDraft.originCountry}
                   onChange={handleInputChange}
                   required
-                  placeholder="Describe the product (e.g. Electronic components for assembly)"
-                  rows={3}
-                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
-                />
-                <p className="text-red-600 text-xs mt-1 min-h-[1.2em]">
-                  {formErrors.productDescription || ""}
-                </p>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-4 mt-4">
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    name="perishable"
-                    checked={newDraft.perishable}
-                    onChange={handleInputChange}
-                    className="w-4 h-4 rounded border-slate-300 text-blue-600 accent-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-slate-700 font-medium">Perishable</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    name="hazardous"
-                    checked={newDraft.hazardous}
-                    onChange={handleInputChange}
-                    className="w-4 h-4 rounded border-slate-300 text-blue-600 accent-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-slate-700 font-medium">Hazardous</span>
-                </label>
-              </div>
-
-              <div className="mt-6 sm:mt-8 flex justify-center">
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="relative px-6 sm:px-8 py-3 sm:py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold rounded-xl shadow-sm transition-colors duration-150 active:scale-[0.98] disabled:cursor-not-allowed min-w-[200px] focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-base text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none"
                 >
-                  <span className="flex items-center justify-center gap-3">
-                    {submitting ? "Creating..." : "Create Draft"}
-                    {submitting && (
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    )}
-                  </span>
-                </button>
+                  <option value="" disabled>Select Origin Country</option>
+                  {countryOptions.map((option: { value: string; label: string }) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+                <p className="text-red-600 text-xs mt-1 min-h-[1.2em]">{formErrors.originCountry || ""}</p>
               </div>
-            </form>
-          </div>
-        </Modal>
-      </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Destination Country</label>
+                <select
+                  name="destinationCountry"
+                  value={newDraft.destinationCountry}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-base text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none"
+                >
+                  <option value="" disabled>Select Destination</option>
+                  {countryOptions.map((option: { value: string; label: string }) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+                <p className="text-red-600 text-xs mt-1 min-h-[1.2em]">{formErrors.destinationCountry || ""}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="hsCode" className="block text-sm font-medium text-slate-700 mb-1.5">HS Code</label>
+                <input
+                  type="text"
+                  id="hsCode"
+                  name="hsCode"
+                  value={newDraft.hsCode}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="e.g. 8471.30"
+                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-base text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <p className="text-red-600 text-xs mt-1 min-h-[1.2em]">{formErrors.hsCode || ""}</p>
+              </div>
+
+              <div>
+                <label htmlFor="weight" className="block text-sm font-medium text-slate-700 mb-1.5">Weight (kg)</label>
+                <input
+                  type="number"
+                  id="weight"
+                  name="weight"
+                  value={newDraft.weight}
+                  onChange={handleInputChange}
+                  required
+                  min="0"
+                  step="0.1"
+                  placeholder="e.g. 500"
+                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-base text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <p className="text-red-600 text-xs mt-1 min-h-[1.2em]">{formErrors.weight || ""}</p>
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="productDescription" className="block text-sm font-medium text-slate-700 mb-1.5">
+                Product Description
+              </label>
+              <textarea
+                id="productDescription"
+                name="productDescription"
+                value={newDraft.productDescription}
+                onChange={handleInputChange}
+                required
+                placeholder="Describe the product (e.g. Electronic components for assembly)"
+                rows={3}
+                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-base text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <p className="text-red-600 text-xs mt-1 min-h-[1.2em]">{formErrors.productDescription || ""}</p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  name="perishable"
+                  checked={newDraft.perishable}
+                  onChange={handleInputChange}
+                  className="w-4 h-4 rounded border-slate-300 text-blue-600 accent-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-slate-700">Perishable</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  name="hazardous"
+                  checked={newDraft.hazardous}
+                  onChange={handleInputChange}
+                  className="w-4 h-4 rounded border-slate-300 text-blue-600 accent-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-slate-700">Hazardous</span>
+              </label>
+            </div>
+
+            <div className="pt-4 flex justify-center">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white text-sm font-semibold rounded-lg shadow-sm disabled:cursor-not-allowed min-w-[180px] focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+              >
+                <span className="flex items-center justify-center gap-3">
+                  {submitting ? "Creating..." : "Create Draft"}
+                  {submitting && (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  )}
+                </span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </Modal>
 
       <Toast type={toastProps.type} message={toastProps.message} />
     </div>

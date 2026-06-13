@@ -148,7 +148,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
           <button
             onClick={onClose}
             aria-label="Close documentation sidebar"
-            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
           >
             <X size={16} className="text-gray-500" />
           </button>
@@ -180,7 +180,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
                 <button
                   key={`${result.category}-${result.id}`}
                   onClick={() => handleNavigate(result.category, result.id)}
-                  className="w-full text-left p-3 hover:bg-blue-50 border-b border-slate-100 last:border-b-0 last:rounded-b-xl transition-colors duration-150"
+                  className="w-full text-left p-3 hover:bg-blue-50 border-b border-slate-100 last:border-b-0 last:rounded-b-xl"
                 >
                   <div className="font-medium text-slate-900 text-sm">
                     {highlightMatch(result.title, searchQuery)}
@@ -225,7 +225,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
               onClick={() => toggleCategory(categoryKey)}
               aria-expanded={isExpanded}
               aria-controls={accordionId}
-              className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors duration-150 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
+              className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
             >
               <div className="flex items-center gap-3">
                 <category.icon className="text-gray-500 text-sm flex-shrink-0" />
@@ -234,9 +234,9 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
                 </h3>
               </div>
               {isExpanded ? (
-                <ChevronDown size={14} className="text-gray-400 group-hover:text-gray-600" />
+                <ChevronDown size={14} className="text-gray-400" />
               ) : (
-                <ChevronUp size={14} className="text-gray-400 group-hover:text-gray-600" />
+                <ChevronUp size={14} className="text-gray-400" />
               )}
             </button>
 
@@ -252,7 +252,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
                       onClick={() =>
                         handleNavigate(categoryKey, section.id)
                       }
-                      className={`w-full text-left p-3 rounded-lg transition-colors duration-150 flex items-center justify-between group text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 ${
+                      className={`w-full text-left p-3 rounded-lg flex items-center justify-between group text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 ${
                         activeCategory === categoryKey &&
                         activeSection === section.id
                           ? "bg-blue-50 text-blue-700 font-medium border-l-4 border-blue-500"
@@ -260,7 +260,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
                       }`}
                     >
                       <span className="flex-1">{section.title}</span>
-                      <ChevronRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex-shrink-0" />
+                      <ChevronRight size={12} className="opacity-0 flex-shrink-0" />
                     </button>
                   </li>
                 ))}

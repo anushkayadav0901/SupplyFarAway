@@ -57,23 +57,22 @@ function SeverityBadge({ severity }: { severity: string }) {
   );
 }
 
-
 // ---------------------------------------------------------------------------
 // Empty state
 // ---------------------------------------------------------------------------
 
 function EmptyState({ onPickDraft }: { onPickDraft: () => void }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
+    <div className="py-16 text-center">
       <ShieldCheck className="w-10 h-10 text-slate-300 mx-auto mb-3" />
       <p className="text-base font-semibold text-slate-700">No shipment selected</p>
-      <p className="text-sm text-slate-500 mt-1 mb-4">
+      <p className="text-sm text-slate-500 mt-1 mb-6">
         Pick a draft above to see its trust score, run an anomaly scan, and inspect the audit trail.
       </p>
       <button
         type="button"
         onClick={onPickDraft}
-        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors"
+        className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg"
       >
         Pick a draft
       </button>
@@ -231,175 +230,176 @@ export default function RiskCenter() {
   const breakdown = trustData?.breakdown;
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12">
 
-        <PageLead
-          title="Find tampered shipments"
-          sub="Trust score, AI anomaly scan, and audit trail per shipment. Portfolio fraud feed shows below regardless."
-          right={
-            <>
-              <DraftPicker value={draftId} onSelect={setDraftId} />
-              {draftId && (
-                <button
-                  type="button"
-                  onClick={() => setDraftId("")}
-                  className="text-xs text-slate-400 hover:text-slate-600 underline"
-                >
-                  Clear
-                </button>
-              )}
-            </>
-          }
-        />
+      <PageLead
+        title="Find tampered shipments"
+        sub="Trust score, AI anomaly scan, and audit trail per shipment. Portfolio fraud feed shows below regardless."
+        right={
+          <>
+            <DraftPicker value={draftId} onSelect={setDraftId} />
+            {draftId && (
+              <button
+                type="button"
+                onClick={() => setDraftId("")}
+                className="text-xs text-slate-400 hover:text-slate-600 underline"
+              >
+                Clear
+              </button>
+            )}
+          </>
+        }
+      />
 
-        {/* ---- Portfolio summary strip (always visible) ---- */}
-        {fraudQuery.data && (
-          <div className="bg-white border border-slate-200 rounded-lg px-5 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500">Box mismatches</span>
-              <span className={`text-sm font-semibold ${(fraudData?.boxCountMismatches ?? 0) > 0 ? "text-red-600" : "text-slate-700"}`}>
-                {fraudData?.boxCountMismatches ?? 0}
-              </span>
-            </div>
-            <div className="h-3 w-px bg-slate-200 hidden sm:block" />
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500">RFID missing</span>
-              <span className={`text-sm font-semibold ${(fraudData?.totalRfidMissing ?? 0) > 0 ? "text-amber-600" : "text-slate-700"}`}>
-                {fraudData?.totalRfidMissing ?? 0}
-              </span>
-            </div>
-            <div className="h-3 w-px bg-slate-200 hidden sm:block" />
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500">High severity</span>
-              <span className={`text-sm font-semibold ${(fraudData?.anomalyHighSeverity ?? 0) > 0 ? "text-red-600" : "text-slate-700"}`}>
-                {fraudData?.anomalyHighSeverity ?? 0}
-              </span>
-            </div>
-            <div className="h-3 w-px bg-slate-200 hidden sm:block" />
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500">Integrity</span>
-              <span className={`text-sm font-semibold ${
-                overallIntegrity === null ? "text-slate-500"
-                : overallIntegrity >= 80 ? "text-emerald-600"
-                : overallIntegrity >= 50 ? "text-amber-600"
-                : "text-red-600"
-              }`}>
-                {overallIntegrity !== null ? `${overallIntegrity}%` : "--"}
-              </span>
-            </div>
+      {/* ---- Portfolio summary strip (always visible) ---- */}
+      {fraudQuery.data && (
+        <div className="bg-white border border-slate-200 rounded-lg px-5 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500">Box mismatches</span>
+            <span className={`text-sm font-semibold ${(fraudData?.boxCountMismatches ?? 0) > 0 ? "text-red-600" : "text-slate-700"}`}>
+              {fraudData?.boxCountMismatches ?? 0}
+            </span>
           </div>
-        )}
-
-        {/* ---- Risk trend chart (always visible) ---- */}
-        {recentEvents.length > 0 && (
-          <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <Activity className="w-4 h-4 text-blue-600" />
-              <p className="text-sm font-semibold text-slate-800">Risk Pulse (recent events)</p>
-            </div>
-            <div className="h-36">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartSeries} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                  <XAxis dataKey="i" hide />
-                  <YAxis
-                    width={30}
-                    domain={[0, 100]}
-                    tick={{ fontSize: 10, fill: "#94a3b8" }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Tooltip
-                    contentStyle={{ borderRadius: 8, fontSize: 12, border: "1px solid #e2e8f0" }}
-                    formatter={(v: number) => [`${v}%`, "risk"]}
-                    labelFormatter={() => ""}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="risk"
-                    stroke="#3b82f6"
-                    strokeWidth={2}
-                    fill="#3b82f6"
-                    fillOpacity={0.06}
-                    isAnimationActive={false}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+          <div className="h-3 w-px bg-slate-200 hidden sm:block" />
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500">RFID missing</span>
+            <span className={`text-sm font-semibold ${(fraudData?.totalRfidMissing ?? 0) > 0 ? "text-amber-600" : "text-slate-700"}`}>
+              {fraudData?.totalRfidMissing ?? 0}
+            </span>
           </div>
-        )}
+          <div className="h-3 w-px bg-slate-200 hidden sm:block" />
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500">High severity</span>
+            <span className={`text-sm font-semibold ${(fraudData?.anomalyHighSeverity ?? 0) > 0 ? "text-red-600" : "text-slate-700"}`}>
+              {fraudData?.anomalyHighSeverity ?? 0}
+            </span>
+          </div>
+          <div className="h-3 w-px bg-slate-200 hidden sm:block" />
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500">Integrity</span>
+            <span className={`text-sm font-semibold ${
+              overallIntegrity === null ? "text-slate-500"
+              : overallIntegrity >= 80 ? "text-emerald-600"
+              : overallIntegrity >= 50 ? "text-amber-600"
+              : "text-red-600"
+            }`}>
+              {overallIntegrity !== null ? `${overallIntegrity}%` : "--"}
+            </span>
+          </div>
+        </div>
+      )}
 
-        {/* ---- Draft-specific panel ---- */}
-        {!draftId ? (
-          <EmptyState onPickDraft={() => draftPickerRef.current?.click()} />
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* ---- Risk trend chart (always visible) ---- */}
+      {recentEvents.length > 0 && (
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <Activity className="w-4 h-4 text-blue-600" />
+            <h2 className="text-xl font-bold text-slate-900">Risk Pulse</h2>
+            <span className="text-sm text-slate-500">recent events</span>
+          </div>
+          <div className="h-40">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartSeries} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                <XAxis dataKey="i" hide />
+                <YAxis
+                  width={30}
+                  domain={[0, 100]}
+                  tick={{ fontSize: 10, fill: "#94a3b8" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  contentStyle={{ borderRadius: 8, fontSize: 12, border: "1px solid #e2e8f0" }}
+                  formatter={(v: number) => [`${v}%`, "risk"]}
+                  labelFormatter={() => ""}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="risk"
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                  fill="#3b82f6"
+                  fillOpacity={0.06}
+                  isAnimationActive={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
+      )}
 
-            {/* Left: Trust Gauge + breakdown */}
-            <div className="lg:col-span-4 bg-white rounded-xl border border-slate-200 p-6 flex flex-col items-center gap-4">
-              <p className="text-sm font-bold text-slate-700 self-start">Trust Score</p>
-              {trustQuery.isLoading ? (
-                <div className="h-40 flex items-center justify-center text-slate-400 text-sm animate-pulse w-full">
-                  Loading…
-                </div>
-              ) : trustData ? (
-                <>
+      {/* ---- Draft-specific panel ---- */}
+      {!draftId ? (
+        <EmptyState onPickDraft={() => draftPickerRef.current?.click()} />
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+
+          {/* Left: Trust Gauge + breakdown */}
+          <section className="lg:col-span-4">
+            <h2 className="text-xl font-bold text-slate-900 mb-5">Trust Score</h2>
+            {trustQuery.isLoading ? (
+              <p className="text-sm text-slate-400 py-8">Loading…</p>
+            ) : trustData ? (
+              <>
+                <div className="flex justify-center mb-5">
                   <TrustGauge
                     value={trustData.score}
                     label={trustData.verdict}
                     size={160}
                   />
-                  <div className="w-full border-t border-slate-100 pt-3 space-y-2">
-                    {breakdown &&
-                      (Object.entries(breakdown) as Array<
-                        [string, { score: number; note: string; latestAt: Date | null }]
-                      >).map(([key, val]) => (
-                        <div key={key} className="flex items-center justify-between text-xs">
-                          <span className="text-slate-500 capitalize">{key}</span>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="h-1.5 rounded-full bg-slate-200 w-20 overflow-hidden"
-                              title={val.note}
-                            >
-                              <div
-                                className={`h-full rounded-full ${
-                                  val.score >= 80
-                                    ? "bg-emerald-500"
-                                    : val.score >= 50
-                                    ? "bg-blue-500"
-                                    : val.score >= 30
-                                    ? "bg-amber-500"
-                                    : "bg-red-500"
-                                }`}
-                                style={{ width: `${val.score}%` }}
-                              />
-                            </div>
-                            <span className="font-semibold text-slate-700 w-7 text-right">
-                              {val.score}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                </>
-              ) : (
-                <p className="text-sm text-slate-400 py-8">No trust data for this draft.</p>
-              )}
-            </div>
-
-            {/* Right: Scanner + Audit Trail */}
-            <div className="lg:col-span-8 space-y-5">
-
-              {/* Anomaly Scanner */}
-              <div className="bg-white rounded-xl border border-slate-200 p-5">
-                <div className="flex items-center gap-2 mb-4">
-                  <Radar className="w-4 h-4 text-blue-600" />
-                  <p className="text-sm font-bold text-slate-800">Anomaly Scanner</p>
                 </div>
-                <form onSubmit={handleScan} className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
+                <div className="border-t border-slate-200 pt-4 space-y-3">
+                  {breakdown &&
+                    (Object.entries(breakdown) as Array<
+                      [string, { score: number; note: string; latestAt: Date | null }]
+                    >).map(([key, val]) => (
+                      <div key={key} className="flex items-center justify-between text-xs">
+                        <span className="text-slate-500 capitalize">{key}</span>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="h-1.5 rounded-full bg-slate-200 w-20 overflow-hidden"
+                            title={val.note}
+                          >
+                            <div
+                              className={`h-full rounded-full ${
+                                val.score >= 80
+                                  ? "bg-emerald-500"
+                                  : val.score >= 50
+                                  ? "bg-blue-500"
+                                  : val.score >= 30
+                                  ? "bg-amber-500"
+                                  : "bg-red-500"
+                              }`}
+                              style={{ width: `${val.score}%` }}
+                            />
+                          </div>
+                          <span className="font-semibold text-slate-700 w-7 text-right">
+                            {val.score}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-slate-400 py-8">No trust data for this draft.</p>
+            )}
+          </section>
+
+          {/* Right: Scanner + Audit Trail */}
+          <div className="lg:col-span-8 space-y-12">
+
+            {/* Anomaly Scanner */}
+            <section>
+              <div className="flex items-center gap-2 mb-5">
+                <Radar className="w-4 h-4 text-blue-600" />
+                <h2 className="text-xl font-bold text-slate-900">Anomaly Scanner</h2>
+              </div>
+              <div className="bg-white border border-slate-200 rounded-xl p-6">
+                <form onSubmit={handleScan} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
                         Origin City <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -408,11 +408,11 @@ export default function RiskCenter() {
                         value={originCity}
                         onChange={(e) => setOriginCity(e.target.value)}
                         required
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-3 rounded-lg border border-slate-300 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
                         Destination City <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -421,11 +421,11 @@ export default function RiskCenter() {
                         value={destinationCity}
                         onChange={(e) => setDestinationCity(e.target.value)}
                         required
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-3 rounded-lg border border-slate-300 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
                         Declared Weight (kg)
                       </label>
                       <input
@@ -433,11 +433,11 @@ export default function RiskCenter() {
                         placeholder="500"
                         value={declaredWeight}
                         onChange={(e) => setDeclaredWeight(e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-3 rounded-lg border border-slate-300 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
                         Measured Weight (kg)
                       </label>
                       <input
@@ -445,11 +445,11 @@ export default function RiskCenter() {
                         placeholder="505"
                         value={measuredWeight}
                         onChange={(e) => setMeasuredWeight(e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-3 rounded-lg border border-slate-300 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
                         Declared Count
                       </label>
                       <input
@@ -457,11 +457,11 @@ export default function RiskCenter() {
                         placeholder="100"
                         value={declaredCount}
                         onChange={(e) => setDeclaredCount(e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-3 rounded-lg border border-slate-300 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
                         Detected Count
                       </label>
                       <input
@@ -469,12 +469,12 @@ export default function RiskCenter() {
                         placeholder="98"
                         value={detectedCount}
                         onChange={(e) => setDetectedCount(e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-3 rounded-lg border border-slate-300 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
                       Route Deviation (km)
                     </label>
                     <input
@@ -482,214 +482,236 @@ export default function RiskCenter() {
                       placeholder="0"
                       value={routeDeviation}
                       onChange={(e) => setRouteDeviation(e.target.value)}
-                      className="w-full sm:w-1/3 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full sm:w-1/3 px-4 py-3 rounded-lg border border-slate-300 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   <div className="flex justify-end">
                     <button
                       type="submit"
                       disabled={analyzeMut.isPending}
-                      className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
+                      className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg disabled:opacity-50"
                     >
                       {analyzeMut.isPending ? "Scanning…" : "Run Anomaly Scan"}
                     </button>
                   </div>
                 </form>
-
-                {/* Latest scan result */}
-                {analyzeMut.data && (
-                  <div
-                    className={`mt-4 p-4 rounded-xl border text-sm ${
-                      analyzeMut.data.severity === "high"
-                        ? "bg-red-50 border-red-200 text-red-800"
-                        : analyzeMut.data.severity === "medium"
-                        ? "bg-amber-50 border-amber-200 text-amber-800"
-                        : "bg-emerald-50 border-emerald-200 text-emerald-800"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 font-semibold mb-1">
-                      {analyzeMut.data.severity !== "low" ? (
-                        <AlertTriangle className="w-4 h-4" />
-                      ) : (
-                        <CheckCircle className="w-4 h-4" />
-                      )}
-                      Severity: {analyzeMut.data.severity} — Risk score: {analyzeMut.data.riskScore}
-                    </div>
-                    <p className="text-xs leading-relaxed">{analyzeMut.data.summary}</p>
-                    {Array.isArray(analyzeMut.data.flags) && analyzeMut.data.flags.length > 0 && (
-                      <ul className="mt-2 space-y-0.5">
-                        {(analyzeMut.data.flags as string[]).map((f, i) => (
-                          <li key={i} className="text-xs">• {f}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                )}
               </div>
 
-              {/* Recent scan history */}
-              {historyQuery.data && historyQuery.data.length > 0 && (
-                <div className="bg-white rounded-xl border border-slate-200 p-5">
-                  <p className="text-sm font-bold text-slate-800 mb-3">Recent Scans</p>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {historyQuery.data.map((r) => (
-                      <div
-                        key={String(r._id)}
-                        className="flex items-start justify-between gap-3 p-2.5 rounded-lg bg-slate-50 border border-slate-100"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs text-slate-700 truncate">{r.summary}</p>
-                          <p className="text-[10px] text-slate-400 mt-0.5 font-mono">
-                            {r.originCity} → {r.destinationCity}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <SeverityBadge severity={r.severity} />
-                          <span className="text-[10px] text-slate-400 whitespace-nowrap">
-                            {fmtDateTime(r.createdAt)}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+              {/* Latest scan result — kept as a result panel */}
+              {analyzeMut.data && (
+                <div
+                  className={`mt-4 p-5 rounded-xl border text-sm ${
+                    analyzeMut.data.severity === "high"
+                      ? "bg-red-50 border-red-200 text-red-800"
+                      : analyzeMut.data.severity === "medium"
+                      ? "bg-amber-50 border-amber-200 text-amber-800"
+                      : "bg-emerald-50 border-emerald-200 text-emerald-800"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 font-semibold mb-1">
+                    {analyzeMut.data.severity !== "low" ? (
+                      <AlertTriangle className="w-4 h-4" />
+                    ) : (
+                      <CheckCircle className="w-4 h-4" />
+                    )}
+                    Severity: {analyzeMut.data.severity} — Risk score: {analyzeMut.data.riskScore}
                   </div>
-                </div>
-              )}
-
-              {/* Audit Trail */}
-              <div className="bg-white rounded-xl border border-slate-200 p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <ScrollText className="w-4 h-4 text-blue-600" />
-                    <p className="text-sm font-bold text-slate-800">Audit Trail</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => auditQuery.refetch()}
-                    className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600"
-                  >
-                    <RefreshCcw className="w-3 h-3" /> Refresh
-                  </button>
-                </div>
-
-                {/* Append event form */}
-                <form onSubmit={handleAppend} className="flex flex-col sm:flex-row gap-2 mb-4 pb-4 border-b border-slate-100">
-                  <select
-                    value={eventType}
-                    onChange={(e) => setEventType(e.target.value)}
-                    className="px-2 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  >
-                    <option value="manual-check">Manual Check</option>
-                    <option value="seal-intact">Seal Intact</option>
-                    <option value="route-override">Route Override</option>
-                    <option value="note">Note</option>
-                  </select>
-                  <input
-                    type="text"
-                    placeholder="Describe the event…"
-                    value={eventSummary}
-                    onChange={(e) => setEventSummary(e.target.value)}
-                    className="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    required
-                  />
-                  <button
-                    type="submit"
-                    disabled={appendMut.isPending}
-                    className="px-3 py-1.5 bg-slate-800 text-white rounded-lg text-xs font-semibold hover:bg-slate-900 transition-colors disabled:opacity-50"
-                  >
-                    Append
-                  </button>
-                </form>
-
-                {/* Audit log rows */}
-                <div className="space-y-2 max-h-72 overflow-y-auto">
-                  {auditQuery.isLoading ? (
-                    <p className="text-xs text-slate-400 text-center py-6 animate-pulse">Loading audit trail…</p>
-                  ) : !auditQuery.data || auditQuery.data.length === 0 ? (
-                    <p className="text-xs text-slate-400 text-center py-6">No audit records for this draft.</p>
-                  ) : (
-                    (auditQuery.data as Array<{
-                      _id: unknown;
-                      eventType: string;
-                      summary: string;
-                      createdAt: Date | string;
-                      payload?: Record<string, unknown>;
-                    }>).map((log) => {
-                      const id = String(log._id);
-                      const isOpen = expandedAudit.has(id);
-                      return (
-                        <div
-                          key={id}
-                          className="rounded-lg border border-slate-200 overflow-hidden"
-                        >
-                          <button
-                            type="button"
-                            onClick={() => toggleAuditRow(id)}
-                            className="w-full flex items-center justify-between px-3 py-2.5 bg-slate-50 hover:bg-slate-100 transition-colors text-left"
-                          >
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className="text-[10px] font-mono bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded flex-shrink-0">
-                                {log.eventType}
-                              </span>
-                              <span className="text-xs text-slate-700 truncate">{log.summary}</span>
-                            </div>
-                            <span className="text-[10px] text-slate-400 whitespace-nowrap ml-2 flex-shrink-0">
-                              {fmtDateTime(log.createdAt)}
-                            </span>
-                          </button>
-                          {isOpen && log.payload && Object.keys(log.payload).length > 0 && (
-                            <div className="px-3 py-2 bg-white border-t border-slate-100">
-                              <pre className="text-[10px] text-slate-500 whitespace-pre-wrap break-all">
-                                {JSON.stringify(log.payload, null, 2)}
-                              </pre>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })
+                  <p className="text-xs leading-relaxed">{analyzeMut.data.summary}</p>
+                  {Array.isArray(analyzeMut.data.flags) && analyzeMut.data.flags.length > 0 && (
+                    <ul className="mt-2 space-y-0.5">
+                      {(analyzeMut.data.flags as string[]).map((f, i) => (
+                        <li key={i} className="text-xs">• {f}</li>
+                      ))}
+                    </ul>
                   )}
                 </div>
-              </div>
-            </div>
-          </div>
-        )}
+              )}
+            </section>
 
-        {/* ---- Recent event feed (always visible at bottom) ---- */}
-        {recentEvents.length > 0 && (
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
-              <p className="text-sm font-semibold text-slate-800">Recent Verification Events</p>
-              <span className="text-xs text-slate-400">{recentEvents.length} events</span>
-            </div>
-            <div className="divide-y divide-slate-100">
-              {recentEvents.slice(0, 15).map((ev, idx) => (
-                <div
-                  key={idx}
-                  className="px-5 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors"
-                >
-                  <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium flex-shrink-0">
-                    {ev.type}
-                  </span>
-                  <p className="text-xs text-slate-700 flex-1 truncate">{ev.summary}</p>
-                  <span
-                    className={`text-xs font-semibold flex-shrink-0 ${
-                      ev.riskScore >= 0.7
-                        ? "text-red-600"
-                        : ev.riskScore >= 0.4
-                        ? "text-amber-600"
-                        : "text-emerald-600"
-                    }`}
-                  >
-                    {Math.round(ev.riskScore * 100)}%
-                  </span>
-                  <span className="text-[10px] text-slate-400 whitespace-nowrap flex-shrink-0">
-                    {fmtDateTime(ev.createdAt)}
-                  </span>
+            {/* Recent scan history */}
+            {historyQuery.data && historyQuery.data.length > 0 && (
+              <section className="border-t border-slate-200 pt-12">
+                <h2 className="text-xl font-bold text-slate-900 mb-5">Recent Scans</h2>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-xs font-semibold text-slate-500 uppercase tracking-wide border-b border-slate-200">
+                        <th className="px-4 py-3 text-left">Route</th>
+                        <th className="px-4 py-3 text-left">Summary</th>
+                        <th className="px-4 py-3 text-left">Severity</th>
+                        <th className="px-4 py-3 text-left">When</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {historyQuery.data.map((r) => (
+                        <tr key={String(r._id)} className="border-b border-slate-100 last:border-0">
+                          <td className="px-4 py-3 font-mono text-xs text-slate-500 whitespace-nowrap">
+                            {r.originCity} → {r.destinationCity}
+                          </td>
+                          <td className="px-4 py-3 text-slate-700 text-xs max-w-xs truncate">
+                            {r.summary}
+                          </td>
+                          <td className="px-4 py-3">
+                            <SeverityBadge severity={r.severity} />
+                          </td>
+                          <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">
+                            {fmtDateTime(r.createdAt)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              ))}
-            </div>
+              </section>
+            )}
+
+            {/* Audit Trail */}
+            <section className="border-t border-slate-200 pt-12">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                  <ScrollText className="w-4 h-4 text-blue-600" />
+                  <h2 className="text-xl font-bold text-slate-900">Audit Trail</h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => auditQuery.refetch()}
+                  className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600"
+                >
+                  <RefreshCcw className="w-3 h-3" /> Refresh
+                </button>
+              </div>
+
+              {/* Append event form */}
+              <form onSubmit={handleAppend} className="flex flex-col sm:flex-row gap-3 mb-6 pb-6 border-b border-slate-200">
+                <select
+                  value={eventType}
+                  onChange={(e) => setEventType(e.target.value)}
+                  className="px-4 py-3 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="manual-check">Manual Check</option>
+                  <option value="seal-intact">Seal Intact</option>
+                  <option value="route-override">Route Override</option>
+                  <option value="note">Note</option>
+                </select>
+                <input
+                  type="text"
+                  placeholder="Describe the event…"
+                  value={eventSummary}
+                  onChange={(e) => setEventSummary(e.target.value)}
+                  className="flex-1 px-4 py-3 border border-slate-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                />
+                <button
+                  type="submit"
+                  disabled={appendMut.isPending}
+                  className="px-5 py-3 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50 text-sm font-semibold rounded-lg disabled:opacity-50"
+                >
+                  Append
+                </button>
+              </form>
+
+              {/* Audit log rows */}
+              <div className="space-y-2 max-h-72 overflow-y-auto">
+                {auditQuery.isLoading ? (
+                  <p className="text-sm text-slate-400 text-center py-6">Loading audit trail…</p>
+                ) : !auditQuery.data || auditQuery.data.length === 0 ? (
+                  <p className="text-sm text-slate-400 text-center py-6">No audit records for this draft.</p>
+                ) : (
+                  (auditQuery.data as Array<{
+                    _id: unknown;
+                    eventType: string;
+                    summary: string;
+                    createdAt: Date | string;
+                    payload?: Record<string, unknown>;
+                  }>).map((log) => {
+                    const id = String(log._id);
+                    const isOpen = expandedAudit.has(id);
+                    return (
+                      <div
+                        key={id}
+                        className="rounded-lg border border-slate-200 overflow-hidden"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => toggleAuditRow(id)}
+                          className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 text-left"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-[10px] font-mono bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded flex-shrink-0">
+                              {log.eventType}
+                            </span>
+                            <span className="text-xs text-slate-700 truncate">{log.summary}</span>
+                          </div>
+                          <span className="text-[10px] text-slate-400 whitespace-nowrap ml-2 flex-shrink-0">
+                            {fmtDateTime(log.createdAt)}
+                          </span>
+                        </button>
+                        {isOpen && log.payload && Object.keys(log.payload).length > 0 && (
+                          <div className="px-4 py-3 bg-white border-t border-slate-100">
+                            <pre className="text-[10px] text-slate-500 whitespace-pre-wrap break-all">
+                              {JSON.stringify(log.payload, null, 2)}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </section>
           </div>
-        )}
-      </main>
+        </div>
+      )}
+
+      {/* ---- Recent event feed (always visible at bottom) ---- */}
+      {recentEvents.length > 0 && (
+        <section className="border-t border-slate-200 pt-12">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-xl font-bold text-slate-900">Recent Verification Events</h2>
+            <span className="text-sm text-slate-500">{recentEvents.length} events</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-xs font-semibold text-slate-500 uppercase tracking-wide border-b border-slate-200">
+                  <th className="px-4 py-3 text-left">Type</th>
+                  <th className="px-4 py-3 text-left">Summary</th>
+                  <th className="px-4 py-3 text-right">Risk</th>
+                  <th className="px-4 py-3 text-right">When</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentEvents.slice(0, 15).map((ev, idx) => (
+                  <tr key={idx} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                    <td className="px-4 py-3">
+                      <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium">
+                        {ev.type}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-700 max-w-xs truncate">
+                      {ev.summary}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <span className={`text-xs font-semibold ${
+                        ev.riskScore >= 0.7
+                          ? "text-red-600"
+                          : ev.riskScore >= 0.4
+                          ? "text-amber-600"
+                          : "text-emerald-600"
+                      }`}>
+                        {Math.round(ev.riskScore * 100)}%
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right text-xs text-slate-400 whitespace-nowrap">
+                      {fmtDateTime(ev.createdAt)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

@@ -9,7 +9,7 @@ import { trpc } from "../../lib/trpc";
 
 
 // ---------------------------------------------------------------------------
-// Formatting helpers (V7)
+// Formatting helpers
 // ---------------------------------------------------------------------------
 
 function fmtDate(date: string | Date): string {
@@ -44,7 +44,7 @@ interface MatchResult extends LoadOffer {
 }
 
 // ---------------------------------------------------------------------------
-// Status badge colors (C4)
+// Status badge colors
 // ---------------------------------------------------------------------------
 
 const STATUS_COLORS: Record<string, string> = {
@@ -55,7 +55,6 @@ const STATUS_COLORS: Record<string, string> = {
 
 // ---------------------------------------------------------------------------
 // CorridorArc — static SVG showing the origin → destination corridor.
-// Handles origin === destination gracefully (shows a dot, no arc).
 // ---------------------------------------------------------------------------
 
 function CorridorArc({
@@ -70,7 +69,7 @@ function CorridorArc({
   if (sameCity) {
     return (
       <div
-        className="bg-slate-50 rounded-xl border border-slate-200 px-5 py-4"
+        className="rounded-xl border border-slate-200 px-5 py-4"
         aria-label={`Same origin and destination: ${origin}`}
       >
         <svg viewBox="0 0 400 100" className="w-full h-16" aria-hidden="true">
@@ -90,7 +89,7 @@ function CorridorArc({
 
   return (
     <div
-      className="bg-slate-50 rounded-xl border border-slate-200 px-5 py-4"
+      className="rounded-xl border border-slate-200 px-5 py-4"
       aria-label={`Corridor from ${origin || "origin"} to ${destination || "destination"}`}
     >
       <svg viewBox="0 0 400 100" className="w-full h-16" aria-hidden="true">
@@ -101,10 +100,8 @@ function CorridorArc({
           strokeWidth="2.5"
           strokeDasharray="5,4"
         />
-        {/* Origin pin */}
         <circle cx="30" cy="80" r="6" fill="#3b82f6" />
         <circle cx="30" cy="80" r="3" fill="#fff" />
-        {/* Destination pin */}
         <circle cx="370" cy="80" r="6" fill="#3b82f6" />
         <circle cx="370" cy="80" r="3" fill="#fff" />
       </svg>
@@ -165,7 +162,6 @@ export default function LoadAggregation({ asTab = false }: { asTab?: boolean }) 
   const [pickupDate, setPickupDate] = useState("");
   const [notes, setNotes] = useState("");
 
-  // Track which offer's matches are currently shown
   const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
 
   const utils = trpc.useUtils();
@@ -173,7 +169,6 @@ export default function LoadAggregation({ asTab = false }: { asTab?: boolean }) 
   const createOffer = trpc.loadMatch.createOffer.useMutation({
     onSuccess: () => {
       toast.success("Load offer posted.");
-      // Reset form cleanly (V-form-reset)
       setOriginCity("");
       setDestinationCity("");
       setWeightKg("");
@@ -190,8 +185,6 @@ export default function LoadAggregation({ asTab = false }: { asTab?: boolean }) 
     onSuccess: (_data, variables) => {
       toast.success("Offer cancelled.");
       utils.loadMatch.listMine.invalidate().catch(() => null);
-      // If the cancelled offer was the one whose matches panel is open,
-      // close it — matches are no longer relevant for a cancelled offer.
       setSelectedOfferId((current) =>
         current === variables.offerId ? null : current,
       );
@@ -215,8 +208,6 @@ export default function LoadAggregation({ asTab = false }: { asTab?: boolean }) 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
-      // Defence-in-depth: the button is also disabled, but guard against a
-      // duplicate submit racing past the disabled state.
       if (createOffer.isPending) return;
       if (!originCity.trim()) {
         toast.error("Origin city is required.");
@@ -264,245 +255,233 @@ export default function LoadAggregation({ asTab = false }: { asTab?: boolean }) 
   const selectedOffer = myOffers.find((o) => o._id === selectedOfferId);
 
   const inner = (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
       {/* ----------------------------------------------------------------
           Left column: form + offers
       ---------------------------------------------------------------- */}
-      <div className="lg:col-span-8 space-y-6">
+      <div className="lg:col-span-8 space-y-12">
 
-            {/* Post Load Form */}
-            <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
-              <h2 className="text-xl font-bold text-slate-900 mb-1">
-                Post a Load Offer
-              </h2>
-              <p className="text-sm text-slate-500 mb-6">
-                Share your available truck capacity. The system will find
-                compatible loads along the same corridor.
-              </p>
+        {/* Post Load Form — one card, groups the form inputs */}
+        <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
+          <h2 className="text-xl font-bold text-slate-900 mb-1">
+            Post a Load Offer
+          </h2>
+          <p className="text-sm text-slate-500 mb-6">
+            Share your available truck capacity. The system will find
+            compatible loads along the same corridor.
+          </p>
 
-              {/* Live corridor preview (only when both cities are non-empty) */}
-              {(originCity.trim() || destinationCity.trim()) && (
-                <div className="mb-6">
-                  <CorridorArc
-                    origin={originCity}
-                    destination={destinationCity}
-                  />
-                </div>
-              )}
+          {(originCity.trim() || destinationCity.trim()) && (
+            <div className="mb-6">
+              <CorridorArc
+                origin={originCity}
+                destination={destinationCity}
+              />
+            </div>
+          )}
 
-              {/* Form (V6: submits on Enter naturally via type=submit) */}
-              <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div>
-                    <label
-                      htmlFor="la-origin"
-                      className="block text-sm font-semibold text-slate-700 mb-1.5"
-                    >
-                      Origin City
-                    </label>
-                    <input
-                      id="la-origin"
-                      type="text"
-                      value={originCity}
-                      onChange={(e) => setOriginCity(e.target.value)}
-                      placeholder="e.g. Chicago"
-                      maxLength={120}
-                      className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-slate-800 transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="la-destination"
-                      className="block text-sm font-semibold text-slate-700 mb-1.5"
-                    >
-                      Destination City
-                    </label>
-                    <input
-                      id="la-destination"
-                      type="text"
-                      value={destinationCity}
-                      onChange={(e) => setDestinationCity(e.target.value)}
-                      placeholder="e.g. Detroit"
-                      maxLength={120}
-                      className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-slate-800 transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="la-weight"
-                      className="block text-sm font-semibold text-slate-700 mb-1.5"
-                    >
-                      Weight (kg)
-                    </label>
-                    <input
-                      id="la-weight"
-                      type="number"
-                      value={weightKg}
-                      onChange={(e) => setWeightKg(e.target.value)}
-                      placeholder="e.g. 800"
-                      min="0.1"
-                      step="0.1"
-                      className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-slate-800 transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="la-date"
-                      className="block text-sm font-semibold text-slate-700 mb-1.5"
-                    >
-                      Pickup Date
-                    </label>
-                    <input
-                      id="la-date"
-                      type="date"
-                      value={pickupDate}
-                      onChange={(e) => setPickupDate(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-slate-800 transition-colors"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="la-notes"
-                    className="block text-sm font-semibold text-slate-700 mb-1.5"
-                  >
-                    Notes{" "}
-                    <span className="font-normal text-slate-400">(optional)</span>
-                  </label>
-                  <textarea
-                    id="la-notes"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Any special requirements, cargo type, etc."
-                    rows={3}
-                    maxLength={500}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-slate-800 transition-colors resize-none"
-                  />
-                </div>
-
-                <div className="flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={createOffer.isPending}
-                    aria-label="Post load offer"
-                    className="px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-sm transition-colors flex items-center gap-2"
-                  >
-                    {createOffer.isPending ? (
-                      <>
-                        <span
-                          className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
-                          aria-hidden="true"
-                        />
-                        Posting…
-                      </>
-                    ) : (
-                      "Post Load Offer"
-                    )}
-                  </button>
-                </div>
-              </form>
-            </section>
-
-            {/* My Offers */}
-            <section aria-label="My load offers">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-slate-900">My Load Offers</h2>
-                {myOffers.length > 0 && (
-                  <span
-                    className="text-xs font-semibold text-slate-500"
-                    aria-live="polite"
-                  >
-                    <CountUp value={myOffers.length} /> active
-                  </span>
-                )}
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="la-origin"
+                  className="block text-sm font-medium text-slate-700 mb-1.5"
+                >
+                  Origin City
+                </label>
+                <input
+                  id="la-origin"
+                  type="text"
+                  value={originCity}
+                  onChange={(e) => setOriginCity(e.target.value)}
+                  placeholder="e.g. Chicago"
+                  maxLength={120}
+                  className="w-full px-4 py-3 rounded-lg border border-slate-300 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
               </div>
 
-              {offersQuery.isLoading ? (
-                <div className="space-y-3" aria-busy="true">
-                  <CardSkeleton height={120} />
-                  <CardSkeleton height={120} />
-                </div>
-              ) : offersQuery.error ? (
-                /* V3: inline error + retry */
-                <div className="bg-red-50 border border-red-200 rounded-2xl p-6">
-                  <p className="text-sm text-red-700 font-medium mb-2">
-                    {offersQuery.error.message || "Failed to load your offers."}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => offersQuery.refetch()}
-                    className="text-xs text-red-600 hover:text-red-700 underline"
-                  >
-                    Retry
-                  </button>
-                </div>
-              ) : myOffers.length === 0 ? (
-                /* V2: warm empty state */
-                <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center">
-                  <div className="w-12 h-12 mx-auto bg-blue-50 rounded-xl flex items-center justify-center mb-3">
-                    <Truck className="w-6 h-6 text-blue-600" aria-hidden="true" />
-                  </div>
-                  <p className="text-sm font-semibold text-slate-700">
-                    No load offers yet
-                  </p>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Post your first offer above to start aggregating loads.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {myOffers.map((offer) => (
-                    <OfferCard
-                      key={offer._id}
-                      offer={offer}
-                      isSelected={selectedOfferId === offer._id}
-                      matches={matches}
-                      matchLoading={matchQuery.isLoading}
-                      matchError={matchQuery.error?.message ?? null}
-                      onFindMatches={handleFindMatches}
-                      onCancel={handleCancel}
-                      cancelPending={cancelOffer.isPending}
-                      onRefetchMatches={() => matchQuery.refetch()}
-                    />
-                  ))}
-                </div>
-              )}
-            </section>
+              <div>
+                <label
+                  htmlFor="la-destination"
+                  className="block text-sm font-medium text-slate-700 mb-1.5"
+                >
+                  Destination City
+                </label>
+                <input
+                  id="la-destination"
+                  type="text"
+                  value={destinationCity}
+                  onChange={(e) => setDestinationCity(e.target.value)}
+                  placeholder="e.g. Detroit"
+                  maxLength={120}
+                  className="w-full px-4 py-3 rounded-lg border border-slate-300 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
 
-            {selectedOffer && (
-              <div
-                className="text-xs text-slate-500 flex items-center gap-2"
+              <div>
+                <label
+                  htmlFor="la-weight"
+                  className="block text-sm font-medium text-slate-700 mb-1.5"
+                >
+                  Weight (kg)
+                </label>
+                <input
+                  id="la-weight"
+                  type="number"
+                  value={weightKg}
+                  onChange={(e) => setWeightKg(e.target.value)}
+                  placeholder="e.g. 800"
+                  min="0.1"
+                  step="0.1"
+                  className="w-full px-4 py-3 rounded-lg border border-slate-300 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="la-date"
+                  className="block text-sm font-medium text-slate-700 mb-1.5"
+                >
+                  Pickup Date
+                </label>
+                <input
+                  id="la-date"
+                  type="date"
+                  value={pickupDate}
+                  onChange={(e) => setPickupDate(e.target.value)}
+                  className="w-full px-4 py-3 rounded-lg border border-slate-300 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="la-notes"
+                className="block text-sm font-medium text-slate-700 mb-1.5"
+              >
+                Notes{" "}
+                <span className="font-normal text-slate-400">(optional)</span>
+              </label>
+              <textarea
+                id="la-notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Any special requirements, cargo type, etc."
+                rows={3}
+                maxLength={500}
+                className="w-full px-4 py-3 rounded-lg border border-slate-300 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+              />
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={createOffer.isPending}
+                aria-label="Post load offer"
+                className="px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg flex items-center gap-2"
+              >
+                {createOffer.isPending ? (
+                  <>
+                    <span
+                      className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
+                      aria-hidden="true"
+                    />
+                    Posting…
+                  </>
+                ) : (
+                  "Post Load Offer"
+                )}
+              </button>
+            </div>
+          </form>
+        </section>
+
+        {/* My Offers — flat list, no card wrapper */}
+        <section aria-label="My load offers">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-xl font-bold text-slate-900">My Load Offers</h2>
+            {myOffers.length > 0 && (
+              <span
+                className="text-sm text-slate-500"
                 aria-live="polite"
               >
-                <RefreshCcw className="w-3 h-3" aria-hidden="true" />
-                Match candidates refresh whenever you change selection.
-              </div>
+                <CountUp value={myOffers.length} /> active
+              </span>
             )}
           </div>
 
-          <aside className="lg:col-span-4">
-            <InsightsRail title="Verification Activity" />
-          </aside>
+          {offersQuery.isLoading ? (
+            <div className="space-y-3" aria-busy="true">
+              <CardSkeleton height={120} />
+              <CardSkeleton height={120} />
+            </div>
+          ) : offersQuery.error ? (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-5">
+              <p className="text-sm text-red-700 font-medium mb-2">
+                {offersQuery.error.message || "Failed to load your offers."}
+              </p>
+              <button
+                type="button"
+                onClick={() => offersQuery.refetch()}
+                className="text-xs text-red-600 hover:text-red-700 underline"
+              >
+                Retry
+              </button>
+            </div>
+          ) : myOffers.length === 0 ? (
+            <div className="flex flex-col items-center py-10 text-center">
+              <Truck className="w-8 h-8 text-slate-300 mb-3" aria-hidden="true" />
+              <p className="text-sm font-semibold text-slate-600">No load offers yet</p>
+              <p className="text-sm text-slate-500 mt-1">Post your first offer above to start aggregating loads.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {myOffers.map((offer) => (
+                <OfferCard
+                  key={offer._id}
+                  offer={offer}
+                  isSelected={selectedOfferId === offer._id}
+                  matches={matches}
+                  matchLoading={matchQuery.isLoading}
+                  matchError={matchQuery.error?.message ?? null}
+                  onFindMatches={handleFindMatches}
+                  onCancel={handleCancel}
+                  cancelPending={cancelOffer.isPending}
+                  onRefetchMatches={() => matchQuery.refetch()}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+
+        {selectedOffer && (
+          <div
+            className="text-xs text-slate-500 flex items-center gap-2"
+            aria-live="polite"
+          >
+            <RefreshCcw className="w-3 h-3" aria-hidden="true" />
+            Match candidates refresh whenever you change selection.
+          </div>
+        )}
+      </div>
+
+      <aside className="lg:col-span-4">
+        <InsightsRail title="Verification Activity" />
+      </aside>
     </div>
   );
 
   if (asTab) return inner;
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-        {inner}
-      </main>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      {inner}
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// OfferCard — extracted for performance (V9: memoized)
+// OfferCard — extracted for performance (result panel — one card allowed)
 // ---------------------------------------------------------------------------
 
 interface OfferCardProps {
@@ -579,10 +558,10 @@ const OfferCard = ({
                     : `Find matches for ${offer.originCity} to ${offer.destinationCity}`
                 }
                 aria-expanded={isSelected}
-                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                className={`px-5 py-3 text-sm font-semibold rounded-lg ${
                   isSelected
                     ? "bg-blue-600 text-white"
-                    : "bg-blue-50 text-blue-700 hover:bg-blue-100"
+                    : "border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50"
                 }`}
               >
                 {isSelected ? "Hide Matches" : "Find Matches"}
@@ -593,7 +572,7 @@ const OfferCard = ({
                 onClick={() => onCancel(offer._id)}
                 disabled={cancelPending}
                 aria-label={`Cancel offer from ${offer.originCity} to ${offer.destinationCity}`}
-                className="px-4 py-2 rounded-xl text-sm font-semibold bg-red-50 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-5 py-3 text-sm font-semibold rounded-lg border-2 border-red-200 hover:border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
@@ -604,11 +583,11 @@ const OfferCard = ({
 
       {isSelected && (
         <div className="mt-5 pt-5 border-t border-slate-100">
-          <h3 className="text-sm font-bold text-slate-700 mb-3">
+          <h3 className="text-sm font-bold text-slate-700 mb-4">
             Compatible Load Matches
           </h3>
 
-          <div className="mb-4">
+          <div className="mb-5">
             <CorridorArc
               origin={offer.originCity}
               destination={offer.destinationCity}
@@ -645,12 +624,12 @@ const OfferCard = ({
               </p>
             </div>
           ) : (
-            <div className="space-y-3" role="list" aria-label="Match results">
+            <div role="list" aria-label="Match results">
               {matches.map((match) => (
                 <div
                   key={match._id}
                   role="listitem"
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-blue-50 rounded-xl p-4"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 last:border-0 py-3"
                 >
                   <div className="space-y-1 flex-1 min-w-0">
                     <div className="text-sm font-semibold text-slate-800">
@@ -658,11 +637,11 @@ const OfferCard = ({
                       <span className="mx-2 text-blue-400" aria-hidden="true">→</span>
                       {match.destinationCity}
                     </div>
-                    <div className="flex flex-wrap gap-3 text-xs text-slate-600">
+                    <div className="flex flex-wrap gap-3 text-xs text-slate-500">
                       <span>{fmtWeight(match.weightKg)}</span>
                       <span>Pickup: {fmtDate(match.pickupDate)}</span>
                       {match.notes && (
-                        <span className="italic text-slate-500 truncate">
+                        <span className="italic truncate">
                           {match.notes}
                         </span>
                       )}

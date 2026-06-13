@@ -115,7 +115,7 @@ function ScanImage({
         tabIndex={0}
         onClick={onPick}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onPick(); }}
-        className="relative cursor-pointer border-2 border-dashed border-slate-200 hover:border-blue-400 rounded-xl overflow-hidden transition-colors bg-slate-50"
+        className="relative cursor-pointer border-2 border-dashed border-slate-200 hover:border-blue-400 rounded-xl overflow-hidden bg-slate-50"
         style={{ minHeight: 200 }}
       >
         {preview ? (
@@ -128,7 +128,7 @@ function ScanImage({
         )}
         {scanning && preview && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/50 pointer-events-none">
-            <span className="px-2 py-0.5 rounded-md bg-blue-600 text-white text-[10px] font-bold tracking-wider animate-pulse">
+            <span className="px-2 py-0.5 rounded-md bg-blue-600 text-white text-[10px] font-bold tracking-wider">
               ANALYZING
             </span>
           </div>
@@ -296,14 +296,14 @@ export default function ShipmentDiffTab({ draftId, onResult }: ShipmentDiffTabPr
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 font-medium rounded-xl border border-slate-200 hover:border-slate-300 transition-colors"
+                  className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 font-medium rounded-xl border border-slate-200 hover:border-slate-300"
                 >
                   Reset
                 </button>
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold rounded-xl transition-colors text-sm"
+                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold rounded-xl text-sm"
                 >
                   {isLoading ? "Analyzing…" : "Run Diff Analysis"}
                 </button>
@@ -439,7 +439,7 @@ export default function ShipmentDiffTab({ draftId, onResult }: ShipmentDiffTabPr
                 return (
                   <div
                     key={id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border border-slate-100 rounded-xl hover:border-slate-200 hover:bg-slate-50 transition-colors"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border border-slate-100 rounded-xl hover:border-slate-200 hover:bg-slate-50"
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-slate-700 truncate">{record.summary}</p>

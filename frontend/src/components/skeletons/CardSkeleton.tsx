@@ -15,7 +15,7 @@ interface CardSkeletonProps {
 export default function CardSkeleton({ className, height = 128 }: CardSkeletonProps) {
   return (
     <div
-      className={`bg-white rounded-2xl border border-slate-200 shadow-sm animate-pulse ${className ?? ""}`}
+      className={`bg-white rounded-2xl border border-slate-200 shadow-sm ${className ?? ""}`}
       style={{ height }}
       aria-hidden="true"
     />
@@ -29,7 +29,7 @@ export default function CardSkeleton({ className, height = 128 }: CardSkeletonPr
 export function TileSkeleton({ className }: { className?: string }) {
   return (
     <div
-      className={`bg-white rounded-2xl border border-slate-200 p-4 shadow-sm animate-pulse ${className ?? ""}`}
+      className={`bg-white rounded-2xl border border-slate-200 p-4 shadow-sm ${className ?? ""}`}
       aria-hidden="true"
     >
       <div className="h-2 w-16 rounded bg-slate-100" />
@@ -45,7 +45,7 @@ export function TileSkeleton({ className }: { className?: string }) {
 export function RowSkeleton({ className }: { className?: string }) {
   return (
     <div
-      className={`bg-white rounded-2xl border border-slate-200 p-4 shadow-sm animate-pulse ${className ?? ""}`}
+      className={`bg-white rounded-2xl border border-slate-200 p-4 shadow-sm ${className ?? ""}`}
       aria-hidden="true"
     >
       <div className="flex items-center gap-3">

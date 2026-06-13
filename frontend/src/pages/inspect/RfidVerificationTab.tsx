@@ -93,7 +93,7 @@ function MatchGauge({ pct }: { pct: number }) {
       </div>
       <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
         <div
-          className={`h-full rounded-full transition-all duration-500 ${color}`}
+          className={`h-full rounded-full duration-500 ${color}`}
           style={{ width: `${Math.min(pct, 100)}%` }}
         />
       </div>
@@ -128,7 +128,7 @@ function HistoryCard({ item }: { item: ScanResult }) {
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <button
-        className="w-full px-5 py-4 flex items-center justify-between gap-4 hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-400"
+        className="w-full px-5 py-4 flex items-center justify-between gap-4 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-400"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
       >
@@ -154,7 +154,7 @@ function HistoryCard({ item }: { item: ScanResult }) {
         <div className="flex items-center gap-4 flex-shrink-0">
           <span className="text-sm font-bold text-slate-700">{item.matchPct.toFixed(1)}%</span>
           <svg
-            className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+            className={`w-4 h-4 text-slate-400 ${open ? "rotate-180" : ""}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -362,7 +362,7 @@ export default function RfidVerificationTab({ draftId, onResult }: RfidVerificat
               ))
             )}
             {streaming && (
-              <span className="inline-block w-2 h-3 bg-blue-500 animate-pulse ml-0.5 align-middle" />
+              <span className="inline-block w-2 h-3 bg-blue-500 ml-0.5 align-middle" />
             )}
           </div>
         </div>
@@ -414,7 +414,7 @@ export default function RfidVerificationTab({ draftId, onResult }: RfidVerificat
                     timersRef.current = [];
                     setStreaming(false);
                   }}
-                  className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 font-medium rounded-xl border border-slate-200 hover:border-slate-300 transition-colors"
+                  className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 font-medium rounded-xl border border-slate-200 hover:border-slate-300"
                 >
                   Cancel
                 </button>
@@ -422,7 +422,7 @@ export default function RfidVerificationTab({ draftId, onResult }: RfidVerificat
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm font-semibold rounded-xl transition-colors duration-200 flex items-center gap-2"
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm font-semibold rounded-xl flex items-center gap-2"
               >
                 {streaming ? "Scanning…" : "Scan & Verify"}
               </button>

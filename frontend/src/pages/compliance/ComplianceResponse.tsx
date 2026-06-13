@@ -53,7 +53,6 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-// Error Boundary Component (keep as is)
 class ErrorBoundary extends React.Component<
   React.PropsWithChildren<Record<never, never>>,
   ErrorBoundaryState
@@ -71,9 +70,8 @@ class ErrorBoundary extends React.Component<
   render(): React.ReactNode {
     if (this.state.hasError) {
       return (
-        <div className="p-4 bg-red-50 text-red-700 rounded-lg">
-          Something went wrong displaying the compliance results. Please try
-          again.
+        <div className="p-4 bg-red-50 text-red-700 rounded-lg text-sm">
+          Something went wrong displaying the compliance results. Please try again.
         </div>
       );
     }
@@ -81,7 +79,6 @@ class ErrorBoundary extends React.Component<
   }
 }
 
-// ComplianceResponse Component
 const ComplianceResponse: React.FC<ComplianceResponseProps> = ({ response }) => {
   if (
     !response ||
@@ -89,78 +86,74 @@ const ComplianceResponse: React.FC<ComplianceResponseProps> = ({ response }) => 
     Object.keys(response.complianceResponse).length === 0
   ) {
     return (
-      <div className="p-4 bg-yellow-50 text-yellow-700 rounded-lg">
+      <div className="p-4 bg-yellow-50 text-yellow-700 rounded-lg text-sm">
         No compliance results available.
       </div>
     );
   }
 
-  // Safely extract properties, providing robust fallbacks for potential undefined/null values
   const complianceResponseData = response.complianceResponse;
 
-  const complianceStatus =
-    complianceResponseData.complianceStatus ?? "Not Ready";
+  const complianceStatus = complianceResponseData.complianceStatus ?? "Not Ready";
   const summary = complianceResponseData.summary ?? "No summary provided";
   const violations = complianceResponseData.violations ?? [];
   const recommendations = complianceResponseData.recommendations ?? [];
   const additionalTips = complianceResponseData.additionalTips ?? [];
 
-  // Ensure riskLevel is always an object with default properties
   const riskLevel = complianceResponseData.riskLevel ?? {
     riskScore: 0,
     summary: "No risk assessment available",
   };
 
-  // Ensure scores is always an object
   const scores = complianceResponseData.scores ?? {};
 
   const chartData = [
     { name: "Shipment Details", score: scores.ShipmentDetails || 0 },
-    {
-      name: "Trade & Regulatory",
-      score: scores.TradeAndRegulatoryDetails || 0,
-    },
+    { name: "Trade & Regulatory", score: scores.TradeAndRegulatoryDetails || 0 },
     { name: "Parties & Identifiers", score: scores.PartiesAndIdentifiers || 0 },
     { name: "Logistics & Handling", score: scores.LogisticsAndHandling || 0 },
     { name: "Intended Use", score: scores.IntendedUseDetails || 0 },
   ];
 
+  const isReady = complianceStatus === "Ready for Shipment";
+
   return (
     <ErrorBoundary>
-      <div className="max-w-7xl mx-auto mt-6 bg-white border border-slate-200 rounded-xl p-8 space-y-6">
-        {/* Header */}
-        <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-          {complianceStatus === "Ready for Shipment" ? (
-            <CheckCircle2 className="text-emerald-500 shrink-0" size={28} />
-          ) : (
-            <AlertTriangle className="text-red-500 shrink-0" size={28} />
-          )}
-          Compliance Results
-        </h2>
+      <div className="space-y-10 border-t border-slate-200 pt-10">
 
-        {/* Compliance Status */}
-        <div>
-          <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-1">Status</h3>
+        {/* Header */}
+        <section>
+          <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2 mb-4">
+            {isReady ? (
+              <CheckCircle2 className="text-emerald-500 shrink-0" size={22} />
+            ) : (
+              <AlertTriangle className="text-red-500 shrink-0" size={22} />
+            )}
+            Compliance Results
+          </h2>
+
           <span
             className={`inline-block px-3 py-1 rounded text-sm font-semibold ${
-              complianceStatus === "Ready for Shipment"
+              isReady
                 ? "bg-emerald-100 text-emerald-700"
                 : "bg-red-100 text-red-700"
             }`}
           >
             {complianceStatus}
           </span>
-        </div>
+        </section>
 
         {/* Summary */}
-        <div>
-          <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-1">Summary</h3>
-          <p className="text-slate-700">{summary}</p>
-        </div>
+        <section>
+          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+            Summary
+          </h3>
+          <p className="text-sm text-slate-700">{summary}</p>
+        </section>
 
         {/* Risk Level */}
-        <div>
-          <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-2">
+        <section>
+          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
             Risk Score — {riskLevel.riskScore}/100
           </h3>
           <div className="w-full bg-slate-200 rounded h-2 overflow-hidden">
@@ -176,27 +169,21 @@ const ComplianceResponse: React.FC<ComplianceResponseProps> = ({ response }) => 
             />
           </div>
           <p className="mt-2 text-sm text-slate-600">{riskLevel.summary}</p>
-        </div>
+        </section>
 
-        {/* Violations and Recommendations */}
+        {/* Issues & Recommendations */}
         {(violations.length > 0 || recommendations.length > 0) && (
-          <div>
-            <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-2">
+          <section>
+            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
               Issues & Recommendations
             </h3>
             <div className="overflow-x-auto">
-              <table className="min-w-full border border-slate-200 rounded-lg text-sm">
+              <table className="min-w-full text-sm">
                 <thead>
-                  <tr className="bg-slate-50">
-                    <th className="px-4 py-2 text-left text-slate-700 font-semibold border-b border-slate-200">
-                      Field
-                    </th>
-                    <th className="px-4 py-2 text-left text-slate-700 font-semibold border-b border-slate-200">
-                      Violation
-                    </th>
-                    <th className="px-4 py-2 text-left text-slate-700 font-semibold border-b border-slate-200">
-                      Recommendation
-                    </th>
+                  <tr className="text-xs font-semibold text-slate-500 uppercase tracking-wide border-b border-slate-200">
+                    <th className="px-4 py-3 text-left">Field</th>
+                    <th className="px-4 py-3 text-left">Violation</th>
+                    <th className="px-4 py-3 text-left">Recommendation</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -205,14 +192,14 @@ const ComplianceResponse: React.FC<ComplianceResponseProps> = ({ response }) => 
                       (rec) => rec.field === violation.field
                     );
                     return (
-                      <tr key={index} className="border-b border-slate-100">
-                        <td className="px-4 py-2 text-slate-800">
+                      <tr key={index} className="border-b border-slate-100 last:border-0">
+                        <td className="px-4 py-3 text-slate-800">
                           {violation.field || "Unknown"}
                         </td>
-                        <td className="px-4 py-2 text-red-600">
+                        <td className="px-4 py-3 text-red-600">
                           {violation.message || "No message"}
                         </td>
-                        <td className="px-4 py-2 text-emerald-600">
+                        <td className="px-4 py-3 text-emerald-600">
                           {matchingRecommendation?.message || "N/A"}
                         </td>
                       </tr>
@@ -221,12 +208,12 @@ const ComplianceResponse: React.FC<ComplianceResponseProps> = ({ response }) => 
                 </tbody>
               </table>
             </div>
-          </div>
+          </section>
         )}
 
-        {/* Scores */}
-        <div>
-          <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">
+        {/* Compliance Scores */}
+        <section>
+          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">
             Compliance Scores
           </h3>
           <div className="h-64">
@@ -244,15 +231,15 @@ const ComplianceResponse: React.FC<ComplianceResponseProps> = ({ response }) => 
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </section>
 
         {/* Additional Tips */}
         {additionalTips.length > 0 && (
-          <div>
-            <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-2">
+          <section>
+            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
               Additional Tips
             </h3>
-            <ul className="space-y-1">
+            <ul className="space-y-1.5">
               {additionalTips.map((tip, index) => (
                 <li key={index} className="flex items-start gap-2 text-sm text-slate-600">
                   <span className="text-blue-500 mt-0.5 shrink-0">•</span>
@@ -260,7 +247,7 @@ const ComplianceResponse: React.FC<ComplianceResponseProps> = ({ response }) => 
                 </li>
               ))}
             </ul>
-          </div>
+          </section>
         )}
       </div>
     </ErrorBoundary>

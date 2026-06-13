@@ -46,14 +46,14 @@ const NewsRow: React.FC<RowProps> = ({
 
   return (
     <>
-      <tr className="hover:bg-slate-50 transition-colors duration-150 border-b border-slate-100">
+      <tr className="hover:bg-slate-50 border-b border-slate-100">
         <td className="px-3 py-2 w-10">
           <button
             aria-label={
               open ? "Collapse article details" : "Expand article details"
             }
             onClick={() => onRowToggle(article)}
-            className="p-1 rounded text-slate-500 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors duration-150"
+            className="p-1 rounded text-slate-500 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           >
             {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
@@ -272,7 +272,7 @@ const News: React.FC = () => {
           <div className="mb-6">
             <button
               onClick={() => setIsSearchOpen(!isSearchOpen)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors duration-150 w-full sm:w-auto"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 w-full sm:w-auto"
             >
               <Search size={14} />
               Manual Search
@@ -291,18 +291,18 @@ const News: React.FC = () => {
                     }
                     onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                     placeholder=" "
-                    className="peer w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-200 rounded-xl text-slate-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150 hover:border-slate-300"
+                    className="peer w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-200 rounded-xl text-slate-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-slate-300"
                   />
                   <label
                     htmlFor="search"
-                    className="absolute left-12 -top-2.5 bg-white px-2 py-0.5 rounded-lg text-sm font-medium text-slate-600 transition-colors duration-150 peer-placeholder-shown:top-4 peer-placeholder-shown:left-12 peer-placeholder-shown:bg-transparent peer-placeholder-shown:text-slate-500 peer-focus:-top-2.5 peer-focus:left-12 peer-focus:bg-white peer-focus:text-blue-600 z-10"
+                    className="absolute left-12 -top-2.5 bg-white px-2 py-0.5 rounded-lg text-sm font-medium text-slate-600 peer-placeholder-shown:top-4 peer-placeholder-shown:left-12 peer-placeholder-shown:bg-transparent peer-placeholder-shown:text-slate-500 peer-focus:-top-2.5 peer-focus:left-12 peer-focus:bg-white peer-focus:text-blue-600 z-10"
                   >
                     Search News (e.g., "China-US tariff conflict")
                   </label>
                 </div>
                 <button
                   onClick={handleSearchModeToggle}
-                  className={`h-[50px] px-4 rounded-lg text-sm font-medium border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 min-w-[100px] sm:min-w-[120px] ${
+                  className={`h-[50px] px-4 rounded-lg text-sm font-medium border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 min-w-[100px] sm:min-w-[120px] ${
                     searchMode === "summarized"
                       ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
                       : "text-blue-600 border-blue-200 hover:bg-blue-50"
@@ -314,7 +314,7 @@ const News: React.FC = () => {
                 </button>
                 <button
                   onClick={handleSearch}
-                  className="h-[50px] px-4 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 min-w-[100px] sm:min-w-[120px] justify-center"
+                  className="h-[50px] px-4 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 min-w-[100px] sm:min-w-[120px] justify-center"
                 >
                   <Search size={14} />
                   Search
@@ -328,7 +328,7 @@ const News: React.FC = () => {
               <button
                 key={tab.key}
                 onClick={() => handleDateClick(tab.key)}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs sm:text-sm font-medium border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 min-w-[100px] sm:min-w-[120px] justify-center ${
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs sm:text-sm font-medium border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 min-w-[100px] sm:min-w-[120px] justify-center ${
                   activeDate === tab.key
                     ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
                     : "text-blue-600 border-blue-200 hover:bg-blue-50"
@@ -359,7 +359,7 @@ const News: React.FC = () => {
                         <p className="text-red-600 font-medium">Failed to load news articles.</p>
                         <button
                           onClick={() => void refetchNews()}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                         >
                           Retry
                         </button>
@@ -369,11 +369,11 @@ const News: React.FC = () => {
                 ) : loading || tableLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i} className="border-b border-slate-100">
-                      <td className="px-3 py-2"><div className="w-6 h-6 rounded bg-slate-200 animate-pulse" /></td>
-                      <td className="px-3 py-2"><div className="h-4 bg-slate-200 rounded animate-pulse w-3/4" /></td>
-                      <td className="px-3 py-2"><div className="h-4 bg-slate-200 rounded animate-pulse w-1/2" /></td>
-                      <td className="px-3 py-2"><div className="h-4 bg-slate-200 rounded animate-pulse w-20" /></td>
-                      <td className="px-3 py-2"><div className="h-4 bg-slate-200 rounded animate-pulse w-16" /></td>
+                      <td className="px-3 py-2"><div className="w-6 h-6 rounded bg-slate-200" /></td>
+                      <td className="px-3 py-2"><div className="h-4 bg-slate-200 rounded w-3/4" /></td>
+                      <td className="px-3 py-2"><div className="h-4 bg-slate-200 rounded w-1/2" /></td>
+                      <td className="px-3 py-2"><div className="h-4 bg-slate-200 rounded w-20" /></td>
+                      <td className="px-3 py-2"><div className="h-4 bg-slate-200 rounded w-16" /></td>
                     </tr>
                   ))
                 ) : news.length === 0 ? (
@@ -391,7 +391,7 @@ const News: React.FC = () => {
                           <div className="flex justify-center">
                             <button
                               onClick={handleClearSearch}
-                              className="px-3 py-1.5 text-sm font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors duration-150"
+                              className="px-3 py-1.5 text-sm font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                             >
                               Clear Search
                             </button>

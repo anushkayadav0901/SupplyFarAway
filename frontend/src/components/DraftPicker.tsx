@@ -80,13 +80,13 @@ export default function DraftPicker({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls="draft-picker-list"
-        className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+        className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
       >
         <FileText className="w-3.5 h-3.5 text-slate-500" aria-hidden="true" />
         Pick draft
         <ChevronDown
           aria-hidden="true"
-          className={`w-3.5 h-3.5 text-slate-500 transition-transform ${
+          className={`w-3.5 h-3.5 text-slate-500 ${
             open ? "rotate-180" : ""
           }`}
         />
@@ -120,7 +120,7 @@ export default function DraftPicker({
                         onSelect(id);
                         setOpen(false);
                       }}
-                      className={`w-full text-left px-3 py-2 text-xs transition-colors ${
+                      className={`w-full text-left px-3 py-2 text-xs ${
                         selected
                           ? "bg-blue-50 text-blue-700"
                           : "hover:bg-slate-50 text-slate-700"

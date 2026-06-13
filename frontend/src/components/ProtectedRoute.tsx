@@ -7,7 +7,7 @@ import NavBar from "./NavBar";
 // (Header bar + content placeholder) so navigation doesn't flash blank.
 const PageLoadingSkeleton: React.FC = () => (
   <div
-    className="min-h-screen bg-slate-50 animate-pulse"
+    className="min-h-screen bg-slate-50"
     role="status"
     aria-label="Loading page"
   >

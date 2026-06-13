@@ -618,7 +618,7 @@ const ComplianceForm: React.FC = () => {
                 }}
                 aria-disabled={isLocked}
                 disabled={isLocked}
-                className={`flex-shrink-0 px-6 py-4 text-sm sm:text-base font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 relative ${
+                className={`flex-shrink-0 px-6 py-4 text-sm sm:text-base font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 relative ${
                   activeTab === tab
                     ? "text-blue-600 bg-white"
                     : isLocked
@@ -678,7 +678,7 @@ const ComplianceForm: React.FC = () => {
           <button
             onClick={handlePrevTab}
             disabled={tabOrder.indexOf(activeTab) === 0 || responseReceived}
-            className={`py-2.5 px-6 text-sm font-semibold rounded-xl transition-colors w-full sm:w-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${
+            className={`py-2.5 px-6 text-sm font-semibold rounded-xl w-full sm:w-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${
               tabOrder.indexOf(activeTab) === 0 || responseReceived
                 ? "bg-slate-200 text-slate-400 cursor-not-allowed"
                 : "bg-emerald-500 hover:bg-emerald-600 text-white"
@@ -692,7 +692,7 @@ const ComplianceForm: React.FC = () => {
               disabled={
                 !areCurrentTabMandatoryFieldsFilled() || responseReceived
               }
-              className={`py-2.5 px-6 text-sm font-semibold rounded-xl transition-colors w-full sm:w-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
+              className={`py-2.5 px-6 text-sm font-semibold rounded-xl w-full sm:w-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
                 !areCurrentTabMandatoryFieldsFilled() || responseReceived
                   ? "bg-slate-200 text-slate-400 cursor-not-allowed"
                   : "bg-blue-600 hover:bg-blue-700 text-white"
@@ -704,7 +704,7 @@ const ComplianceForm: React.FC = () => {
             <button
               onClick={handleSubmit}
               disabled={isButtonDisabled}
-              className={`py-2.5 px-6 text-sm font-semibold rounded-xl transition-colors w-full sm:w-auto min-w-[200px] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 inline-flex items-center justify-center gap-2 ${
+              className={`py-2.5 px-6 text-sm font-semibold rounded-xl w-full sm:w-auto min-w-[200px] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 inline-flex items-center justify-center gap-2 ${
                 isButtonDisabled
                   ? "bg-slate-200 text-slate-400 cursor-not-allowed"
                   : "bg-blue-600 hover:bg-blue-700 text-white"
@@ -712,7 +712,7 @@ const ComplianceForm: React.FC = () => {
             >
               {loading && (
                 <svg
-                  className="w-4 h-4 animate-spin flex-shrink-0"
+                  className="w-4 h-4 flex-shrink-0"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"

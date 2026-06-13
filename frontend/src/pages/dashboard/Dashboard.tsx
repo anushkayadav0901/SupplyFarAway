@@ -1,30 +1,20 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Truck, Boxes } from "lucide-react";
-import { trpc } from "../../lib/trpc";
+import { ArrowRight, Route, ShieldCheck, BarChart3 } from "lucide-react";
 import FeatureGroupGrid from "../../components/FeatureGroupGrid";
+import CountUp from "../../components/CountUp";
 
 function Dashboard() {
   const navigate = useNavigate();
-  const { isError } = trpc.auth.getMe.useQuery(undefined, {
-    retry: false,
-    enabled: !!localStorage.getItem("token"),
-  });
-
-  useEffect(() => {
-    if (!localStorage.getItem("token")) navigate("/");
-    else if (isError) navigate("/");
-  }, [navigate, isError]);
 
   return (
     <div className="relative">
       <GridBackdrop />
       <Hero navigate={navigate} />
-
+      <MetricsBar />
       <section className="relative pb-24">
         <FeatureGroupGrid />
       </section>
-
       <Footer navigate={navigate} />
     </div>
   );
@@ -33,111 +23,113 @@ function Dashboard() {
 function GridBackdrop() {
   return (
     <div
-      className="absolute inset-x-0 top-0 h-[80vh] pointer-events-none overflow-hidden"
+      className="absolute inset-x-0 top-0 h-[90vh] pointer-events-none overflow-hidden"
       aria-hidden="true"
     >
-      <svg className="w-full h-full text-slate-300/40">
+      <svg className="w-full h-full text-tertiary-200/40">
         <defs>
-          <pattern id="grid-bg" width="32" height="32" patternUnits="userSpaceOnUse">
-            <path d="M 32 0 L 0 0 0 32" fill="none" stroke="currentColor" strokeWidth="0.5" />
+          <pattern id="dashboard-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="0.5" />
           </pattern>
         </defs>
-        <rect width="100%" height="100%" fill="url(#grid-bg)" />
+        <rect width="100%" height="100%" fill="url(#dashboard-grid)" />
       </svg>
-      <div className="absolute inset-x-0 bottom-0 h-[40vh] bg-gradient-to-b from-transparent to-slate-50" />
+      <div className="absolute inset-x-0 bottom-0 h-[30vh] bg-gradient-to-b from-transparent to-neutral-50" />
     </div>
   );
 }
 
 function Hero({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
   return (
-    <section className="relative max-w-5xl mx-auto px-6 pt-16 sm:pt-24 pb-12 text-center">
-      <h1 className="font-bold tracking-tight text-slate-900 leading-[1.02]">
-        <span className="block text-5xl sm:text-6xl md:text-7xl">End-to-end</span>
-        <span className="relative inline-flex items-center justify-center gap-3 sm:gap-5 my-1 sm:my-2">
-          <DecorIcon className="hidden sm:inline-flex">
-            <Truck size={22} />
-          </DecorIcon>
-          <span
-            className="text-5xl sm:text-6xl md:text-7xl text-transparent"
-            style={{ WebkitTextStroke: "1.5px rgb(37, 99, 235)" }}
-          >
-            logistics
-          </span>
-          <DecorIcon className="hidden sm:inline-flex">
-            <Boxes size={22} />
-          </DecorIcon>
-        </span>
-        <span className="block text-5xl sm:text-6xl md:text-7xl text-blue-600">
-          intelligence
+    <section className="relative max-w-4xl mx-auto px-6 pt-20 sm:pt-28 pb-16 text-center">
+      <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary-200 bg-primary-50/70 text-primary-700 text-xs font-medium mb-10">
+        <span className="w-1.5 h-1.5 rounded-full bg-primary-500" />
+        Powered by Gemini 2.5 on Vertex AI
+      </div>
+
+      <h1 className="font-bold tracking-tight text-tertiary-900 leading-[1.02]">
+        <span className="block text-4xl sm:text-5xl md:text-6xl">End-to-end</span>
+        <span className="block text-4xl sm:text-5xl md:text-6xl text-primary-600 mt-1">
+          logistics intelligence
         </span>
       </h1>
 
-      <p className="mt-8 max-w-2xl mx-auto text-base sm:text-lg text-slate-600 leading-relaxed">
-        Plan a route, verify a shipment, screen for compliance — every step visible,
-        every decision explainable.
+      <p className="mt-6 max-w-xl mx-auto text-base sm:text-lg text-tertiary-500 leading-relaxed">
+        Route optimization, compliance checks, and shipment verification &mdash;
+        every step visible, every decision explainable.
       </p>
 
       <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
         <button
           onClick={() => navigate("/routes")}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm sm:text-base px-7 py-3 rounded-full inline-flex items-center gap-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+          className="bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm sm:text-base px-7 py-3 rounded-full inline-flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
         >
           Plan a route
           <ArrowRight size={16} />
         </button>
         <button
-          onClick={() => navigate("/inspect")}
-          className="text-blue-700 hover:bg-blue-50 border-2 border-blue-200 hover:border-blue-300 font-semibold text-sm sm:text-base px-7 py-3 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+          onClick={() => navigate("/compliance")}
+          className="text-primary-700 hover:bg-primary-50 border-2 border-primary-200 hover:border-primary-300 font-semibold text-sm sm:text-base px-7 py-3 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
         >
-          Inspect a shipment
+          Try compliance check
         </button>
       </div>
     </section>
   );
 }
 
-function DecorIcon({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+function MetricsBar() {
+  const stats = [
+    { value: 2847, label: "Routes optimized", icon: Route },
+    { value: 1523, label: "Shipments verified", icon: ShieldCheck },
+    { value: 99.2, label: "Compliance rate", icon: BarChart3, decimals: 1, suffix: "%" },
+  ];
+
   return (
-    <span
-      className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border-2 border-blue-200 bg-white text-blue-500 items-center justify-center ${className}`}
-    >
-      <span className="flex w-full h-full items-center justify-center">{children}</span>
-    </span>
+    <div className="relative max-w-3xl mx-auto px-6 mb-16">
+      <div className="grid grid-cols-3 divide-x divide-tertiary-200 border border-tertiary-200 rounded-2xl bg-white/90">
+        {stats.map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <div key={stat.label} className="flex flex-col items-center py-6 px-4 text-center">
+              <Icon size={18} className="text-primary-500 mb-2" />
+              <span className="text-2xl sm:text-3xl font-bold text-tertiary-900 tabular-nums">
+                <CountUp value={stat.value} decimals={stat.decimals ?? 0} suffix={stat.suffix ?? ""} />
+              </span>
+              <span className="text-xs text-tertiary-500 mt-1">{stat.label}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
 function Footer({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
   return (
-    <footer className="relative border-t border-slate-200 bg-white">
+    <footer className="relative border-t border-tertiary-200 bg-white">
       <div className="max-w-6xl mx-auto px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <span className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-[10px]">
+          <span className="w-7 h-7 bg-primary-600 rounded-lg flex items-center justify-center text-white font-bold text-[10px]">
             SF
           </span>
-          <span className="font-bold text-slate-900 text-sm">SupplyFarAway</span>
+          <span className="font-bold text-tertiary-900 text-sm">SupplyFarAway</span>
         </div>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-tertiary-500">
           Route optimization, compliance, and verification for modern supply chains.
         </p>
-        <div className="flex items-center gap-4 text-xs text-slate-600">
-          <button onClick={() => navigate("/docs")} className="hover:text-slate-900">
+        <div className="flex items-center gap-4 text-xs text-tertiary-500">
+          <button onClick={() => navigate("/docs")} className="hover:text-tertiary-900">
             Docs
           </button>
-          <button onClick={() => navigate("/news")} className="hover:text-slate-900">
+          <button onClick={() => navigate("/news")} className="hover:text-tertiary-900">
             News
           </button>
           <a
             href="https://github.com/anushkayadav0901/SupplyFarAway"
             target="_blank"
             rel="noreferrer"
-            className="hover:text-slate-900"
+            className="hover:text-tertiary-900"
           >
             GitHub
           </a>

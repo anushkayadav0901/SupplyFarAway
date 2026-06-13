@@ -413,7 +413,7 @@ export default function BoxCountTab({ draftId, onResult, runAllRequested }: BoxC
                   value={declaredCount}
                   onChange={(e) => setDeclaredCount(e.target.value)}
                   disabled={mode === "live" || mode === "starting"}
-                  className="w-full px-4 py-2.5 border-2 border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  className="w-full px-4 py-2.5 border-2 border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
                 {declaredError && (
                   <p className="text-xs text-red-500 mt-1" role="alert">
@@ -427,7 +427,7 @@ export default function BoxCountTab({ draftId, onResult, runAllRequested }: BoxC
                   <button
                     type="button"
                     onClick={start}
-                    className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors duration-150 flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
                     <Camera className="w-4 h-4" /> Start Inspection
                   </button>
@@ -436,7 +436,7 @@ export default function BoxCountTab({ draftId, onResult, runAllRequested }: BoxC
                     type="button"
                     onClick={stopSession}
                     disabled={mode === "starting"}
-                    className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl transition-colors duration-150 flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:bg-slate-400"
+                    className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:bg-slate-400"
                   >
                     <Video className="w-4 h-4" /> Stop &amp; Save
                   </button>
@@ -445,7 +445,7 @@ export default function BoxCountTab({ draftId, onResult, runAllRequested }: BoxC
                   <button
                     type="button"
                     onClick={reset}
-                    className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400"
+                    className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-400"
                   >
                     Reset
                   </button>
@@ -472,7 +472,7 @@ export default function BoxCountTab({ draftId, onResult, runAllRequested }: BoxC
               )}
               {mode === "starting" && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 gap-2 bg-slate-100/90">
-                  <span className="w-8 h-8 border-2 border-slate-300 border-t-blue-500 rounded-full animate-spin" />
+                  <span className="w-8 h-8 border-2 border-slate-300 border-t-blue-500 rounded-full" />
                   <p className="text-sm">Configuring camera stream...</p>
                 </div>
               )}
@@ -521,8 +521,8 @@ export default function BoxCountTab({ draftId, onResult, runAllRequested }: BoxC
           </div>
           {historyQuery.isLoading ? (
             <div className="space-y-3">
-              <div className="h-10 bg-slate-100 rounded animate-pulse" />
-              <div className="h-10 bg-slate-100 rounded animate-pulse" />
+              <div className="h-10 bg-slate-100 rounded" />
+              <div className="h-10 bg-slate-100 rounded" />
             </div>
           ) : historyQuery.data && historyQuery.data.length > 0 ? (
             <div className="divide-y divide-slate-100">

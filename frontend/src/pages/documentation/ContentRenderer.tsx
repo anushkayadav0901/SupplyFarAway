@@ -282,13 +282,13 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
               <button
                 key={index}
                 onClick={() => handleDownload(download.url, download.filename)}
-                className="flex items-center gap-3 p-4 border border-slate-200 rounded-lg hover:bg-white transition-colors duration-150 text-left group"
+                className="flex items-center gap-3 p-4 border border-slate-200 rounded-lg hover:bg-white text-left group"
               >
-                <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                   <Download size={14} className="text-blue-600" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
+                  <div className="font-medium text-gray-900">
                     {download.name}
                   </div>
                   <div className="text-sm text-gray-500 truncate">
@@ -328,7 +328,7 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
         <button
           onClick={onNavigatePrevious}
           disabled={currentSectionIndex === 0}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors w-full sm:w-auto justify-center sm:justify-start ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg w-full sm:w-auto justify-center sm:justify-start ${
             currentSectionIndex === 0
               ? "text-gray-400 cursor-not-allowed"
               : "text-blue-600 hover:bg-blue-50"
@@ -343,7 +343,7 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
           <div className="flex items-center gap-4 order-first sm:order-none">
             <button
               onClick={handleNavigate}
-              className="flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors text-sm bg-transparent border-none cursor-pointer"
+              className="flex items-center gap-2 text-gray-600 hover:text-blue-600 text-sm bg-transparent border-none cursor-pointer"
             >
               <ExternalLink size={14} className="flex-shrink-0" />
               <span className="hidden sm:inline">View on Web</span>
@@ -355,7 +355,7 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
         <button
           onClick={onNavigateNext}
           disabled={currentSectionIndex === allSections.length - 1}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors w-full sm:w-auto justify-center sm:justify-end ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg w-full sm:w-auto justify-center sm:justify-end ${
             currentSectionIndex === allSections.length - 1
               ? "text-gray-400 cursor-not-allowed"
               : "text-blue-600 hover:bg-blue-50"

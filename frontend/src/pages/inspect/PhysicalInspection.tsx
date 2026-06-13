@@ -89,151 +89,148 @@ export default function PhysicalInspection() {
   ).length;
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-6">
-        <PageLead
-          title="Verify a shipment"
-          sub="Run camera count, scale weight, RFID match, and damage diff against the manifest. Trust score updates after each check."
-          right={
-            <>
-              <DraftPicker value={selectedDraftId} onSelect={setSelectedDraftId} />
-              <button
-                type="button"
-                onClick={handleRunAll}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                <PlayCircle className="w-4 h-4" />
-                Run All Checks
-              </button>
-            </>
-          }
-        />
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12">
+      <PageLead
+        title="Verify a shipment"
+        sub="Run camera count, scale weight, RFID match, and damage diff against the manifest. Trust score updates after each check."
+        right={
+          <>
+            <DraftPicker value={selectedDraftId} onSelect={setSelectedDraftId} />
+            <button
+              type="button"
+              onClick={handleRunAll}
+              className="inline-flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              <PlayCircle className="w-4 h-4" />
+              Run All Checks
+            </button>
+          </>
+        }
+      />
 
-        {/* Two-column layout: tabs + trust panel */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left: tab strip + content */}
-          <div className="lg:col-span-8 space-y-0">
-            {/* Tab strip */}
-            <div className="flex border-b border-slate-200 gap-1 overflow-x-auto pb-px bg-white rounded-t-2xl px-3 pt-3">
-              {tabs.map((tab) => {
-                const { Icon } = tab;
-                const isActive = activeTab === tab.id;
-                const status = subsystemStatus[tab.statusKey];
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-2 px-4 py-2.5 border-b-2 font-semibold text-sm transition-all whitespace-nowrap focus:outline-none ${
-                      isActive
-                        ? "border-blue-600 text-blue-600"
-                        : "border-transparent text-slate-500 hover:text-slate-700"
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {tab.label}
-                    <StatusDot passed={status} />
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Tab content */}
-            <div className="pt-4">
-              {activeTab === "camera" && (
-                <BoxCountTab
-                  draftId={selectedDraftId}
-                  onResult={handleResult("camera")}
-                  runAllRequested={runAllRequested}
-                />
-              )}
-              {activeTab === "weight" && (
-                <WeightCheckTab
-                  draftId={selectedDraftId}
-                  onResult={handleResult("weight")}
-                />
-              )}
-              {activeTab === "rfid" && (
-                <RfidVerificationTab
-                  draftId={selectedDraftId}
-                  onResult={handleResult("rfid")}
-                />
-              )}
-              {activeTab === "diff" && (
-                <ShipmentDiffTab
-                  draftId={selectedDraftId}
-                  onResult={handleResult("diff")}
-                />
-              )}
-            </div>
+      {/* Two-column layout: tabs + trust panel */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Left: tab strip + content */}
+        <div className="lg:col-span-8">
+          {/* Tab strip — flat underlined style */}
+          <div className="flex border-b border-slate-200 gap-6 overflow-x-auto pb-px">
+            {tabs.map((tab) => {
+              const { Icon } = tab;
+              const isActive = activeTab === tab.id;
+              const status = subsystemStatus[tab.statusKey];
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-1 py-3 border-b-2 text-sm font-semibold whitespace-nowrap transition-colors focus:outline-none ${
+                    isActive
+                      ? "border-blue-600 text-blue-700"
+                      : "border-transparent text-slate-500 hover:text-slate-900"
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {tab.label}
+                  <StatusDot passed={status} />
+                </button>
+              );
+            })}
           </div>
 
-          {/* Right: Trust Score panel */}
-          <aside className="lg:col-span-4 space-y-4">
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col items-center gap-4">
-              <h3 className="text-sm font-bold text-slate-700 self-start">
-                Trust Score
-              </h3>
-              <TrustGauge
-                value={trustScore}
-                size={180}
-                label="Inspection"
-                subLabel={
-                  completedCount === 0
-                    ? "No checks run yet"
-                    : `${completedCount}/4 subsystems`
-                }
+          {/* Tab content */}
+          <div className="pt-6">
+            {activeTab === "camera" && (
+              <BoxCountTab
+                draftId={selectedDraftId}
+                onResult={handleResult("camera")}
+                runAllRequested={runAllRequested}
               />
-              <p className="text-xs text-slate-500 text-center leading-relaxed">
-                Score updates as each subsystem completes. Run checks in each
-                tab or press "Run All Checks" above.
-              </p>
-            </div>
+            )}
+            {activeTab === "weight" && (
+              <WeightCheckTab
+                draftId={selectedDraftId}
+                onResult={handleResult("weight")}
+              />
+            )}
+            {activeTab === "rfid" && (
+              <RfidVerificationTab
+                draftId={selectedDraftId}
+                onResult={handleResult("rfid")}
+              />
+            )}
+            {activeTab === "diff" && (
+              <ShipmentDiffTab
+                draftId={selectedDraftId}
+                onResult={handleResult("diff")}
+              />
+            )}
+          </div>
+        </div>
 
-            {/* Subsystem status summary */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-3">
-              <h3 className="text-sm font-bold text-slate-700">
-                Subsystem Summary
-              </h3>
-              {tabs.map((tab) => {
-                const status = subsystemStatus[tab.statusKey];
-                const { Icon } = tab;
-                return (
-                  <div
-                    key={tab.id}
-                    className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${
+        {/* Right: Trust Score + Subsystem Summary — single merged section */}
+        <aside className="lg:col-span-4 space-y-8">
+          <section className="flex flex-col items-center gap-4">
+            <h3 className="text-xl font-bold text-slate-900 self-start">
+              Trust Score
+            </h3>
+            <TrustGauge
+              value={trustScore}
+              size={180}
+              label="Inspection"
+              subLabel={
+                completedCount === 0
+                  ? "No checks run yet"
+                  : `${completedCount}/4 subsystems`
+              }
+            />
+            <p className="text-sm text-slate-500 text-center leading-relaxed">
+              Score updates as each subsystem completes. Run checks in each
+              tab or press "Run All Checks" above.
+            </p>
+          </section>
+
+          <section className="border-t border-slate-200 pt-8 space-y-3">
+            <h3 className="text-xl font-bold text-slate-900">
+              Subsystem Summary
+            </h3>
+            {tabs.map((tab) => {
+              const status = subsystemStatus[tab.statusKey];
+              const { Icon } = tab;
+              return (
+                <div
+                  key={tab.id}
+                  className={`flex items-center justify-between p-3 rounded-lg border ${
+                    status === true
+                      ? "bg-emerald-50 border-emerald-200"
+                      : status === false
+                      ? "bg-red-50 border-red-200"
+                      : "bg-slate-50 border-slate-200"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                    <Icon className="w-4 h-4 text-slate-500" />
+                    {tab.label}
+                  </div>
+                  <span
+                    className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                       status === true
-                        ? "bg-emerald-50 border-emerald-200"
+                        ? "bg-emerald-100 text-emerald-700"
                         : status === false
-                        ? "bg-red-50 border-red-200"
-                        : "bg-slate-50 border-slate-200"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-slate-100 text-slate-500"
                     }`}
                   >
-                    <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                      <Icon className="w-4 h-4 text-slate-500" />
-                      {tab.label}
-                    </div>
-                    <span
-                      className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                        status === true
-                          ? "bg-emerald-100 text-emerald-700"
-                          : status === false
-                          ? "bg-red-100 text-red-700"
-                          : "bg-slate-100 text-slate-500"
-                      }`}
-                    >
-                      {status === true
-                        ? "Pass"
-                        : status === false
-                        ? "Fail"
-                        : "Pending"}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </aside>
-        </div>
-      </main>
+                    {status === true
+                      ? "Pass"
+                      : status === false
+                      ? "Fail"
+                      : "Pending"}
+                  </span>
+                </div>
+              );
+            })}
+          </section>
+        </aside>
+      </div>
     </div>
   );
 }

@@ -221,7 +221,7 @@ const ComplianceResponse: React.FC<{ response: ComplianceData | undefined; }> = 
               <div className="w-full bg-gray-200 rounded-full h-4 mt-2 shadow-inner">
                 <div
                   style={{ width: `${riskLevel.riskScore}%` }}
-                  className={`h-4 rounded-full transition-[background-color] duration-150 ${
+                  className={`h-4 rounded-full ${
                     riskLevel.riskScore < 30
                       ? "bg-green-600"
                       : riskLevel.riskScore < 60
@@ -636,7 +636,7 @@ function ExportReport(): React.ReactElement {
         <div className="text-center bg-white p-6 rounded-2xl shadow-xl">
           <p className="text-red-600 mb-4 font-medium">{error}</p>
           <button
-            className="bg-blue-600 py-2 px-6 rounded-lg shadow-sm hover:bg-blue-700 transition-colors duration-150 text-white font-semibold focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            className="bg-blue-600 py-2 px-6 rounded-lg shadow-sm hover:bg-blue-700 text-white font-semibold focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             onClick={() => window.history.back()}
           >
             Go Back
@@ -652,7 +652,7 @@ function ExportReport(): React.ReactElement {
         <div className="text-center bg-white p-6 rounded-2xl shadow-xl">
           <p className="text-red-600 mb-4 font-medium">Draft not found.</p>
           <button
-            className="bg-blue-600 py-2 px-6 rounded-lg shadow-sm hover:bg-blue-700 transition-colors duration-150 text-white font-semibold focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            className="bg-blue-600 py-2 px-6 rounded-lg shadow-sm hover:bg-blue-700 text-white font-semibold focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             onClick={() => window.history.back()}
           >
             Go Back
@@ -679,7 +679,7 @@ function ExportReport(): React.ReactElement {
             Incomplete draft data. Form data is missing or invalid.
           </p>
           <button
-            className="bg-blue-600 py-2 px-6 rounded-lg shadow-sm hover:bg-blue-700 transition-colors duration-150 text-white font-semibold focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            className="bg-blue-600 py-2 px-6 rounded-lg shadow-sm hover:bg-blue-700 text-white font-semibold focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             onClick={() => window.history.back()}
           >
             Go Back
@@ -720,7 +720,7 @@ function ExportReport(): React.ReactElement {
               aria-label="Download options"
               aria-expanded={showDownloadMenu}
               aria-haspopup="menu"
-              className="text-white hover:text-gray-200 transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-indigo-700 rounded"
+              className="text-white hover:text-gray-200 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-indigo-700 rounded"
             >
               <MoreHorizontal className="w-6 h-6" />
             </button>
@@ -745,7 +745,7 @@ function ExportReport(): React.ReactElement {
                   }
                   fileName={`ExportReport-${draftId}.pdf`}
                   role="menuitem"
-                  className="block px-4 py-2 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
+                  className="block px-4 py-2 text-gray-800 hover:bg-gray-100 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
                 >
                   {({ loading: pdfLoading }) =>
                     pdfLoading ? "Generating PDF..." : "Download PDF"

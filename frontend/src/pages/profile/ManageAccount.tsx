@@ -47,13 +47,7 @@ const ManageAccount: React.FC = () => {
   const [profileForm, setProfileForm] = useState<ProfileForm>({
     phoneNumber: "",
     companyName: "",
-    companyAddress: {
-      street: "",
-      city: "",
-      state: "",
-      postalCode: "",
-      country: "",
-    },
+    companyAddress: { street: "", city: "", state: "", postalCode: "", country: "" },
     taxId: "",
   });
   const token = localStorage.getItem("token");
@@ -65,59 +59,31 @@ const ManageAccount: React.FC = () => {
   });
 
   const updateUsernameMutation = trpc.auth.updateUsername.useMutation({
-    onSuccess: () => {
-      toast.success("Username updated successfully!");
-      setIsEditingUsername(false);
-      void refetchMe();
-    },
-    onError: (error) => {
-      toast.error(error.message || "Failed to update username.");
-    },
+    onSuccess: () => { toast.success("Username updated successfully!"); setIsEditingUsername(false); void refetchMe(); },
+    onError: (error) => { toast.error(error.message || "Failed to update username."); },
   });
 
-  // Backend updatePassword only accepts { newPassword } — no currentPassword field
   const updatePasswordMutation = trpc.auth.updatePassword.useMutation({
-    onSuccess: () => {
-      toast.success("Password updated successfully!");
-      setNewPassword("");
-      setConfirmPassword("");
-      setIsEditingPassword(false);
-    },
-    onError: (error) => {
-      toast.error(error.message || "Failed to update password.");
-    },
+    onSuccess: () => { toast.success("Password updated successfully!"); setNewPassword(""); setConfirmPassword(""); setIsEditingPassword(false); },
+    onError: (error) => { toast.error(error.message || "Failed to update password."); },
   });
 
   const updateProfileMutation = trpc.auth.updateProfile.useMutation({
-    onSuccess: () => {
-      toast.success("Profile updated successfully!");
-      setIsEditingProfile(false);
-      void refetchMe();
-    },
-    onError: (error) => {
-      toast.error(error.message || "Failed to update profile.");
-    },
+    onSuccess: () => { toast.success("Profile updated successfully!"); setIsEditingProfile(false); void refetchMe(); },
+    onError: (error) => { toast.error(error.message || "Failed to update profile."); },
   });
 
   const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    return () => {
-      if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current);
-    };
-  }, []);
+  useEffect(() => { return () => { if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current); }; }, []);
 
   const deleteAccountMutation = trpc.auth.deleteAccount.useMutation({
     onSuccess: () => {
       toast.success("Account deleted successfully!");
       localStorage.removeItem("token");
       if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current);
-      deleteTimerRef.current = setTimeout(() => {
-        navigate("/");
-      }, 1500);
+      deleteTimerRef.current = setTimeout(() => { navigate("/"); }, 1500);
     },
-    onError: (error) => {
-      toast.error(error.message || "Failed to delete account.");
-    },
+    onError: (error) => { toast.error(error.message || "Failed to delete account."); },
   });
 
   const user = meData?.user;
@@ -125,14 +91,9 @@ const ManageAccount: React.FC = () => {
   const calculateProfileCompletion = (u: typeof user): void => {
     if (!u) return;
     const fields = [
-      u.firstName,
-      u.lastName,
-      u.emailAddress,
-      (u as any).phoneNumber,
-      (u as any).companyName,
-      (u as any).companyAddress?.street,
-      (u as any).taxId,
-      u.profilePhoto,
+      u.firstName, u.lastName, u.emailAddress,
+      (u as any).phoneNumber, (u as any).companyName,
+      (u as any).companyAddress?.street, (u as any).taxId, u.profilePhoto,
     ];
     const filled = fields.filter((f) => f && String(f).trim() !== "").length;
     setProfileCompletion(Math.round((filled / fields.length) * 100));
@@ -166,15 +127,8 @@ const ManageAccount: React.FC = () => {
 
   const handleUpdatePassword = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
-    if (newPassword !== confirmPassword) {
-      toast.error("Passwords do not match.");
-      return;
-    }
-    if (!newPassword || newPassword.length < 8) {
-      toast.error("Password must be at least 8 characters long.");
-      return;
-    }
-    // Backend only accepts { newPassword } — no currentPassword
+    if (newPassword !== confirmPassword) { toast.error("Passwords do not match."); return; }
+    if (!newPassword || newPassword.length < 8) { toast.error("Password must be at least 8 characters long."); return; }
     updatePasswordMutation.mutate({ newPassword });
   };
 
@@ -185,13 +139,8 @@ const ManageAccount: React.FC = () => {
 
   const handleDeleteAccount = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
-    if (deleteEmail !== user?.emailAddress) {
-      toast.error("Email does not match. Please enter your correct email.");
-      return;
-    }
-    const ok = window.confirm(
-      "This will permanently delete your account and all associated data. This cannot be undone. Continue?"
-    );
+    if (deleteEmail !== user?.emailAddress) { toast.error("Email does not match. Please enter your correct email."); return; }
+    const ok = window.confirm("This will permanently delete your account and all associated data. This cannot be undone. Continue?");
     if (!ok) return;
     deleteAccountMutation.mutate();
   };
@@ -224,18 +173,13 @@ const ManageAccount: React.FC = () => {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const file = e.target.files?.[0];
     if (file) {
-      setPreviewPhoto((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return URL.createObjectURL(file);
-      });
+      setPreviewPhoto((prev) => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(file); });
       setProfilePhoto(file);
     }
   };
 
   useEffect(() => {
-    return () => {
-      if (previewPhoto) URL.revokeObjectURL(previewPhoto);
-    };
+    return () => { if (previewPhoto) URL.revokeObjectURL(previewPhoto); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -244,9 +188,7 @@ const ManageAccount: React.FC = () => {
       setNewUsername(`${user?.firstName} ${user?.lastName || ""}`.trim());
       setIsEditingUsername(false);
     } else if (section === "password") {
-      setNewPassword("");
-      setConfirmPassword("");
-      setIsEditingPassword(false);
+      setNewPassword(""); setConfirmPassword(""); setIsEditingPassword(false);
     } else {
       setProfileForm({
         phoneNumber: (user as any)?.phoneNumber || "",
@@ -267,10 +209,7 @@ const ManageAccount: React.FC = () => {
   const handleProfileFormChange = (field: string, value: string): void => {
     if (field.startsWith("companyAddress.")) {
       const addrField = field.split(".")[1];
-      setProfileForm((prev) => ({
-        ...prev,
-        companyAddress: { ...prev.companyAddress, [addrField]: value },
-      }));
+      setProfileForm((prev) => ({ ...prev, companyAddress: { ...prev.companyAddress, [addrField]: value } }));
     } else {
       setProfileForm((prev) => ({ ...prev, [field]: value }));
     }
@@ -280,10 +219,8 @@ const ManageAccount: React.FC = () => {
     return (
       <div className="py-16 text-center">
         <p className="text-red-600 text-base mb-4">Could not load your account. Please refresh.</p>
-        <button
-          onClick={() => void refetchMe()}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors"
-        >
+        <button onClick={() => void refetchMe()}
+          className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg">
           Retry
         </button>
       </div>
@@ -292,38 +229,20 @@ const ManageAccount: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="space-y-4 animate-pulse">
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 h-28" />
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 h-40" />
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 h-32" />
+      <div className="space-y-12">
+        <div className="h-6 bg-slate-100 rounded w-48" />
+        <div className="h-20 bg-slate-100 rounded" />
+        <div className="h-32 bg-slate-100 rounded" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-12">
 
-      {/* Profile Completion */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-bold text-slate-800">Profile Completion</h2>
-          <span className="text-sm font-semibold text-blue-600">{profileCompletion}%</span>
-        </div>
-        <div className="w-full bg-slate-100 rounded-full h-2 mb-3">
-          <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${profileCompletion}%` }} />
-        </div>
-        <p className="text-xs text-slate-500">
-          {profileCompletion < 100 ? (
-            <><AlertCircle className="inline w-3.5 h-3.5 mr-1 text-yellow-500" />Complete your profile to unlock personalized features.</>
-          ) : (
-            <><CheckCircle2 className="inline w-3.5 h-3.5 mr-1 text-emerald-500" />Profile is fully complete!</>
-          )}
-        </p>
-      </div>
-
-      {/* User Info and Photo */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6">
-        <div className="flex flex-col sm:flex-row items-center gap-6 mb-6">
+      {/* Profile header */}
+      <section>
+        <div className="flex flex-col sm:flex-row items-center gap-6">
           <div className="relative flex-shrink-0">
             {localProfilePhoto ? (
               <img src={localProfilePhoto} alt="Profile" width={80} height={80}
@@ -337,194 +256,225 @@ const ManageAccount: React.FC = () => {
             )}
           </div>
           <div className="text-center sm:text-left">
-            <h2 className="text-xl font-bold text-slate-800">{user?.firstName} {user?.lastName || ""}</h2>
+            <h2 className="text-xl font-bold text-slate-900">{user?.firstName} {user?.lastName || ""}</h2>
             <p className="text-sm text-slate-500">{user?.emailAddress}</p>
           </div>
         </div>
-        {/* Photo Upload */}
-        <form onSubmit={handlePhotoUpload}>
-          <label htmlFor="profile-photo-input" className="block text-xs font-semibold text-slate-600 mb-2">
-            Upload Profile Photo
-          </label>
-          <div className="flex items-center gap-3">
-            <input
-              id="profile-photo-input"
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              onChange={handlePhotoChange}
-              ref={fileInputRef}
-              className="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-            />
-            <div className="w-12 h-12 rounded-full flex-shrink-0 overflow-hidden bg-slate-100">
-              {previewPhoto && <img src={previewPhoto} alt="Preview" width={48} height={48} className="w-full h-full object-cover" />}
+
+        {/* Profile completion bar */}
+        <div className="mt-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-slate-700">Profile completion</span>
+            <span className="text-sm font-semibold text-blue-600">{profileCompletion}%</span>
+          </div>
+          <div className="w-full bg-slate-100 rounded-full h-2 mb-2">
+            <div className="bg-blue-600 h-2 rounded-full transition-all" style={{ width: `${profileCompletion}%` }} />
+          </div>
+          <p className="text-sm text-slate-500">
+            {profileCompletion < 100 ? (
+              <><AlertCircle className="inline w-3.5 h-3.5 mr-1 text-yellow-500" />Complete your profile to unlock personalized features.</>
+            ) : (
+              <><CheckCircle2 className="inline w-3.5 h-3.5 mr-1 text-emerald-500" />Profile is fully complete!</>
+            )}
+          </p>
+        </div>
+      </section>
+
+      {/* Photo upload */}
+      <section className="border-t border-slate-200 pt-12">
+        <h2 className="text-xl font-bold text-slate-900 mb-5">Profile photo</h2>
+        <form onSubmit={handlePhotoUpload} className="space-y-4">
+          <div>
+            <label htmlFor="profile-photo-input" className="text-sm font-medium text-slate-700 mb-1.5 block">
+              Choose a new photo (JPEG, PNG, WebP, or GIF — max 10 MB)
+            </label>
+            <div className="flex items-center gap-4">
+              <input
+                id="profile-photo-input"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                onChange={handlePhotoChange}
+                ref={fileInputRef}
+                className="block w-full text-sm text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              />
+              {previewPhoto && (
+                <img src={previewPhoto} alt="Preview" width={48} height={48}
+                  className="w-12 h-12 rounded-full object-cover flex-shrink-0 border border-slate-200" />
+              )}
             </div>
           </div>
-          <button type="submit" className="mt-3 flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-colors">
-            <Camera className="w-3.5 h-3.5" /> Upload Photo
+          <button type="submit"
+            className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg">
+            <Camera className="w-4 h-4" /> Upload photo
           </button>
         </form>
-      </div>
+      </section>
 
-      {/* Update Username */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-base font-bold text-slate-800">Full Name</h2>
+      {/* Full name */}
+      <section className="border-t border-slate-200 pt-12">
+        <div className="flex justify-between items-center mb-5">
+          <h2 className="text-xl font-bold text-slate-900">Full name</h2>
           {!isEditingUsername && (
             <button onClick={() => setIsEditingUsername(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
-              <Pencil className="w-3.5 h-3.5" /> Edit
+              className="flex items-center gap-1.5 px-5 py-3 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50 text-sm font-semibold rounded-lg">
+              <Pencil className="w-4 h-4" /> Edit
             </button>
           )}
         </div>
-        <form onSubmit={handleUpdateUsername}>
-          <input
-            type="text"
-            value={newUsername}
-            onChange={(e) => setNewUsername(e.target.value)}
-            disabled={!isEditingUsername}
-            className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
-            placeholder="Enter your full name"
-            required
-          />
+        <form onSubmit={handleUpdateUsername} className="space-y-4">
+          <div>
+            <label className="text-sm font-medium text-slate-700 mb-1.5 block" htmlFor="full-name-input">
+              Display name
+            </label>
+            <input
+              id="full-name-input"
+              type="text"
+              value={newUsername}
+              onChange={(e) => setNewUsername(e.target.value)}
+              disabled={!isEditingUsername}
+              className="w-full px-4 py-3 rounded-lg border border-slate-300 text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
+              placeholder="Enter your full name"
+              required
+            />
+          </div>
           {isEditingUsername && (
-            <div className="flex gap-2 mt-3">
+            <div className="flex gap-3">
               <button type="submit" disabled={updateUsernameMutation.isPending}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-colors">
-                <Save className="w-3.5 h-3.5" /> {updateUsernameMutation.isPending ? "Saving..." : "Save"}
+                className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg">
+                <Save className="w-4 h-4" /> {updateUsernameMutation.isPending ? "Saving..." : "Save"}
               </button>
               <button type="button" onClick={() => handleCancelEdit("username")}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
-                <X className="w-3.5 h-3.5" /> Cancel
+                className="flex items-center gap-2 px-5 py-3 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50 text-sm font-semibold rounded-lg">
+                <X className="w-4 h-4" /> Cancel
               </button>
             </div>
           )}
         </form>
-      </div>
+      </section>
 
-      {/* Profile Information */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-base font-bold text-slate-800">Business Profile</h2>
+      {/* Business profile */}
+      <section className="border-t border-slate-200 pt-12">
+        <div className="flex justify-between items-center mb-5">
+          <h2 className="text-xl font-bold text-slate-900">Business profile</h2>
           {!isEditingProfile && (
             <button onClick={() => setIsEditingProfile(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
-              <Pencil className="w-3.5 h-3.5" /> Edit
+              className="flex items-center gap-1.5 px-5 py-3 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50 text-sm font-semibold rounded-lg">
+              <Pencil className="w-4 h-4" /> Edit
             </button>
           )}
         </div>
         {isEditingProfile ? (
-          <form onSubmit={handleUpdateProfile}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 text-sm">
+          <form onSubmit={handleUpdateProfile} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
-                { label: "Phone Number", field: "phoneNumber", type: "tel", val: profileForm.phoneNumber },
-                { label: "Company Name", field: "companyName", type: "text", val: profileForm.companyName },
-                { label: "Street Address", field: "companyAddress.street", type: "text", val: profileForm.companyAddress.street },
-                { label: "City", field: "companyAddress.city", type: "text", val: profileForm.companyAddress.city },
-                { label: "State", field: "companyAddress.state", type: "text", val: profileForm.companyAddress.state },
-                { label: "Postal Code", field: "companyAddress.postalCode", type: "text", val: profileForm.companyAddress.postalCode },
-                { label: "Country", field: "companyAddress.country", type: "text", val: profileForm.companyAddress.country },
-                { label: "Tax ID", field: "taxId", type: "text", val: profileForm.taxId },
+                { label: "Phone Number",   field: "phoneNumber",              type: "tel",  val: profileForm.phoneNumber },
+                { label: "Company Name",   field: "companyName",              type: "text", val: profileForm.companyName },
+                { label: "Street Address", field: "companyAddress.street",    type: "text", val: profileForm.companyAddress.street },
+                { label: "City",           field: "companyAddress.city",      type: "text", val: profileForm.companyAddress.city },
+                { label: "State",          field: "companyAddress.state",     type: "text", val: profileForm.companyAddress.state },
+                { label: "Postal Code",    field: "companyAddress.postalCode",type: "text", val: profileForm.companyAddress.postalCode },
+                { label: "Country",        field: "companyAddress.country",   type: "text", val: profileForm.companyAddress.country },
+                { label: "Tax ID",         field: "taxId",                    type: "text", val: profileForm.taxId },
               ].map(({ label, field, type, val }) => (
                 <div key={field}>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">{label}</label>
+                  <label className="text-sm font-medium text-slate-700 mb-1.5 block">{label}</label>
                   <input type={type} value={val}
                     onChange={(e) => handleProfileFormChange(field, e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full px-4 py-3 rounded-lg border border-slate-300 text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
               ))}
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <button type="submit" disabled={updateProfileMutation.isPending}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-colors">
-                <Save className="w-3.5 h-3.5" /> {updateProfileMutation.isPending ? "Saving..." : "Save"}
+                className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg">
+                <Save className="w-4 h-4" /> {updateProfileMutation.isPending ? "Saving..." : "Save"}
               </button>
               <button type="button" onClick={() => handleCancelEdit("profile")}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
-                <X className="w-3.5 h-3.5" /> Cancel
+                className="flex items-center gap-2 px-5 py-3 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50 text-sm font-semibold rounded-lg">
+                <X className="w-4 h-4" /> Cancel
               </button>
             </div>
           </form>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {[
-              { label: "Phone", val: (user as any)?.phoneNumber },
-              { label: "Company", val: (user as any)?.companyName },
-              { label: "Street", val: (user as any)?.companyAddress?.street },
-              { label: "City", val: (user as any)?.companyAddress?.city },
-              { label: "State", val: (user as any)?.companyAddress?.state },
+              { label: "Phone",       val: (user as any)?.phoneNumber },
+              { label: "Company",     val: (user as any)?.companyName },
+              { label: "Street",      val: (user as any)?.companyAddress?.street },
+              { label: "City",        val: (user as any)?.companyAddress?.city },
+              { label: "State",       val: (user as any)?.companyAddress?.state },
               { label: "Postal Code", val: (user as any)?.companyAddress?.postalCode },
-              { label: "Country", val: (user as any)?.companyAddress?.country },
-              { label: "Tax ID", val: (user as any)?.taxId },
+              { label: "Country",     val: (user as any)?.companyAddress?.country },
+              { label: "Tax ID",      val: (user as any)?.taxId },
             ].map(({ label, val }) => (
               <div key={label}>
-                <span className="text-xs font-semibold text-slate-500 uppercase">{label}</span>
-                <p className="text-slate-700">{val || <span className="text-slate-400 italic">Not provided</span>}</p>
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{label}</span>
+                <p className="text-base text-slate-800 mt-0.5">{val || <span className="text-slate-400 italic">Not provided</span>}</p>
               </div>
             ))}
           </div>
         )}
-      </div>
+      </section>
 
-      {/* Update Password */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-base font-bold text-slate-800">Password</h2>
+      {/* Password */}
+      <section className="border-t border-slate-200 pt-12">
+        <div className="flex justify-between items-center mb-5">
+          <h2 className="text-xl font-bold text-slate-900">Password</h2>
           {!isEditingPassword && (
             <button onClick={() => setIsEditingPassword(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
-              <Pencil className="w-3.5 h-3.5" /> Change
+              className="flex items-center gap-1.5 px-5 py-3 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50 text-sm font-semibold rounded-lg">
+              <Pencil className="w-4 h-4" /> Change
             </button>
           )}
         </div>
-        {isEditingPassword && (
-          <form onSubmit={handleUpdatePassword} className="space-y-3">
+        {isEditingPassword ? (
+          <form onSubmit={handleUpdatePassword} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">New Password</label>
+              <label className="text-sm font-medium text-slate-700 mb-1.5 block">New password</label>
               <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full px-4 py-3 rounded-lg border border-slate-300 text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="At least 8 characters" required />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Confirm Password</label>
+              <label className="text-sm font-medium text-slate-700 mb-1.5 block">Confirm password</label>
               <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full px-4 py-3 rounded-lg border border-slate-300 text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Confirm new password" required />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <button type="submit" disabled={updatePasswordMutation.isPending}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-colors">
-                <Save className="w-3.5 h-3.5" /> {updatePasswordMutation.isPending ? "Saving..." : "Save"}
+                className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg">
+                <Save className="w-4 h-4" /> {updatePasswordMutation.isPending ? "Saving..." : "Save"}
               </button>
               <button type="button" onClick={() => handleCancelEdit("password")}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
-                <X className="w-3.5 h-3.5" /> Cancel
+                className="flex items-center gap-2 px-5 py-3 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50 text-sm font-semibold rounded-lg">
+                <X className="w-4 h-4" /> Cancel
               </button>
             </div>
           </form>
+        ) : (
+          <p className="text-sm text-slate-500">Password is hidden. Click Change to update.</p>
         )}
-        {!isEditingPassword && (
-          <p className="text-xs text-slate-400">Password is hidden. Click Change to update.</p>
-        )}
-      </div>
+      </section>
 
-      {/* Danger Zone */}
-      <div className="bg-white rounded-2xl border border-red-100 p-6">
-        <h2 className="text-base font-bold text-red-700 mb-2">Danger Zone</h2>
-        <p className="text-xs text-slate-500 mb-4">This action is irreversible. All your data will be permanently deleted.</p>
-        <form onSubmit={handleDeleteAccount} className="space-y-3">
+      {/* Danger zone */}
+      <section className="border-t border-red-200 pt-12">
+        <h2 className="text-xl font-bold text-red-700 mb-1">Danger zone</h2>
+        <p className="text-sm text-slate-500 mb-5">This action is irreversible. All your data will be permanently deleted.</p>
+        <form onSubmit={handleDeleteAccount} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">Enter your email to confirm</label>
+            <label className="text-sm font-medium text-slate-700 mb-1.5 block">Enter your email address to confirm</label>
             <input type="email" value={deleteEmail} onChange={(e) => setDeleteEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-red-500"
+              className="w-full px-4 py-3 rounded-lg border border-slate-300 text-base focus:ring-2 focus:ring-red-500 focus:border-red-500"
               placeholder="your@email.com" required />
           </div>
           <button type="submit" disabled={deleteAccountMutation.isPending}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 text-xs font-semibold rounded-xl transition-colors">
-            <Trash2 className="w-3.5 h-3.5" /> {deleteAccountMutation.isPending ? "Deleting..." : "Delete Account"}
+            className="flex items-center gap-2 px-5 py-3 border border-red-300 bg-red-50 hover:bg-red-100 text-red-700 text-sm font-semibold rounded-lg">
+            <Trash2 className="w-4 h-4" /> {deleteAccountMutation.isPending ? "Deleting..." : "Delete account"}
           </button>
         </form>
-      </div>
+      </section>
 
     </div>
   );

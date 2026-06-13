@@ -104,7 +104,7 @@ const Breadcrumb: React.FC<BreadcrumbProps> = ({
       <Link
         to="/dashboard"
         aria-label="Home"
-        className="flex items-center gap-1 hover:text-white transition-colors duration-150 rounded-md px-1.5 py-0.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        className="flex items-center gap-1 hover:text-white rounded-md px-1.5 py-0.5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
       >
         <Home size={13} aria-hidden="true" />
         <span className="sr-only">Home</span>

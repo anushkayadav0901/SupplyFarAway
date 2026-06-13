@@ -308,7 +308,7 @@ export default function WeightCheckTab({ draftId, onResult }: WeightCheckTabProp
                   placeholder="e.g. 100.00"
                   value={form.declaredWeightKg}
                   onChange={handleChange}
-                  className="px-4 py-2.5 border-2 border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  className="px-4 py-2.5 border-2 border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
 
@@ -326,7 +326,7 @@ export default function WeightCheckTab({ draftId, onResult }: WeightCheckTabProp
                   placeholder="e.g. 103.50"
                   value={form.measuredWeightKg}
                   onChange={handleChange}
-                  className="px-4 py-2.5 border-2 border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  className="px-4 py-2.5 border-2 border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
 
@@ -343,7 +343,7 @@ export default function WeightCheckTab({ draftId, onResult }: WeightCheckTabProp
                   placeholder={`Default: ${DEFAULT_THRESHOLD_PCT}`}
                   value={form.thresholdPct}
                   onChange={handleChange}
-                  className="px-4 py-2.5 border-2 border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  className="px-4 py-2.5 border-2 border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
             </div>
@@ -360,7 +360,7 @@ export default function WeightCheckTab({ draftId, onResult }: WeightCheckTabProp
                     streamResolverRef.current = null;
                     if (resolver) resolver(true);
                   }}
-                  className="px-6 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-800 rounded-xl border border-slate-200 hover:border-slate-300 transition-colors"
+                  className="px-6 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-800 rounded-xl border border-slate-200 hover:border-slate-300"
                 >
                   Cancel
                 </button>
@@ -368,16 +368,16 @@ export default function WeightCheckTab({ draftId, onResult }: WeightCheckTabProp
               <button
                 type="submit"
                 disabled={submitMutation.isPending || streaming}
-                className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold rounded-xl transition-colors duration-150 flex items-center gap-2"
+                className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold rounded-xl flex items-center gap-2"
               >
                 {streaming ? (
                   <>
-                    <Activity className="w-4 h-4 animate-pulse" />
+                    <Activity className="w-4 h-4" />
                     Streaming…
                   </>
                 ) : submitMutation.isPending ? (
                   <>
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
                     Saving…
                   </>
                 ) : (
@@ -509,7 +509,7 @@ export default function WeightCheckTab({ draftId, onResult }: WeightCheckTabProp
                   {historyQuery.data.map((record) => (
                     <tr
                       key={String(record._id)}
-                      className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                      className="border-b border-slate-100 hover:bg-slate-50"
                     >
                       <td className="py-3 pr-4 text-slate-500 whitespace-nowrap">
                         {fmtDate(record.createdAt as Date)}
