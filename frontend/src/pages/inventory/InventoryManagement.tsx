@@ -125,7 +125,8 @@ const InventoryManagement: React.FC = () => {
   const [deleteEmail, setDeleteEmail] = useState<string>("");
   const [deleteEmailError, setDeleteEmailError] = useState<string>("");
   const [openExportDialog, setOpenExportDialog] = useState<boolean>(false);
-  const [exportDraft, setExportDraft] = useState<any | null>(null);
+  const [exportDraft, setExportDraft] = useState<Draft | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const navigate = useNavigate();
 
   // Fetch all tabs in parallel and combine
@@ -197,27 +198,44 @@ const InventoryManagement: React.FC = () => {
   };
 
   const getFilteredDrafts = (): Draft[] => {
-    if (activeTab === "all") return uniqueDrafts;
+    let drafts = uniqueDrafts;
 
-    return uniqueDrafts.filter((draft) => {
-      const compliance = draft.statuses?.compliance;
-      const routeOpt = draft.statuses?.routeOptimization;
-      switch (activeTab) {
-        case "yet-to-be-checked":
-          return (
-            compliance === "notDone" &&
-            (routeOpt === "notDone" || routeOpt === "done")
-          );
-        case "non-compliant":
-          return compliance === "nonCompliant" && routeOpt === "notDone";
-        case "compliant":
-          return compliance === "compliant" && routeOpt === "notDone";
-        case "ready-for-shipment":
-          return compliance === "compliant" && routeOpt === "done";
-        default:
-          return false;
-      }
-    });
+    if (activeTab !== "all") {
+      drafts = drafts.filter((draft) => {
+        const compliance = draft.statuses?.compliance;
+        const routeOpt = draft.statuses?.routeOptimization;
+        switch (activeTab) {
+          case "yet-to-be-checked":
+            return (
+              compliance === "notDone" &&
+              (routeOpt === "notDone" || routeOpt === "done")
+            );
+          case "non-compliant":
+            return compliance === "nonCompliant" && routeOpt === "notDone";
+          case "compliant":
+            return compliance === "compliant" && routeOpt === "notDone";
+          case "ready-for-shipment":
+            return compliance === "compliant" && routeOpt === "done";
+          default:
+            return false;
+        }
+      });
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      drafts = drafts.filter((draft) => {
+        const sd = draft.formData?.ShipmentDetails;
+        return (
+          sd?.["HS Code"]?.toString().toLowerCase().includes(q) ||
+          sd?.["Product Description"]?.toLowerCase().includes(q) ||
+          sd?.["Origin Country"]?.toLowerCase().includes(q) ||
+          sd?.["Destination Country"]?.toLowerCase().includes(q)
+        );
+      });
+    }
+
+    return drafts;
   };
 
   const handleActionClick = (draft: Draft) => {
@@ -412,9 +430,21 @@ const InventoryManagement: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-neutral-100 p-2 sm:p-4 md:p-6">
-      <Header title="Inventory" page="profile" />
+      <Header title="Inventory" page="inventory" />
 
       <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 py-6 md:py-8">
+        {/* Search bar */}
+        <div className="mb-4">
+          <input
+            type="search"
+            aria-label="Search drafts"
+            placeholder="Search by HS Code, product, or country..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full max-w-md px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-800 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
+          />
+        </div>
+
         {/* Tabs */}
         <Card
           sx={{
@@ -846,48 +876,63 @@ const InventoryManagement: React.FC = () => {
             Shipment Manifest Report
           </DialogTitle>
           <DialogContent>
-            {exportDraft && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "16px", fontSize: "14px", color: "#334155" }}>
-                <div style={{ padding: "12px", backgroundColor: "#f8fafc", borderRadius: "12px", border: "1px border #e2e8f0", fontFamily: "monospace", fontSize: "12px" }}>
-                  <p><strong>Draft ID:</strong> {exportDraft._id}</p>
-                  <p><strong>Created:</strong> {new Date(exportDraft.createdAt).toLocaleString()}</p>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-                  <div>
-                    <p style={{ fontSize: "11px", color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" }}>Origin</p>
-                    <p style={{ fontWeight: 600, color: "#1e293b" }}>{exportDraft.originCountry}</p>
+            {exportDraft && (() => {
+              const sd = exportDraft.formData?.ShipmentDetails;
+              return (
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px", fontSize: "14px", color: "#334155" }}>
+                  <div style={{ padding: "12px", backgroundColor: "#f8fafc", borderRadius: "12px", border: "1px solid #e2e8f0", fontFamily: "monospace", fontSize: "12px" }}>
+                    <p><strong>Draft ID:</strong> {exportDraft._id}</p>
+                    <p><strong>Created:</strong> {new Date(exportDraft.timestamp).toLocaleString()}</p>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                    <div>
+                      <p style={{ fontSize: "11px", color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" }}>Origin</p>
+                      <p style={{ fontWeight: 600, color: "#1e293b" }}>{sd?.["Origin Country"] || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p style={{ fontSize: "11px", color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" }}>Destination</p>
+                      <p style={{ fontWeight: 600, color: "#1e293b" }}>{sd?.["Destination Country"] || "N/A"}</p>
+                    </div>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                    <div>
+                      <p style={{ fontSize: "11px", color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" }}>Weight</p>
+                      <p style={{ fontWeight: 600, color: "#1e293b" }}>{sd?.["Gross Weight"] != null ? `${sd["Gross Weight"]} kg` : "N/A"}</p>
+                    </div>
+                    <div>
+                      <p style={{ fontSize: "11px", color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" }}>HS Code</p>
+                      <p style={{ fontWeight: 600, color: "#1e293b" }}>{sd?.["HS Code"] || "N/A"}</p>
+                    </div>
                   </div>
                   <div>
-                    <p style={{ fontSize: "11px", color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" }}>Destination</p>
-                    <p style={{ fontWeight: 600, color: "#1e293b" }}>{exportDraft.destinationCountry}</p>
+                    <p style={{ fontSize: "11px", color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" }}>Cargo Description</p>
+                    <p style={{ color: "#1e293b" }}>{sd?.["Product Description"] || "N/A"}</p>
+                  </div>
+                  <div style={{ padding: "12px", borderRadius: "12px", border: "1px solid #a7f3d0", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", fontWeight: 600, backgroundColor: "#ecfdf5", color: "#065f46" }}>
+                    <span>Regulatory Review:</span>
+                    <span style={{ textTransform: "uppercase" }}>Approved &amp; Compliant</span>
                   </div>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-                  <div>
-                    <p style={{ fontSize: "11px", color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" }}>Weight</p>
-                    <p style={{ fontWeight: 600, color: "#1e293b" }}>{exportDraft.weight} kg</p>
-                  </div>
-                  <div>
-                    <p style={{ fontSize: "11px", color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" }}>HS Code</p>
-                    <p style={{ fontWeight: 600, color: "#1e293b" }}>{exportDraft.hsCode || "N/A"}</p>
-                  </div>
-                </div>
-                <div>
-                  <p style={{ fontSize: "11px", color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" }}>Cargo Description</p>
-                  <p style={{ color: "#1e293b" }}>{exportDraft.productDescription}</p>
-                </div>
-                <div style={{ padding: "12px", borderRadius: "12px", border: "1px solid #a7f3d0", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", fontWeight: 600, backgroundColor: "#ecfdf5", color: "#065f46" }}>
-                  <span>Regulatory Review:</span>
-                  <span style={{ textTransform: "uppercase" }}>Approved &amp; Compliant</span>
-                </div>
-              </div>
-            )}
+              );
+            })()}
           </DialogContent>
           <DialogActions sx={{ justifyContent: "center", gap: 2, pb: 2 }}>
             <Button
               onClick={() => {
                 if (!exportDraft) return;
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportDraft, null, 2));
+                const sd = exportDraft.formData?.ShipmentDetails;
+                const reportPayload = {
+                  draftId: exportDraft._id,
+                  created: exportDraft.timestamp,
+                  origin: sd?.["Origin Country"] ?? "N/A",
+                  destination: sd?.["Destination Country"] ?? "N/A",
+                  hsCode: sd?.["HS Code"] ?? "N/A",
+                  grossWeight: sd?.["Gross Weight"] ?? "N/A",
+                  productDescription: sd?.["Product Description"] ?? "N/A",
+                  complianceStatus: "Approved & Compliant",
+                  statuses: exportDraft.statuses,
+                };
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(reportPayload, null, 2));
                 const downloadAnchor = document.createElement("a");
                 downloadAnchor.setAttribute("href", dataStr);
                 downloadAnchor.setAttribute("download", `shipment-report-${exportDraft._id}.json`);
@@ -1088,6 +1133,25 @@ const InventoryManagement: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 w-full mt-2">
+                  <div className="w-full">
+                    <label htmlFor="hsCode" className="block text-sm font-medium text-gray-700 mb-1.5">
+                      HS Code
+                    </label>
+                    <input
+                      type="text"
+                      id="hsCode"
+                      name="hsCode"
+                      value={newDraft.hsCode}
+                      onChange={handleInputChange}
+                      required
+                      placeholder="e.g. 8471.30"
+                      className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
+                    />
+                    <Typography color="error" variant="caption" sx={{ minHeight: "1.2em", display: "block" }}>
+                      {formErrors.hsCode || " "}
+                    </Typography>
+                  </div>
+
                   <div className="w-full">
                     <label htmlFor="weight" className="block text-sm font-medium text-gray-700 mb-1.5">
                       Weight (kg)

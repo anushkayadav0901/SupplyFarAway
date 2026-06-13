@@ -197,7 +197,7 @@ const SimilarityRing = ({ pct }: { pct: number }) => {
 // Main
 // ---------------------------------------------------------------------------
 
-export default function LoadAggregation() {
+export default function LoadAggregation({ asTab = false }: { asTab?: boolean }) {
   const [originCity, setOriginCity] = useState("");
   const [destinationCity, setDestinationCity] = useState("");
   const [weightKg, setWeightKg] = useState("");
@@ -317,16 +317,12 @@ export default function LoadAggregation() {
 
   const selectedOffer = myOffers.find((o) => o._id === selectedOfferId);
 
-  return (
-    <div className="min-h-screen bg-[var(--color-neutral-100)]">
-      <Header title="Small Truck Load Aggregation" />
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* ----------------------------------------------------------------
-              Left column: form + offers
-          ---------------------------------------------------------------- */}
-          <div className="lg:col-span-8 space-y-6">
+  const inner = (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* ----------------------------------------------------------------
+          Left column: form + offers
+      ---------------------------------------------------------------- */}
+      <div className="lg:col-span-8 space-y-6">
 
             {/* Post Load Form (C2: gradient card top, C8: rounded-2xl) */}
             <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
@@ -550,7 +546,16 @@ export default function LoadAggregation() {
           <aside className="lg:col-span-4">
             <InsightsRail title="Verification Activity" />
           </aside>
-        </div>
+    </div>
+  );
+
+  if (asTab) return inner;
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <Header title="Small Truck Load Aggregation" />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        {inner}
       </main>
     </div>
   );

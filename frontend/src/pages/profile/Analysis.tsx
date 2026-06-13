@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   BarChart,
   Bar,
@@ -19,696 +19,297 @@ import {
   Globe,
   Inbox,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import Header from "../../components/Header";
 import { trpc } from "../../lib/trpc";
 
-interface StatCardProps {
-  icon: React.ElementType;
-  title: string;
-  value: string | number;
-  subtitle?: string;
-  color?: "blue" | "green" | "yellow" | "red" | "purple";
-}
-
-const StatCard: React.FC<StatCardProps> = ({ icon: Icon, title, value, subtitle, color = "blue" }) => {
-  const colorClasses: Record<string, string> = {
-    blue: "bg-blue-500",
-    green: "bg-green-500",
-    yellow: "bg-yellow-500",
-    red: "bg-red-500",
-    purple: "bg-purple-500",
-  };
-
-  return (
-    <motion.div
-      whileHover={{ scale: 1.02 }}
-      transition={{ duration: 0.15, ease: "easeOut" }}
-      className="bg-white rounded-xl shadow-lg p-6 border border-gray-100"
-    >
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-gray-600 mb-1">{title}</p>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
-          {subtitle && (
-            <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
-          )}
-        </div>
-        <div
-          className={`p-3 rounded-lg ${colorClasses[color]}`}
-        >
-          <Icon className="w-6 h-6 text-white" />
-        </div>
-      </div>
-    </motion.div>
-  );
-};
-
-const Analysis: React.FC = () => {
-  const { userId } = useParams<{ userId: string }>();
+const AnalysisTab: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<string>("compliance");
 
-  const { data, isLoading, isError, error, refetch } = trpc.inventory.getDraftsByUser.useQuery(
+  const meQuery = trpc.auth.getMe.useQuery(undefined, { retry: false });
+  const userId = (meQuery.data?.user as any)?.id ?? "";
+
+  const { data, isLoading, isError, refetch } = trpc.inventory.getDraftsByUser.useQuery(
     {
-      userId: userId ?? "",
+      userId,
       complianceStatus: "done",
       routeOptimizationStatus: "done",
     },
     {
-      enabled: !!userId && !!localStorage.getItem("token"),
+      enabled: !!userId,
       retry: false,
     }
   );
 
   const shipmentData: any[] = data?.drafts ?? [];
 
-  // Analytics Calculations
   const analytics = React.useMemo(() => {
-    if (!shipmentData.length) return {};
+    if (!shipmentData.length) return null;
 
     const totalShipments = shipmentData.length;
-    const totalCost = shipmentData.reduce(
-      (sum, item) => sum + (item.routeData?.totalCost || 0),
-      0
-    );
-    const totalEmissions = shipmentData.reduce(
-      (sum, item) =>
-        sum +
-        (item.carbonAnalysis?.totalEmissions
-          ? parseFloat(
-              item.carbonAnalysis.totalEmissions.replace(" kg CO2e", "")
-            )
-          : 0),
-      0
-    );
-    const avgRiskScore =
-      shipmentData.reduce(
-        (sum, item) => sum + (item.complianceData?.riskLevel?.riskScore || 0),
-        0
-      ) / totalShipments;
+    const totalCost = shipmentData.reduce((s, d) => s + (d.routeData?.totalCost || 0), 0);
+    const totalEmissions = shipmentData.reduce((s, d) => {
+      const raw = d.carbonAnalysis?.totalEmissions;
+      return s + (raw ? parseFloat(String(raw).replace(" kg CO2e", "")) : 0);
+    }, 0);
+    const avgRiskScore = shipmentData.reduce((s, d) => s + (d.complianceData?.riskLevel?.riskScore || 0), 0) / totalShipments;
 
-    // Routes for Compliance Tab
-    const routes = shipmentData.map((item) => ({
-      route: item.formData?.ShipmentDetails
-        ? `${item.formData.ShipmentDetails["Origin Country"]}→${item.formData.ShipmentDetails["Destination Country"]}`
-        : "Unknown Route",
-      risk: item.complianceData?.riskLevel?.riskScore || 0,
+    const routes = shipmentData.map((d) => ({
+      route: d.formData?.ShipmentDetails
+        ? `${d.formData.ShipmentDetails["Origin Country"]}→${d.formData.ShipmentDetails["Destination Country"]}`
+        : "Unknown",
+      risk: d.complianceData?.riskLevel?.riskScore || 0,
     }));
 
-    // KPIs for Logistics Tab
     const kpis = {
-      avgTime: (
-        shipmentData.reduce(
-          (sum, item) => sum + (item.routeData?.totalTime || 0),
-          0
-        ) / shipmentData.length || 0
-      ).toFixed(2),
+      avgTime: (shipmentData.reduce((s, d) => s + (d.routeData?.totalTime || 0), 0) / totalShipments).toFixed(1),
       avgCostPerKm: (
-        shipmentData.reduce(
-          (sum, item) =>
-            sum +
-            (item.routeData?.totalCost && item.routeData?.totalDistance
-              ? item.routeData.totalCost / item.routeData.totalDistance
-              : 0),
-          0
-        ) / shipmentData.length || 0
-      ).toFixed(4),
-      avgLegs:
-        shipmentData.reduce(
-          (sum, item) => sum + (item.routeData?.routeDirections?.length || 0),
-          0
-        ) / shipmentData.length || 0,
+        shipmentData.reduce((s, d) =>
+          s + (d.routeData?.totalCost && d.routeData?.totalDistance ? d.routeData.totalCost / d.routeData.totalDistance : 0), 0)
+        / totalShipments
+      ).toFixed(3),
+      avgLegs: (shipmentData.reduce((s, d) => s + (d.routeData?.routeDirections?.length || 0), 0) / totalShipments).toFixed(1),
     };
 
-    // Incoterms for Trade Tab
-    const incoterms = shipmentData.reduce((acc: Record<string, number>, item) => {
-      const term =
-        item.formData?.TradeAndRegulatoryDetails?.["Incoterms 2020"] ||
-        "Unknown";
+    const incotermMap = shipmentData.reduce((acc: Record<string, number>, d) => {
+      const term = d.formData?.TradeAndRegulatoryDetails?.["Incoterms 2020"] || "Unknown";
       acc[term] = (acc[term] || 0) + 1;
       return acc;
     }, {});
+    const incoterms = Object.entries(incotermMap).map(([name, value]) => ({ name, value }));
 
-    // Emissions by Mode for Logistics Tab
-    const emissionsByMode = shipmentData.map((item) => ({
-      route: item.formData?.ShipmentDetails
-        ? `${item.formData.ShipmentDetails["Origin Country"]}→${item.formData.ShipmentDetails["Destination Country"]}`
-        : "Unknown Route",
-      land:
-        item.carbonAnalysis?.routeAnalysis
-          ?.filter((r: any) => r.mode === "land")
-          .reduce(
-            (sum: number, r: any) =>
-              sum + parseFloat(r.emissions?.replace(" kg CO2e", "") || 0),
-            0
-          ) || 0,
-      sea:
-        item.carbonAnalysis?.routeAnalysis
-          ?.filter((r: any) => r.mode === "sea")
-          .reduce(
-            (sum: number, r: any) =>
-              sum + parseFloat(r.emissions?.replace(" kg CO2e", "") || 0),
-            0
-          ) || 0,
-      air:
-        item.carbonAnalysis?.routeAnalysis
-          ?.filter((r: any) => r.mode === "air")
-          .reduce(
-            (sum: number, r: any) =>
-              sum + parseFloat(r.emissions?.replace(" kg CO2e", "") || 0),
-            0
-          ) || 0,
+    const emissionsByMode = shipmentData.map((d) => ({
+      route: d.formData?.ShipmentDetails
+        ? `${d.formData.ShipmentDetails["Origin Country"]}→${d.formData.ShipmentDetails["Destination Country"]}`
+        : "Unknown",
+      land: d.carbonAnalysis?.routeAnalysis?.filter((r: any) => r.mode === "land")
+        .reduce((s: number, r: any) => s + parseFloat(String(r.emissions ?? "0").replace(" kg CO2e", "") || "0"), 0) || 0,
+      sea: d.carbonAnalysis?.routeAnalysis?.filter((r: any) => r.mode === "sea")
+        .reduce((s: number, r: any) => s + parseFloat(String(r.emissions ?? "0").replace(" kg CO2e", "") || "0"), 0) || 0,
+      air: d.carbonAnalysis?.routeAnalysis?.filter((r: any) => r.mode === "air")
+        .reduce((s: number, r: any) => s + parseFloat(String(r.emissions ?? "0").replace(" kg CO2e", "") || "0"), 0) || 0,
     }));
 
-    return {
-      totalShipments,
-      totalCost,
-      totalEmissions,
-      avgRiskScore,
-      routes,
-      kpis,
-      incoterms: Object.entries(incoterms).map(([name, value]) => ({
-        name,
-        value,
-      })),
-      emissionsByMode,
-    };
+    return { totalShipments, totalCost, totalEmissions, avgRiskScore, routes, kpis, incoterms, emissionsByMode };
   }, [shipmentData]);
+
+  if (meQuery.isLoading || isLoading) {
+    return (
+      <div className="space-y-4 animate-pulse">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => <div key={i} className="bg-white rounded-2xl border border-slate-200 h-24" />)}
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-200 h-64" />
+      </div>
+    );
+  }
 
   if (isError) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <Header title="Analysis" />
-        <div className="max-w-7xl mx-auto mt-8 flex flex-col items-center justify-center gap-4 bg-white rounded-xl shadow-lg p-12 text-center">
-          <AlertTriangle className="w-12 h-12 text-red-400" />
-          <p className="text-red-600 text-lg font-medium">We couldn't load your analytics.</p>
-          <p className="text-gray-500 text-sm">Please check your connection and try again.</p>
-          <button
-            onClick={() => void refetch()}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-          >
-            Retry
-          </button>
-          <button
-            onClick={() => navigate(-1)}
-            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2"
-          >
-            Go Back
-          </button>
-        </div>
+      <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
+        <AlertTriangle className="w-10 h-10 text-red-400 mx-auto mb-4" />
+        <p className="text-red-600 mb-4 text-sm">Could not load analytics.</p>
+        <button onClick={() => void refetch()}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-colors">
+          Retry
+        </button>
       </div>
     );
   }
 
-  if (!isLoading && shipmentData.length === 0) {
+  if (!analytics) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <Header title="Analysis" />
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="bg-white mt-8 rounded-xl shadow-lg p-6 flex items-center justify-center flex-col"
-          >
-            <Inbox className="w-12 h-12 text-gray-400 mb-4" />
-            <p className="text-gray-600 text-center">
-              No compliant and route-optimized records found. Please go to the
-              Inventory tab and ensure at least one record is compliant and
-              route-optimized.
-            </p>
-            <button
-              onClick={() => navigate("/inventory")}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Go to Inventory
-            </button>
-          </motion.div>
-        </div>
+      <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
+        <Inbox className="w-10 h-10 text-slate-300 mx-auto mb-4" />
+        <p className="text-slate-500 mb-2 text-sm">No fully-processed shipments yet.</p>
+        <p className="text-xs text-slate-400 mb-4">Complete compliance and route optimization on at least one shipment to see analytics.</p>
+        <button onClick={() => navigate("/inventory")}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-colors">
+          Go to Inventory
+        </button>
       </div>
     );
   }
 
-  // Check for drafts missing carbon analysis
-  const draftsWithoutCarbonAnalysis = shipmentData.filter(
-    (draft) => !draft.carbonAnalysis?.totalEmissions
-  );
+  const statCards = [
+    { icon: Package, label: "Total Shipments", value: String(analytics.totalShipments), color: "text-blue-600" },
+    { icon: TrendingUp, label: "Total Cost", value: `$${parseInt(String(analytics.totalCost)).toLocaleString()}`, color: "text-slate-700" },
+    { icon: Leaf, label: "CO2 Emissions", value: `${analytics.totalEmissions.toFixed(1)} kg`, color: "text-slate-700" },
+    { icon: AlertTriangle, label: "Avg Risk Score", value: analytics.avgRiskScore.toFixed(1), color: "text-slate-700" },
+  ];
 
-  if (!isLoading && draftsWithoutCarbonAnalysis.length > 0) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <Header title="Analysis" />
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="bg-white mt-8 rounded-xl shadow-lg p-6 flex flex-col items-center justify-center"
-          >
-            <Inbox className="w-12 h-12 text-gray-400 mb-4" />
-            <p className="text-gray-600 text-center mb-4">
-              Carbon analysis is not present for some drafts. You need to export
-              the report first for the following drafts:
-            </p>
-            <ul className="list-disc pl-5 text-sm text-gray-600 mb-4">
-              {draftsWithoutCarbonAnalysis.map((draft) => (
-                <li key={draft._id}>
-                  {draft.formData?.ShipmentDetails
-                    ? `${draft.formData.ShipmentDetails["Origin Country"]}→${draft.formData.ShipmentDetails["Destination Country"]}`
-                    : `Draft ID: ${draft._id}`}
-                </li>
-              ))}
-            </ul>
-            <div className="flex flex-col gap-2">
-              {draftsWithoutCarbonAnalysis.map((draft) => (
-                <button
-                  key={draft._id}
-                  onClick={() => navigate(`/inventory`)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Export Report for{" "}
-                  {draft.formData?.ShipmentDetails
-                    ? `${draft.formData.ShipmentDetails["Origin Country"]}→${draft.formData.ShipmentDetails["Destination Country"]}`
-                    : `Draft ID: ${draft._id}`}
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        </div>
-      </div>
-    );
-  }
+  const innerTabs = [
+    { value: "compliance", label: "Compliance", icon: FileCheck },
+    { value: "trade", label: "Trade", icon: Globe },
+    { value: "logistics", label: "Logistics", icon: Truck },
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <Header title="Analysis" />
-      {isLoading ? (
-        <div className="max-w-7xl mx-auto mt-8 space-y-6 animate-pulse">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-white rounded-xl p-6 border border-gray-100 h-24" />
-            ))}
+    <div className="space-y-6">
+      {/* KPI row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {statCards.map(({ icon: Icon, label, value, color }) => (
+          <div key={label} className="bg-white rounded-2xl border border-slate-200 p-5 text-center">
+            <Icon className={`w-6 h-6 mx-auto mb-2 ${color}`} />
+            <p className="text-2xl font-extrabold text-slate-800">{value}</p>
+            <p className="text-xs text-slate-400 font-semibold uppercase mt-1">{label}</p>
           </div>
-          <div className="bg-white rounded-xl p-6 border border-gray-100 h-12" />
-          <div className="bg-white rounded-xl p-6 border border-gray-100 h-64" />
-        </div>
-      ) : (
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
-          >
-            <StatCard
-              icon={Package}
-              title="Total Shipments"
-              value={analytics.totalShipments || 0}
-              color="blue"
-            />
-            <StatCard
-              icon={TrendingUp}
-              title="Total Cost"
-              value={`$${
-                parseInt(String(analytics.totalCost ?? 0))?.toLocaleString() || "0"
-              }`}
-              subtitle="Shipping costs"
-              color="yellow"
-            />
-            <StatCard
-              icon={Leaf}
-              title="CO2 Emissions"
-              value={`${analytics.totalEmissions?.toFixed(1) || "0"} kg CO2e`}
-              subtitle="Total footprint"
-              color="red"
-            />
-            <StatCard
-              icon={AlertTriangle}
-              title="Avg Risk Score"
-              value={analytics.avgRiskScore?.toFixed(1) || "0"}
-              subtitle="Compliance risk"
-              color="purple"
-            />
-          </motion.div>
+        ))}
+      </div>
 
-          {/* Tabs */}
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="bg-white mx-auto rounded-lg shadow-lg px-4 py-3 mb-6 max-w-full sm:max-w-md"
-          >
-            <nav
-              className="flex flex-wrap sm:flex-nowrap items-center justify-center sm:justify-between gap-2"
-              role="tablist"
-            >
+      {/* Inner tab nav */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-2 flex gap-1 overflow-x-auto">
+        {innerTabs.map(({ value, label, icon: Icon }) => (
+          <button key={value} onClick={() => setActiveTab(value)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap ${
+              activeTab === value
+                ? "bg-blue-600 text-white"
+                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+            }`}>
+            <Icon className="w-4 h-4" />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6">
+
+        {activeTab === "compliance" && (
+          <div className="space-y-6">
+            <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+              <FileCheck className="w-5 h-5 text-blue-600" /> Compliance Overview
+            </h3>
+            <div>
+              <h4 className="text-sm font-semibold text-slate-600 mb-3">Risk by Route</h4>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-left text-xs text-slate-500 font-semibold uppercase">
+                      <th className="py-2 pr-4">Route</th>
+                      <th className="py-2">Risk Score</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {analytics.routes.map((r, i) => (
+                      <tr key={i} className="border-b border-slate-100">
+                        <td className="py-2 pr-4 text-slate-700">{r.route}</td>
+                        <td className="py-2">
+                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                            r.risk <= 20 ? "bg-emerald-100 text-emerald-800"
+                              : r.risk <= 40 ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
+                          }`}>
+                            {r.risk} ({r.risk <= 20 ? "Low" : r.risk <= 40 ? "Moderate" : "High"})
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="text-xs text-slate-500 space-y-1">
+              <p className="font-semibold text-slate-700">Best Practices</p>
+              <ul className="list-disc pl-4 space-y-0.5">
+                <li>Switch air to sea freight for 90% emissions reduction where time allows.</li>
+                <li>Consolidate shipments to reduce per-unit emissions.</li>
+                <li>Ensure MSDS for hazardous materials to avoid compliance issues.</li>
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "trade" && (
+          <div className="space-y-6">
+            <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+              <Globe className="w-5 h-5 text-blue-600" /> Trade & Regulatory Insights
+            </h3>
+            {analytics.incoterms.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold text-slate-600 mb-3">Incoterms Distribution</h4>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={analytics.incoterms}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="#2563EB" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+            <div>
+              <h4 className="text-sm font-semibold text-slate-600 mb-3">Incoterms Impact</h4>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-left text-slate-500 font-semibold uppercase">
+                      <th className="py-2 pr-3">Incoterms</th>
+                      <th className="py-2 pr-3">Cost Impact</th>
+                      <th className="py-2 pr-3">Risk Impact</th>
+                      <th className="py-2">Compliance Responsibility</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-slate-600">
+                    {[
+                      ["FOB", "Moderate", "Low", "Seller (until loaded)"],
+                      ["CIF", "High", "Moderate", "Seller (until port)"],
+                      ["DDP", "High", "High", "Seller (full)"],
+                      ["EXW", "Low", "Low", "Buyer (full)"],
+                    ].map(([term, cost, risk, resp]) => (
+                      <tr key={term} className="border-b border-slate-100">
+                        <td className="py-2 pr-3 font-semibold">{term}</td>
+                        <td className="py-2 pr-3">{cost}</td>
+                        <td className="py-2 pr-3">{risk}</td>
+                        <td className="py-2">{resp}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "logistics" && (
+          <div className="space-y-6">
+            <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+              <Truck className="w-5 h-5 text-blue-600" /> Logistics & Route Optimization
+            </h3>
+            <div className="grid grid-cols-3 gap-4">
               {[
-                { label: "Compliance", value: "compliance", icon: FileCheck },
-                { label: "Trade", value: "trade", icon: Globe },
-                { label: "Logistics", value: "logistics", icon: Truck },
-              ].map(({ label, value, icon: Icon }) => (
-                <button
-                  key={value}
-                  onClick={() => setActiveTab(value)}
-                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors min-w-[100px] justify-center ${
-                    activeTab === value
-                      ? "bg-blue-100 text-blue-700"
-                      : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"
-                  }`}
-                  role="tab"
-                  aria-current={activeTab === value ? "page" : undefined}
-                >
-                  <Icon className="w-4 h-4 mr-2" />
-                  <span className="whitespace-nowrap">{label}</span>
-                </button>
+                { label: "Avg Transit Time", value: `${analytics.kpis.avgTime} hrs` },
+                { label: "Avg Cost / km", value: `$${analytics.kpis.avgCostPerKm}` },
+                { label: "Avg Route Legs", value: analytics.kpis.avgLegs },
+              ].map(({ label, value }) => (
+                <div key={label} className="bg-slate-50 rounded-xl p-4 text-center">
+                  <p className="text-xs font-semibold text-slate-500 uppercase mb-1">{label}</p>
+                  <p className="text-xl font-extrabold text-slate-800">{value}</p>
+                </div>
               ))}
-            </nav>
-          </motion.div>
-
-          {/* Tab Content */}
-          <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.1, ease: "easeOut" }}
-            className="bg-white rounded-xl shadow-lg p-6 mb-8"
-          >
-            {activeTab === "compliance" && (
+            </div>
+            {analytics.emissionsByMode.length > 0 && (
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                  <FileCheck className="w-5 h-5 mr-2" />
-                  Compliance Overview
-                </h3>
-                <div className="mt-8 mb-8">
-                  <h4 className="text-md font-medium text-gray-900 mb-2">
-                    Risk by Route
-                  </h4>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-gray-200">
-                          <th className="text-left py-3 px-4">Route</th>
-                          <th className="text-left py-3 px-4">Risk Score</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {analytics.routes?.map((r: any, i: number) => (
-                          <tr
-                            key={i}
-                            className="border-b border-gray-100 hover:bg-gray-50"
-                          >
-                            <td className="py-3 px-4">{r.route}</td>
-                            <td className="py-3 px-4">
-                              <span
-                                className={`px-2 py-1 text-xs rounded-full ${
-                                  r.risk <= 20
-                                    ? "bg-green-100 text-green-800"
-                                    : r.risk <= 40
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : "bg-red-100 text-red-800"
-                                }`}
-                              >
-                                {r.risk} (
-                                {r.risk <= 20
-                                  ? "Low"
-                                  : r.risk <= 40
-                                  ? "Moderate"
-                                  : "High"}
-                                )
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-                <div className="mb-8">
-                  <h4 className="text-md font-medium text-gray-900 mb-2">
-                    Compliance Scorecard
-                  </h4>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-gray-200">
-                          <th className="text-left py-3 px-4">Route</th>
-                          <th className="text-left py-3 px-4">
-                            Shipment Details
-                          </th>
-                          <th className="text-left py-3 px-4">
-                            Trade & Regulatory
-                          </th>
-                          <th className="text-left py-3 px-4">
-                            Parties & Identifiers
-                          </th>
-                          <th className="text-left py-3 px-4">Logistics</th>
-                          <th className="text-left py-3 px-4">Intended Use</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {shipmentData.map((d) => (
-                          <tr
-                            key={d._id}
-                            className="border-b border-gray-100 hover:bg-gray-50"
-                          >
-                            <td className="py-3 px-4">
-                              {d.formData?.ShipmentDetails
-                                ? `${d.formData.ShipmentDetails["Origin Country"]}→${d.formData.ShipmentDetails["Destination Country"]}`
-                                : "Unknown Route"}
-                            </td>
-                            <td className="py-3 px-4">
-                              {d.complianceData?.scores?.ShipmentDetails ||
-                                "N/A"}
-                            </td>
-                            <td className="py-3 px-4">
-                              {d.complianceData?.scores
-                                ?.TradeAndRegulatoryDetails || "N/A"}
-                            </td>
-                            <td className="py-3 px-4">
-                              {d.complianceData?.scores
-                                ?.PartiesAndIdentifiers || "N/A"}
-                            </td>
-                            <td className="py-3 px-4">
-                              {d.complianceData?.scores?.LogisticsAndHandling ||
-                                "N/A"}
-                            </td>
-                            <td className="py-3 px-4">
-                              {d.complianceData?.scores?.IntendedUseDetails ||
-                                "N/A"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-                <div>
-                  <h4 className="text-md font-medium text-gray-900 mb-2">
-                    Best Practices
-                  </h4>
-                  <ul className="list-disc pl-5 text-sm text-gray-600">
-                    <li>
-                      Switch air to sea freight for 90% emissions reduction
-                      where time allows.
-                    </li>
-                    <li>Consolidate shipments to reduce per-unit emissions.</li>
-                    <li>
-                      Ensure MSDS for hazardous materials to avoid compliance
-                      issues.
-                    </li>
-                  </ul>
-                </div>
+                <h4 className="text-sm font-semibold text-slate-600 mb-3">Emissions by Mode (kg CO2e)</h4>
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={analytics.emissionsByMode}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="route" tick={{ fontSize: 10 }} />
+                    <YAxis tick={{ fontSize: 10 }} />
+                    <Tooltip formatter={(v: number) => `${v} kg CO2e`} />
+                    <Bar dataKey="land" fill="#94A3B8" stackId="a" name="Land" />
+                    <Bar dataKey="sea" fill="#2563EB" stackId="a" name="Sea" />
+                    <Bar dataKey="air" fill="#EF4444" stackId="a" name="Air" />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             )}
+          </div>
+        )}
 
-            {activeTab === "trade" && (
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                  <Globe className="w-5 h-5 mr-2" />
-                  Trade & Regulatory Insights
-                </h3>
-                <div className="mb-8">
-                  <h4 className="text-md font-medium text-gray-900 mb-2">
-                    Incoterms Distribution
-                  </h4>
-                  <ResponsiveContainer width="100%" height={250}>
-                    <BarChart data={analytics.incoterms}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar
-                        dataKey="value"
-                        fill="#3B82F6"
-                        radius={[4, 4, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-                <div>
-                  <h4 className="text-md font-medium text-gray-900 mb-2">
-                    Incoterms Impact
-                  </h4>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-gray-200">
-                          <th className="text-left py-3 px-4">Incoterms</th>
-                          <th className="text-left py-3 px-4">Cost Impact</th>
-                          <th className="text-left py-3 px-4">Risk Impact</th>
-                          <th className="text-left py-3 px-4">
-                            Compliance Responsibility
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="py-3 px-4">FOB</td>
-                          <td className="py-3 px-4">Moderate</td>
-                          <td className="py-3 px-4">Low</td>
-                          <td className="py-3 px-4">Seller (until loaded)</td>
-                        </tr>
-                        <tr className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="py-3 px-4">CIF</td>
-                          <td className="py-3 px-4">High</td>
-                          <td className="py-3 px-4">Moderate</td>
-                          <td className="py-3 px-4">Seller (until port)</td>
-                        </tr>
-                        <tr className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="py-3 px-4">DDP</td>
-                          <td className="py-3 px-4">High</td>
-                          <td className="py-3 px-4">High</td>
-                          <td className="py-3 px-4">Seller (full)</td>
-                        </tr>
-                        <tr className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="py-3 px-4">EXW</td>
-                          <td className="py-3 px-4">Low</td>
-                          <td className="py-3 px-4">Low</td>
-                          <td className="py-3 px-4">Buyer (full)</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === "logistics" && (
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                  <Truck className="w-5 h-5 mr-2" />
-                  Logistics & Route Optimization
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h4 className="text-md font-medium text-gray-900">
-                      Avg Transit Time
-                    </h4>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {analytics.kpis?.avgTime || "0"} hours
-                    </p>
-                  </div>
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h4 className="text-md font-medium text-gray-900">
-                      Avg Cost per km
-                    </h4>
-                    <p className="text-2xl font-bold text-gray-900">
-                      ${analytics.kpis?.avgCostPerKm || "0"}
-                    </p>
-                  </div>
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h4 className="text-md font-medium text-gray-900">
-                      Avg Legs
-                    </h4>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {analytics.kpis?.avgLegs || "0"}
-                    </p>
-                  </div>
-                </div>
-                <div className="mb-8">
-                  <h4 className="text-md font-medium text-gray-900 mb-2">
-                    Route Details
-                  </h4>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-gray-200">
-                          <th className="text-left py-3 px-4">Route</th>
-                          <th className="text-left py-3 px-4">Distance (km)</th>
-                          <th className="text-left py-3 px-4">Mode</th>
-                          <th className="text-left py-3 px-4">Cost ($)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {shipmentData.map((d) => (
-                          <tr
-                            key={d._id}
-                            className="border-b border-gray-100 hover:bg-gray-50"
-                          >
-                            <td className="py-3 px-4">
-                              {d.formData?.ShipmentDetails
-                                ? `${d.formData.ShipmentDetails["Origin Country"]}→${d.formData.ShipmentDetails["Destination Country"]}`
-                                : "Unknown Route"}
-                            </td>
-                            <td className="py-3 px-4">
-                              {d.routeData?.totalDistance || "N/A"}
-                            </td>
-                            <td className="py-3 px-4">
-                              {d.formData?.LogisticsAndHandling?.[
-                                "Means of Transport"
-                              ] || "N/A"}
-                            </td>
-                            <td className="py-3 px-4">
-                              {d.routeData?.totalCost || "N/A"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-                <div className="mb-8">
-                  <h4 className="text-md font-medium text-gray-900 mb-2">
-                    Emissions by Mode
-                  </h4>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={analytics.emissionsByMode}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="route" />
-                      <YAxis />
-                      <Tooltip formatter={(value: number) => `${value} kg CO2e`} />
-                      <Bar dataKey="land" fill="#9CA3AF" stackId="a" />
-                      <Bar dataKey="sea" fill="#3B82F6" stackId="a" />
-                      <Bar dataKey="air" fill="#EF4444" stackId="a" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="mt-8">
-                  <h4 className="text-md font-medium text-gray-900 mb-2">
-                    Earth Impact
-                  </h4>
-                  {shipmentData.map((d) => (
-                    <p key={d._id} className="text-sm text-gray-600 mb-2">
-                      {d.formData?.ShipmentDetails
-                        ? `${d.formData.ShipmentDetails["Origin Country"]}→${d.formData.ShipmentDetails["Destination Country"]}`
-                        : "Unknown Route"}
-                      :{" "}
-                      {d.carbonAnalysis?.earthImpact ||
-                        "No impact data available"}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            )}
-          </motion.div>
-          </AnimatePresence>
-        </div>
-      )}
+      </div>
     </div>
   );
 };
 
-export default Analysis;
+export default AnalysisTab;

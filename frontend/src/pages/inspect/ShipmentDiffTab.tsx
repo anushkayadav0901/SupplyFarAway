@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { toast } from "react-toastify";
 import { Image as ImageIcon, Upload, X, AlertTriangle, RefreshCcw } from "lucide-react";
-import InsightsRail from "../../components/InsightsRail";
 import CountUp from "../../components/CountUp";
 import CardSkeleton from "../../components/skeletons/CardSkeleton";
 import { trpc } from "../../lib/trpc";
@@ -151,9 +150,10 @@ function ScanImage({
 
 interface ShipmentDiffTabProps {
   draftId: string;
+  onResult?: (passed: boolean) => void;
 }
 
-export default function ShipmentDiffTab({ draftId }: ShipmentDiffTabProps) {
+export default function ShipmentDiffTab({ draftId, onResult }: ShipmentDiffTabProps) {
   const shouldReduceMotion = useReducedMotion();
   const [beforeFile, setBeforeFile] = useState<File | null>(null);
   const [afterFile, setAfterFile] = useState<File | null>(null);
@@ -176,8 +176,9 @@ export default function ShipmentDiffTab({ draftId }: ShipmentDiffTabProps) {
 
   const utils = trpc.useUtils();
   const compareMutation = trpc.shipmentDiff.compare.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       utils.shipmentDiff.history.invalidate().catch(() => void 0);
+      onResult?.(data.riskScore < 31);
     },
     onError: (err) => {
       toast.error(err.message ?? "Comparison failed. Please try again.");
@@ -265,8 +266,7 @@ export default function ShipmentDiffTab({ draftId }: ShipmentDiffTabProps) {
   const missingImages = !beforeFile || !afterFile;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <div className="lg:col-span-8 space-y-6">
+    <div className="space-y-6">
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
           <form onSubmit={(e) => void handleSubmit(e)} className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -478,11 +478,6 @@ export default function ShipmentDiffTab({ draftId }: ShipmentDiffTabProps) {
             </div>
           )}
         </div>
-      </div>
-
-      <aside className="lg:col-span-4">
-        <InsightsRail draftId={draftId || undefined} title="Verification Activity" />
-      </aside>
     </div>
   );
 }

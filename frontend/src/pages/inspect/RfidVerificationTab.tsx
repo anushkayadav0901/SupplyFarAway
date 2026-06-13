@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { toast } from "react-toastify";
 import { Radio, Terminal, Tag, RefreshCcw } from "lucide-react";
-import InsightsRail from "../../components/InsightsRail";
 import CountUp from "../../components/CountUp";
 import CardSkeleton from "../../components/skeletons/CardSkeleton";
 import { trpc } from "../../lib/trpc";
@@ -243,9 +242,10 @@ function HistoryCard({ item }: { item: ScanResult }) {
 
 interface RfidVerificationTabProps {
   draftId: string;
+  onResult?: (passed: boolean) => void;
 }
 
-export default function RfidVerificationTab({ draftId }: RfidVerificationTabProps) {
+export default function RfidVerificationTab({ draftId, onResult }: RfidVerificationTabProps) {
   const shouldReduceMotion = useReducedMotion();
   const [manifestInput, setManifestInput] = useState("");
   const [manifestTouched, setManifestTouched] = useState(false);
@@ -343,7 +343,9 @@ export default function RfidVerificationTab({ draftId }: RfidVerificationTabProp
           draftId: draftId.trim() || undefined,
         });
         if (!mountedRef.current) return;
-        setResult(doc as unknown as ScanResult);
+        const scanResult = doc as unknown as ScanResult;
+        setResult(scanResult);
+        onResult?.(scanResult.matchPct >= 90);
       } catch {
         // handled by onError
       }
@@ -355,8 +357,7 @@ export default function RfidVerificationTab({ draftId }: RfidVerificationTabProp
   const manifestTagCount = useMemo(() => parseTags(manifestInput).length, [manifestInput]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <div className="lg:col-span-8 space-y-6">
+    <div className="space-y-6">
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-7">
           <div className="flex flex-col sm:flex-row items-center gap-6">
             <AntennaPulse scanning={streaming} />
@@ -570,11 +571,6 @@ export default function RfidVerificationTab({ draftId }: RfidVerificationTabProp
             </div>
           )}
         </div>
-      </div>
-
-      <aside className="lg:col-span-4">
-        <InsightsRail draftId={draftId || undefined} title="Verification Activity" />
-      </aside>
     </div>
   );
 }

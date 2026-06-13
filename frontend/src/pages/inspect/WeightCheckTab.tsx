@@ -10,7 +10,6 @@ import {
 } from "recharts";
 import { toast } from "react-toastify";
 import { Scale, RefreshCcw, Activity } from "lucide-react";
-import InsightsRail from "../../components/InsightsRail";
 import CountUp from "../../components/CountUp";
 import CardSkeleton from "../../components/skeletons/CardSkeleton";
 import { trpc } from "../../lib/trpc";
@@ -61,9 +60,10 @@ function fmtPct(n: number, decimals = 2): string {
 
 interface WeightCheckTabProps {
   draftId: string;
+  onResult?: (passed: boolean) => void;
 }
 
-export default function WeightCheckTab({ draftId }: WeightCheckTabProps) {
+export default function WeightCheckTab({ draftId, onResult }: WeightCheckTabProps) {
   const shouldReduceMotion = useReducedMotion();
   const [form, setForm] = useState<FormState>(initialForm);
   const [series, setSeries] = useState<{ t: number; kg: number }[]>(() =>
@@ -78,9 +78,10 @@ export default function WeightCheckTab({ draftId }: WeightCheckTabProps) {
   const utils = trpc.useUtils();
 
   const submitMutation = trpc.weightCheck.submit.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast.success("Weight check submitted.");
       utils.weightCheck.history.invalidate().catch(() => void 0);
+      onResult?.(!data.flagged);
     },
     onError: (err) => {
       toast.error(err.message || "Failed to submit weight check.");
@@ -241,8 +242,7 @@ export default function WeightCheckTab({ draftId }: WeightCheckTabProps) {
     series.length > 0 ? Math.max(...series.map((p) => p.kg)) + 1 : IDLE_BASELINE_KG + 1;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <div className="lg:col-span-8 space-y-6">
+    <div className="space-y-6">
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -565,11 +565,6 @@ export default function WeightCheckTab({ draftId }: WeightCheckTabProps) {
             </div>
           )}
         </div>
-      </div>
-
-      <aside className="lg:col-span-4">
-        <InsightsRail draftId={draftId || undefined} title="Verification Activity" />
-      </aside>
     </div>
   );
 }

@@ -1,9 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
-import { motion, useReducedMotion } from "framer-motion";
 import { Camera, Video, AlertTriangle } from "lucide-react";
-import InsightsRail from "../../components/InsightsRail";
-import CountUp from "../../components/CountUp";
 import { trpc } from "../../lib/trpc";
 
 // ─── constants ────────────────────────────────────────────────────────────────
@@ -74,9 +71,11 @@ function fmtDate(d: string | Date): string {
 
 interface BoxCountTabProps {
   draftId: string;
+  onResult?: (passed: boolean) => void;
+  runAllRequested?: boolean;
 }
 
-export default function BoxCountTab({ draftId }: BoxCountTabProps) {
+export default function BoxCountTab({ draftId, onResult, runAllRequested }: BoxCountTabProps) {
   const [mode, setMode] = useState<Mode>("idle");
   const [declaredCount, setDeclaredCount] = useState<string>("");
   const [yoloOnline, setYoloOnline] = useState<boolean | null>(null);
@@ -105,13 +104,12 @@ export default function BoxCountTab({ draftId }: BoxCountTabProps) {
   const lastClassCountsRef = useRef<Record<string, number>>({});
   const logEndRef = useRef<HTMLDivElement>(null);
 
-  const shouldReduceMotion = useReducedMotion();
-
   const utils = trpc.useUtils();
   const commentaryMutation = trpc.boxCount.liveCommentary.useMutation();
   const saveSessionMutation = trpc.boxCount.saveSession.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       utils.boxCount.history.invalidate().catch(() => void 0);
+      onResult?.(!data.mismatch);
     },
   });
   const historyQuery = trpc.boxCount.history.useQuery({ limit: HISTORY_LIMIT });
@@ -395,11 +393,9 @@ export default function BoxCountTab({ draftId }: BoxCountTabProps) {
   const mismatch = detectedNow > 0 && diff > 0;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <div className="space-y-6">
       <canvas ref={captureRef} className="hidden" aria-hidden="true" />
-      
-      <div className="lg:col-span-8 space-y-6">
-        
+
         {/* Setup card */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
           <div className="flex flex-col md:flex-row gap-6">
@@ -546,11 +542,6 @@ export default function BoxCountTab({ draftId }: BoxCountTabProps) {
             <p className="text-xs text-slate-400 text-center py-6">No historical records found.</p>
           )}
         </div>
-      </div>
-
-      <aside className="lg:col-span-4">
-        <InsightsRail draftId={draftId || undefined} title="Verification Activity" />
-      </aside>
     </div>
   );
 }
