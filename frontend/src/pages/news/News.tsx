@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { Newspaper, Search, Calendar, ChevronDown, ChevronUp } from "lucide-react";
-import Toast from "./../../components/Toast";
 import { trpc } from "../../lib/trpc";
 
 interface Article {
@@ -143,10 +142,7 @@ const News: React.FC = () => {
   const [searchMode, setSearchMode] = useState<"direct" | "summarized">(
     "direct"
   );
-  const [toastProps, setToastProps] = useState<{
-    type: string;
-    message: string;
-  }>({ type: "", message: "" });
+  const [newsError, setNewsError] = useState<string>("");
   const [activeDate, setActiveDate] = useState<number>(0);
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const [rowSummaries, setRowSummaries] = useState<
@@ -161,7 +157,7 @@ const News: React.FC = () => {
     isLoading: loading,
     isFetching: tableLoading,
     isError: newsIsError,
-    error: newsError,
+    error: newsErrorObj,
     refetch: refetchNews,
   } = trpc.inventory.getNews.useQuery({
     search: searchQuery || undefined,
@@ -169,15 +165,14 @@ const News: React.FC = () => {
     searchMode,
   });
 
-  // Handle news fetch errors via toast
+  // Surface news fetch errors inline (no toasts)
   useEffect(() => {
-    if (newsError) {
-      setToastProps({
-        type: "error",
-        message: newsError.message || "Failed to fetch news.",
-      });
+    if (newsErrorObj) {
+      setNewsError(newsErrorObj.message || "Failed to fetch news.");
+    } else {
+      setNewsError("");
     }
-  }, [newsError]);
+  }, [newsErrorObj]);
 
   const news: Article[] = newsData?.articles ?? [];
   const query: string = newsData?.query ?? "";
@@ -256,10 +251,7 @@ const News: React.FC = () => {
         }));
       } catch (error) {
         console.error("Error summarizing article:", error);
-        setToastProps({
-          type: "error",
-          message: "Failed to summarize article.",
-        });
+        setNewsError("Failed to summarize article.");
       } finally {
         setRowLoading((prev) => ({ ...prev, [article.link]: false }));
       }
@@ -446,8 +438,10 @@ const News: React.FC = () => {
             </table>
           </div>
         </div>
+        {newsError && (
+          <p className="mt-4 text-sm text-red-600" role="alert">{newsError}</p>
+        )}
       </div>
-      <Toast type={toastProps.type} message={toastProps.message} />
     </div>
   );
 };

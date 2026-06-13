@@ -7,7 +7,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { toast } from "react-toastify";
 import { Scale, RefreshCcw, Activity } from "lucide-react";
 import CountUp from "../../components/CountUp";
 import CardSkeleton from "../../components/skeletons/CardSkeleton";
@@ -73,16 +72,17 @@ export default function WeightCheckTab({ draftId, onResult }: WeightCheckTabProp
   const streamTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const mountedRef = useRef(true);
 
+  const [submitError, setSubmitError] = useState<string>("");
   const utils = trpc.useUtils();
 
   const submitMutation = trpc.weightCheck.submit.useMutation({
     onSuccess: (data) => {
-      toast.success("Weight check submitted.");
+      setSubmitError("");
       utils.weightCheck.history.invalidate().catch(() => void 0);
       onResult?.(!data.flagged);
     },
     onError: (err) => {
-      toast.error(err.message || "Failed to submit weight check.");
+      setSubmitError(err.message || "Failed to submit weight check.");
     },
   });
 
@@ -183,17 +183,18 @@ export default function WeightCheckTab({ draftId, onResult }: WeightCheckTabProp
     const threshold = parseFloat(form.thresholdPct);
 
     if (isNaN(declared) || declared <= 0) {
-      toast.error("Declared weight must be a positive number.");
+      setSubmitError("Declared weight must be a positive number.");
       return;
     }
     if (isNaN(measured) || measured < 0) {
-      toast.error("Measured weight cannot be negative.");
+      setSubmitError("Measured weight cannot be negative.");
       return;
     }
     if (isNaN(threshold) || threshold < 0) {
-      toast.error("Threshold must be a non-negative number.");
+      setSubmitError("Threshold must be a non-negative number.");
       return;
     }
+    setSubmitError("");
 
     const cancelled = await runStream(declared, measured);
     if (!mountedRef.current || cancelled) return;
@@ -347,6 +348,10 @@ export default function WeightCheckTab({ draftId, onResult }: WeightCheckTabProp
                 />
               </div>
             </div>
+
+            {submitError && (
+              <p className="text-sm text-red-600" role="alert">{submitError}</p>
+            )}
 
             <div className="flex justify-end items-center gap-3 pt-2">
               {streaming && (

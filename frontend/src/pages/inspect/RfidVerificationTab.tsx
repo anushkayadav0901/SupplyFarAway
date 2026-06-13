@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "react-toastify";
-import { Radio, Terminal, Tag, RefreshCcw } from "lucide-react";
+import { Radio, RefreshCcw } from "lucide-react";
 import CountUp from "../../components/CountUp";
 import CardSkeleton from "../../components/skeletons/CardSkeleton";
 import { trpc } from "../../lib/trpc";
@@ -229,13 +228,15 @@ export default function RfidVerificationTab({ draftId, onResult }: RfidVerificat
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const mountedRef = useRef(true);
 
+  const [verifyError, setVerifyError] = useState<string>("");
   const utils = trpc.useUtils();
   const verifyMutation = trpc.rfid.verify.useMutation({
     onSuccess: () => {
+      setVerifyError("");
       utils.rfid.history.invalidate().catch(() => void 0);
     },
     onError: (err) => {
-      toast.error(err.message || "Verification failed.");
+      setVerifyError(err.message || "Verification failed.");
     },
   });
 
@@ -278,7 +279,7 @@ export default function RfidVerificationTab({ draftId, onResult }: RfidVerificat
 
     if (manifestTags.length === 0) {
       setManifestTouched(true);
-      toast.error("Manifest tag list cannot be empty.");
+      setVerifyError("Manifest tag list cannot be empty.");
       return;
     }
 
@@ -404,6 +405,10 @@ export default function RfidVerificationTab({ draftId, onResult }: RfidVerificat
                 />
               </div>
             </div>
+
+            {verifyError && (
+              <p className="text-sm text-red-600" role="alert">{verifyError}</p>
+            )}
 
             <div className="flex justify-end gap-2">
               {streaming && (

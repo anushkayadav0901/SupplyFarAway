@@ -13,10 +13,8 @@ import {
   booleanOptions,
   transportOptions,
 } from "../../constants/constants";
-import Toast from "../../components/Toast";
+import NewsContextCard from "../../components/NewsContextCard";
 import { trpc } from "../../lib/trpc";
-
-type ToastProps = { type: string; message: string } | null;
 
 type FormData = typeof initialFormData;
 
@@ -37,7 +35,7 @@ const ComplianceForm: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>("ShipmentDetails");
   const [loading, setLoading] = useState<boolean>(false);
   const [response, setResponse] = useState<Record<string, unknown> | null>(null);
-  const [toastProps, setToastProps] = useState<ToastProps>(null);
+  const [statusMessage, setStatusMessage] = useState<string>("");
   const [responseReceived, setResponseReceived] = useState<boolean>(false);
   const [draftIdToFetch, setDraftIdToFetch] = useState<string | null>(null);
 
@@ -88,7 +86,7 @@ const ComplianceForm: React.FC = () => {
         formData?: Record<string, unknown>;
       };
       if (!draft || !draft.formData) {
-        setToastProps({ type: "error", message: "Invalid draft data received" });
+        setStatusMessage("Invalid draft data received");
         navigate("/inventory");
         return;
       }
@@ -233,10 +231,7 @@ const ComplianceForm: React.FC = () => {
   useEffect(() => {
     if (isDraftError && draftError) {
       console.error("Error fetching draft:", draftError);
-      setToastProps({
-        type: "error",
-        message: draftError.message || "Failed to fetch draft.",
-      });
+      setStatusMessage(draftError.message || "Failed to fetch draft.");
       navigate("/inventory");
       setLoading(false);
     }
@@ -731,18 +726,30 @@ const ComplianceForm: React.FC = () => {
           )}
         </div>
       </div>
-      <div className="min-h-[400px]">
+      <div className="min-h-[400px] space-y-6">
+        {statusMessage && (
+          <p className="text-sm text-red-600" role="alert">
+            {statusMessage}
+          </p>
+        )}
         {loading ? (
           <ComplianceResponseSkeleton />
         ) : response ? (
-          <ComplianceResponse
-            response={response as { complianceResponse?: Record<string, unknown>; [key: string]: unknown }}
-          />
+          <>
+            <NewsContextCard
+              surface="compliance"
+              origin={formData.ShipmentDetails["Origin Country"]}
+              destination={formData.ShipmentDetails["Destination Country"]}
+              hsCode={formData.ShipmentDetails["HS Code"]}
+              productDescription={formData.ShipmentDetails["Product Description"]}
+              transportMode={formData.LogisticsAndHandling["Means of Transport"]}
+            />
+            <ComplianceResponse
+              response={response as { complianceResponse?: Record<string, unknown>; [key: string]: unknown }}
+            />
+          </>
         ) : null}
       </div>
-      {toastProps && (
-        <Toast type={toastProps.type} message={toastProps.message} />
-      )}
     </div>
   );
 };

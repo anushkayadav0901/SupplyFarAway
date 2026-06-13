@@ -3,18 +3,12 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Copy, Send } from "lucide-react";
 import { FaTrash, FaImage } from "react-icons/fa";
-import Toast from "./../../components/Toast";
 
 // Fall back to local dev when VITE_BACKEND_URL is unset so the upload never
 // targets "undefined/api/analyze-product".
 const BACKEND_URL =
   (import.meta.env.VITE_BACKEND_URL as string | undefined) ||
   "http://localhost:5000";
-
-interface ToastProps {
-  type: string;
-  message: string;
-}
 
 interface AnalysisData {
   "HS Code": string;
@@ -43,7 +37,7 @@ const ProductAnalysis: React.FC = () => {
   const [works, setWorks] = useState<boolean>(true);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [toastProps, setToastProps] = useState<ToastProps>({ type: "", message: "" });
+  const [statusMessage, setStatusMessage] = useState<string>("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -82,10 +76,7 @@ const ProductAnalysis: React.FC = () => {
   const handleFile = (file: File): void => {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setToastProps({
-        type: "error",
-        message: "Only image files are supported. Please choose a JPG, PNG, WebP, or GIF.",
-      });
+      setStatusMessage("Only image files are supported. Please choose a JPG, PNG, WebP, or GIF.");
       return;
     }
     // Defence-in-depth: enforce the same 10MB cap that the server enforces so
@@ -93,28 +84,19 @@ const ProductAnalysis: React.FC = () => {
     // a 413.
     const MAX_BYTES = 10 * 1024 * 1024;
     if (file.size > MAX_BYTES) {
-      setToastProps({
-        type: "error",
-        message: `Image is too large (${(file.size / (1024 * 1024)).toFixed(1)} MB). Max allowed is 10 MB.`,
-      });
+      setStatusMessage(`Image is too large (${(file.size / (1024 * 1024)).toFixed(1)} MB). Max allowed is 10 MB.`);
       return;
     }
     setSelectedImage(file);
     setAnalysisResult(null);
-    setToastProps({
-      type: "success",
-      message: `Image uploaded successfully!`,
-    });
+    setStatusMessage("");
   };
 
   const handleRemoveImage = (): void => {
     setSelectedImage(null);
     setAnalysisResult(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
-    setToastProps({
-      type: "info",
-      message: "Uploaded image removed successfully.",
-    });
+    setStatusMessage("");
   };
 
   // /api/analyze-product is a legacy Express endpoint (multipart/form-data image upload via multer)
@@ -163,18 +145,12 @@ const ProductAnalysis: React.FC = () => {
 
   const handleCopy = (text: string): void => {
     void navigator.clipboard.writeText(text);
-    setToastProps({
-      type: "success",
-      message: `Copied: ${text}`,
-    });
+    setStatusMessage(`Copied: ${text}`);
   };
 
   const handleSendToCompliance = (): void => {
     if (!analysisResult || !analysisResult.draftId) {
-      setToastProps({
-        type: "error",
-        message: "No draft available to send to compliance check.",
-      });
+      setStatusMessage("No draft available to send to compliance check.");
       return;
     }
 
@@ -389,7 +365,9 @@ const ProductAnalysis: React.FC = () => {
         </div>
       </div>
 
-      <Toast type={toastProps.type} message={toastProps.message} />
+      {statusMessage && (
+        <p className="mt-4 text-sm text-slate-600" role="status">{statusMessage}</p>
+      )}
     </div>
   );
 };

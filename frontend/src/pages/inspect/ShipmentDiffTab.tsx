@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import { toast } from "react-toastify";
 import { Image as ImageIcon, Upload, X, AlertTriangle, RefreshCcw } from "lucide-react";
 import CountUp from "../../components/CountUp";
 import CardSkeleton from "../../components/skeletons/CardSkeleton";
@@ -163,14 +162,16 @@ export default function ShipmentDiffTab({ draftId, onResult }: ShipmentDiffTabPr
     };
   }, []);
 
+  const [compareError, setCompareError] = useState<string>("");
   const utils = trpc.useUtils();
   const compareMutation = trpc.shipmentDiff.compare.useMutation({
     onSuccess: (data) => {
+      setCompareError("");
       utils.shipmentDiff.history.invalidate().catch(() => void 0);
       onResult?.(data.riskScore < 31);
     },
     onError: (err) => {
-      toast.error(err.message ?? "Comparison failed. Please try again.");
+      setCompareError(err.message ?? "Comparison failed. Please try again.");
     },
   });
 
@@ -183,15 +184,16 @@ export default function ShipmentDiffTab({ draftId, onResult }: ShipmentDiffTabPr
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > MAX_IMAGE_BYTES) {
-      toast.error(`Image is larger than 10 MB (${(file.size / 1024 / 1024).toFixed(1)} MB).`);
+      setCompareError(`Image is larger than 10 MB (${(file.size / 1024 / 1024).toFixed(1)} MB).`);
       e.target.value = "";
       return;
     }
     if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file.");
+      setCompareError("Please select an image file.");
       e.target.value = "";
       return;
     }
+    setCompareError("");
     if (slot === "before") {
       if (beforePreview) URL.revokeObjectURL(beforePreview);
       setBeforeFile(file);
@@ -217,17 +219,18 @@ export default function ShipmentDiffTab({ draftId, onResult }: ShipmentDiffTabPr
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!beforeFile && !afterFile) {
-      toast.error("Please select both a before and after image.");
+      setCompareError("Please select both a before and after image.");
       return;
     }
     if (!beforeFile) {
-      toast.error("Please select the Before Loading image.");
+      setCompareError("Please select the Before Loading image.");
       return;
     }
     if (!afterFile) {
-      toast.error("Please select the After Delivery image.");
+      setCompareError("Please select the After Delivery image.");
       return;
     }
+    setCompareError("");
 
     try {
       const [beforeBase64, afterBase64] = await Promise.all([
@@ -244,7 +247,6 @@ export default function ShipmentDiffTab({ draftId, onResult }: ShipmentDiffTabPr
         afterImageBase64: afterBase64,
         mimeType: inferredMime,
       });
-      toast.success("Comparison complete.");
     } catch {
       // handled by onError
     }
@@ -290,6 +292,10 @@ export default function ShipmentDiffTab({ draftId, onResult }: ShipmentDiffTabPr
                 onChange={(e) => handleFileChange(e, "after")}
               />
             </div>
+
+            {compareError && (
+              <p className="text-sm text-red-600" role="alert">{compareError}</p>
+            )}
 
             {beforeFile && afterFile && (
               <div className="flex justify-end gap-2">

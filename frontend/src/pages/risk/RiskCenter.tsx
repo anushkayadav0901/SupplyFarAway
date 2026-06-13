@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { toast } from "react-toastify";
 import {
   Area,
   AreaChart,
@@ -21,6 +20,7 @@ import {
 import PageLead from "../../components/PageLead";
 import DraftPicker from "../../components/DraftPicker";
 import TrustGauge from "../../components/TrustGauge";
+import NewsContextCard from "../../components/NewsContextCard";
 import { trpc } from "../../lib/trpc";
 
 // ---------------------------------------------------------------------------
@@ -142,26 +142,30 @@ export default function RiskCenter() {
     { retry: false }
   );
 
+  // Inline error state — replaces toasts
+  const [scanError, setScanError] = useState<string>("");
+  const [appendError, setAppendError] = useState<string>("");
+
   // ---- mutations ----
   const analyzeMut = trpc.anomaly.analyze.useMutation({
     onSuccess: () => {
-      toast.success("Anomaly scan complete.");
+      setScanError("");
       utils.anomaly.history.invalidate().catch(() => null);
       if (draftId) {
         utils.insights.shipmentTrustScore.invalidate({ draftId }).catch(() => null);
         utils.audit.forDraft.invalidate({ draftId }).catch(() => null);
       }
     },
-    onError: (err) => toast.error(err.message || "Scan failed."),
+    onError: (err) => setScanError(err.message || "Scan failed."),
   });
 
   const appendMut = trpc.audit.append.useMutation({
     onSuccess: () => {
-      toast.success("Event appended.");
+      setAppendError("");
       setEventSummary("");
       if (draftId) utils.audit.forDraft.invalidate({ draftId }).catch(() => null);
     },
-    onError: (err) => toast.error(err.message || "Failed to append."),
+    onError: (err) => setAppendError(err.message || "Failed to append."),
   });
 
   // ---- derived data ----
@@ -190,7 +194,7 @@ export default function RiskCenter() {
     e.preventDefault();
     if (analyzeMut.isPending) return;
     if (!originCity.trim() || !destinationCity.trim()) {
-      toast.error("Origin and destination are required.");
+      setScanError("Origin and destination are required.");
       return;
     }
     analyzeMut.mutate({
@@ -497,6 +501,21 @@ export default function RiskCenter() {
                 </form>
               </div>
 
+              {scanError && (
+                <p className="mt-3 text-sm text-red-600" role="alert">{scanError}</p>
+              )}
+
+              {/* News-grounded intelligence — visible workflow per CLAUDE.md */}
+              {analyzeMut.data && (
+                <div className="mt-4">
+                  <NewsContextCard
+                    surface="risk"
+                    origin={originCity}
+                    destination={destinationCity}
+                  />
+                </div>
+              )}
+
               {/* Latest scan result — kept as a result panel */}
               {analyzeMut.data && (
                 <div
@@ -609,6 +628,9 @@ export default function RiskCenter() {
                   Append
                 </button>
               </form>
+              {appendError && (
+                <p className="text-sm text-red-600 mb-4" role="alert">{appendError}</p>
+              )}
 
               {/* Audit log rows */}
               <div className="space-y-2 max-h-72 overflow-y-auto">

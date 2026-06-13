@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { toast } from "react-toastify";
-import { Camera, Video, AlertTriangle } from "lucide-react";
+import { Camera, Video, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { trpc } from "../../lib/trpc";
 
 // ─── constants ────────────────────────────────────────────────────────────────
@@ -81,6 +80,7 @@ export default function BoxCountTab({ draftId, onResult, runAllRequested }: BoxC
   const [yoloOnline, setYoloOnline] = useState<boolean | null>(null);
   const [cameraError, setCameraError] = useState<string>("");
   const [declaredError, setDeclaredError] = useState<string>("");
+  const [saveStatus, setSaveStatus] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
   const [detections, setDetections] = useState<YoloDetection[]>([]);
   const [classCounts, setClassCounts] = useState<Record<string, number>>({});
   const [suspectedCount, setSuspectedCount] = useState<number>(0);
@@ -156,31 +156,83 @@ export default function BoxCountTab({ draftId, onResult, runAllRequested }: BoxC
     const video = videoRef.current;
     if (!overlay || !video?.videoWidth) return;
     const rect = video.getBoundingClientRect();
-    overlay.width = rect.width;
-    overlay.height = rect.height;
+    if (rect.width === 0 || rect.height === 0) return;
+
+    // Match the canvas backing store to the display rect, accounting for DPR
+    // so the boxes don't render blurry on retina displays.
+    const dpr = window.devicePixelRatio || 1;
+    overlay.width = Math.round(rect.width * dpr);
+    overlay.height = Math.round(rect.height * dpr);
+    overlay.style.width = `${rect.width}px`;
+    overlay.style.height = `${rect.height}px`;
+
     const ctx = overlay.getContext("2d");
     if (!ctx) return;
-    ctx.clearRect(0, 0, overlay.width, overlay.height);
-    const sx = rect.width / video.videoWidth;
-    const sy = rect.height / video.videoHeight;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, rect.width, rect.height);
+
+    // The <video> uses object-cover, so YOLO's bbox space (video.videoWidth
+    // × videoHeight) is scaled by max() to fill the container and then
+    // center-cropped. Replicate exactly that mapping so the painted boxes
+    // sit on the same pixels the user sees.
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    const scale = Math.max(rect.width / vw, rect.height / vh);
+    const renderedW = vw * scale;
+    const renderedH = vh * scale;
+    const offsetX = (rect.width - renderedW) / 2;
+    const offsetY = (rect.height - renderedH) / 2;
+
     for (const d of dets) {
+      const isPerson = d.class_name.toLowerCase() === "person";
+      // De-emphasise person — demo treats every other object as a cargo unit.
+      const color = isPerson ? "#94a3b8" : "#2563eb";
+      const labelColor = isPerson ? "#475569" : "#1d4ed8";
+
       const [x1, y1, x2, y2] = d.bbox;
-      const bx = x1 * sx;
-      const by = y1 * sy;
-      const bw = (x2 - x1) * sx;
-      const bh = (y2 - y1) * sy;
-      const color = "#3b82f6";
+      const bx = x1 * scale + offsetX;
+      const by = y1 * scale + offsetY;
+      const bw = (x2 - x1) * scale;
+      const bh = (y2 - y1) * scale;
+
+      // Bold framed box so it reads at demo distance.
       ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = isPerson ? 2 : 3;
+      ctx.setLineDash(isPerson ? [6, 4] : []);
       ctx.strokeRect(bx, by, bw, bh);
-      const label = `${d.class_name} ${Math.round(d.confidence * 100)}%`;
+      ctx.setLineDash([]);
+
+      // Label pill above the box.
+      const label = isPerson
+        ? `person ${Math.round(d.confidence * 100)}%`
+        : `unit · ${d.class_name} ${Math.round(d.confidence * 100)}%`;
       ctx.font = "bold 12px ui-sans-serif, system-ui";
-      const tw = ctx.measureText(label).width + 10;
-      ctx.fillStyle = color;
-      ctx.fillRect(bx, Math.max(0, by - 20), tw, 18);
-      ctx.fillStyle = "#fff";
-      ctx.fillText(label, bx + 5, Math.max(12, by - 6));
+      const padding = 8;
+      const labelW = ctx.measureText(label).width + padding * 2;
+      const labelH = 20;
+      const labelY = by - labelH - 2;
+      const finalLabelY = labelY < 0 ? by + 2 : labelY;
+      ctx.fillStyle = labelColor;
+      ctx.fillRect(bx, finalLabelY, labelW, labelH);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(label, bx + padding, finalLabelY + 14);
     }
+
+    // Live HUD: total non-person units in this frame, top-left, so even if
+    // a single box is off the user immediately sees "the system is counting".
+    const unitCount = dets.filter(
+      (d) => d.class_name.toLowerCase() !== "person",
+    ).length;
+    const hud = `${unitCount} unit${unitCount === 1 ? "" : "s"} detected`;
+    ctx.font = "bold 13px ui-sans-serif, system-ui";
+    const hudW = ctx.measureText(hud).width + 20;
+    ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
+    ctx.fillRect(10, 10, hudW, 26);
+    ctx.fillStyle = "#a7f3d0";
+    ctx.fillRect(10, 10, 4, 26);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(hud, 24, 28);
   }, []);
 
   const stopCameraInternal = () => {
@@ -211,7 +263,6 @@ export default function BoxCountTab({ draftId, onResult, runAllRequested }: BoxC
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Camera access was denied.";
       if (mountedRef.current) setCameraError(msg);
-      toast.error("Camera access denied");
       return false;
     }
   };
@@ -289,11 +340,10 @@ export default function BoxCountTab({ draftId, onResult, runAllRequested }: BoxC
 
   const start = async () => {
     if (mode === "starting" || mode === "live") return;
-    const n = parseInt(declaredCount, 10);
-    if (!n || n <= 0) {
-      setDeclaredError("Enter a positive declared box count before starting.");
-      return;
-    }
+    // Declared count is optional — when blank, the inspector runs in
+    // "see what AI sees" mode (no manifest comparison).
+    const parsed = parseInt(declaredCount, 10);
+    const n = !isNaN(parsed) && parsed > 0 ? parsed : 0;
     setDeclaredError("");
     declaredCountRef.current = n;
     setMode("starting");
@@ -363,10 +413,10 @@ export default function BoxCountTab({ draftId, onResult, runAllRequested }: BoxC
         confidence: 0.85,
         notes: `Live camera session • ${duration}s • YOLO ${yoloOnline ? "online" : "offline"}`,
       });
-      toast.success("Box count session saved successfully.");
+      setSaveStatus({ kind: "ok", text: "Box count session saved." });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Save failed.";
-      toast.error(`Save failed: ${msg}`);
+      setSaveStatus({ kind: "err", text: `Save failed: ${msg}` });
       pushLog({ text: `Failed to save: ${msg}`, type: "alert" });
     }
   };
@@ -385,12 +435,14 @@ export default function BoxCountTab({ draftId, onResult, runAllRequested }: BoxC
     setDuration(0);
     setFrameCount(0);
     setDeclaredError("");
+    setSaveStatus(null);
   };
 
   const derivedDeclared = parseInt(declaredCount, 10) || 0;
   const detectedNow = suspectedCount > 0 ? suspectedCount : detections.length;
   const diff = Math.abs(detectedNow - derivedDeclared);
-  const mismatch = detectedNow > 0 && diff > 0;
+  // Only call it a mismatch if the user actually declared a manifest count.
+  const mismatch = derivedDeclared > 0 && detectedNow > 0 && diff > 0;
 
   return (
     <div className="space-y-6">
@@ -402,14 +454,16 @@ export default function BoxCountTab({ draftId, onResult, runAllRequested }: BoxC
             <div className="w-full md:w-1/2 flex flex-col gap-4">
               <div>
                 <label htmlFor="declared-count" className="block text-sm font-semibold text-slate-700 mb-1">
-                  Declared Box Count <span className="text-red-500">*</span>
+                  Manifest Count
+                  <span className="ml-2 text-xs font-normal text-slate-400">
+                    optional — leave blank to just see what AI counts
+                  </span>
                 </label>
                 <input
                   id="declared-count"
                   type="number"
                   min="1"
-                  required
-                  placeholder="e.g. 5"
+                  placeholder="e.g. 5 (skip to see AI count)"
                   value={declaredCount}
                   onChange={(e) => setDeclaredCount(e.target.value)}
                   disabled={mode === "live" || mode === "starting"}
@@ -479,6 +533,31 @@ export default function BoxCountTab({ draftId, onResult, runAllRequested }: BoxC
             </div>
           </div>
         </div>
+
+        {/* Inline status — camera errors and save results (replaces toasts) */}
+        {cameraError && (
+          <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl flex items-center gap-2 text-sm" role="alert">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+            Camera: {cameraError}
+          </div>
+        )}
+        {saveStatus && (
+          <div
+            className={`p-3 rounded-xl flex items-center gap-2 text-sm border ${
+              saveStatus.kind === "ok"
+                ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                : "bg-red-50 border-red-200 text-red-700"
+            }`}
+            role="status"
+          >
+            {saveStatus.kind === "ok" ? (
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+            ) : (
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+            )}
+            {saveStatus.text}
+          </div>
+        )}
 
         {/* Live Mismatch Warn */}
         {mode === "live" && mismatch && (

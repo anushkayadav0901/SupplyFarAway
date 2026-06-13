@@ -1,13 +1,7 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Papa from "papaparse";
-import Toast from "./../../components/Toast";
 import { trpc } from "../../lib/trpc";
-
-interface ToastProps {
-  type: string;
-  message: string;
-}
 
 interface ParsedFormData {
   ShipmentDetails: {
@@ -97,7 +91,7 @@ const CsvUploadPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [send, setSend] = useState<boolean>(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [toastProps, setToastProps] = useState<ToastProps>({ type: "", message: "" });
+  const [csvStatus, setCsvStatus] = useState<string>("");
 
   // tRPC mutation to create a draft from CSV data
   const createDraftFromCsvMutation = trpc.compliance.createDraftFromCsv.useMutation({
@@ -105,10 +99,6 @@ const CsvUploadPage: React.FC = () => {
       const draftId = data.recordId;
       if (!draftId) {
         setCsvError("Draft ID not returned from server");
-        setToastProps({
-          type: "error",
-          message: "Failed to process compliance check.",
-        });
         setLoading(false);
         return;
       }
@@ -118,10 +108,6 @@ const CsvUploadPage: React.FC = () => {
       setCsvError(
         error.message || "Error processing compliance check. Please try again."
       );
-      setToastProps({
-        type: "error",
-        message: error.message || "Failed to process compliance check.",
-      });
       console.error(error);
       setLoading(false);
     },
@@ -141,18 +127,11 @@ const CsvUploadPage: React.FC = () => {
             setCsvError(
               `"${file.name}" does not contain any data rows. Please add at least one row of shipment data below the headers and try again.`,
             );
-            setToastProps({
-              type: "error",
-              message: `"${file.name}" is empty.`,
-            });
             setLoading(false);
             return;
           }
           if (result.data.length > 1) {
-            setToastProps({
-              type: "warn",
-              message: `CSV contains ${result.data.length} rows — only the first will be used.`,
-            });
+            setCsvStatus(`CSV contains ${result.data.length} rows — only the first will be used.`);
           }
           const data = result.data[0];
           const parsedFormData: ParsedFormData = {
@@ -250,18 +229,10 @@ const CsvUploadPage: React.FC = () => {
           setFormData(parsedFormData);
           setUploadedFile(file);
           setCsvError(null);
-          setToastProps({
-            type: "success",
-            message: `CSV file "${file.name}" uploaded successfully!`,
-          });
         } catch (error) {
           setCsvError(
             "Error parsing CSV file. Please ensure it matches the required format."
           );
-          setToastProps({
-            type: "error",
-            message: `Error parsing "${file.name}". Check the format and try again.`,
-          });
           console.error(error);
         } finally {
           setLoading(false);
@@ -270,10 +241,6 @@ const CsvUploadPage: React.FC = () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       error: (error: any) => {
         setCsvError("Failed to upload CSV file. Please try again.");
-        setToastProps({
-          type: "error",
-          message: `Failed to upload "${file.name}". Please try again.`,
-        });
         console.error(error);
         setLoading(false);
       },
@@ -282,10 +249,7 @@ const CsvUploadPage: React.FC = () => {
 
   const handleSendToCompliance = (): void => {
     if (!formData) {
-      setToastProps({
-        type: "error",
-        message: "No CSV data available. Please upload a file first.",
-      });
+      setCsvError("No CSV data available. Please upload a file first.");
       return;
     }
 
@@ -301,10 +265,7 @@ const CsvUploadPage: React.FC = () => {
     const file = event.target.files?.[0];
     if (!file) return;
     if (uploadedFile) {
-      setToastProps({
-        type: "warn",
-        message: `Please remove the previous file before uploading a new one.`,
-      });
+      setCsvStatus("Please remove the previous file before uploading a new one.");
       return;
     }
     handleCsvUpload(file);
@@ -325,10 +286,7 @@ const CsvUploadPage: React.FC = () => {
     setIsDragging(false);
     const file = event.dataTransfer.files[0];
     if (uploadedFile) {
-      setToastProps({
-        type: "warn",
-        message: `Please remove the previous file before uploading a new one.`,
-      });
+      setCsvStatus("Please remove the previous file before uploading a new one.");
       return;
     }
     // Windows/Excel often label CSVs as application/vnd.ms-excel and Safari
@@ -345,10 +303,6 @@ const CsvUploadPage: React.FC = () => {
       handleCsvUpload(file);
     } else {
       setCsvError("Please drop a valid CSV file.");
-      setToastProps({
-        type: "warn",
-        message: "Invalid file type. Please drop a CSV file.",
-      });
     }
   };
 
@@ -356,10 +310,7 @@ const CsvUploadPage: React.FC = () => {
     setUploadedFile(null);
     setFormData(null);
     setCsvError(null);
-    setToastProps({
-      type: "info",
-      message: "Uploaded file removed successfully.",
-    });
+    setCsvStatus("");
   };
 
   const handleDownloadTemplate = (): void => {
@@ -413,10 +364,6 @@ const CsvUploadPage: React.FC = () => {
     link.href = URL.createObjectURL(blob);
     link.download = "shipment_template.csv";
     link.click();
-    setToastProps({
-      type: "info",
-      message: "CSV template downloaded successfully!",
-    });
   };
 
   return (
@@ -558,7 +505,9 @@ const CsvUploadPage: React.FC = () => {
         </div>
       </div>
 
-      <Toast type={toastProps.type} message={toastProps.message} />
+      {csvStatus && (
+        <p className="mt-4 text-sm text-slate-600" role="status">{csvStatus}</p>
+      )}
     </div>
   );
 };

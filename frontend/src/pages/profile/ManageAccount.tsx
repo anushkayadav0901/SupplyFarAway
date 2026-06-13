@@ -11,7 +11,6 @@ import {
   Save,
   X,
 } from "lucide-react";
-import { toast } from "react-toastify";
 import { trpc } from "../../lib/trpc";
 
 const BACKEND_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
@@ -52,6 +51,7 @@ const ManageAccount: React.FC = () => {
   });
   const token = localStorage.getItem("token");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [accountStatus, setAccountStatus] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
 
   const { data: meData, isLoading: loading, isError: meError, refetch: refetchMe } = trpc.auth.getMe.useQuery(undefined, {
     retry: false,
@@ -59,18 +59,18 @@ const ManageAccount: React.FC = () => {
   });
 
   const updateUsernameMutation = trpc.auth.updateUsername.useMutation({
-    onSuccess: () => { toast.success("Username updated successfully!"); setIsEditingUsername(false); void refetchMe(); },
-    onError: (error) => { toast.error(error.message || "Failed to update username."); },
+    onSuccess: () => { setAccountStatus({ kind: "ok", text: "Username updated." }); setIsEditingUsername(false); void refetchMe(); },
+    onError: (error) => { setAccountStatus({ kind: "err", text: error.message || "Failed to update username." }); },
   });
 
   const updatePasswordMutation = trpc.auth.updatePassword.useMutation({
-    onSuccess: () => { toast.success("Password updated successfully!"); setNewPassword(""); setConfirmPassword(""); setIsEditingPassword(false); },
-    onError: (error) => { toast.error(error.message || "Failed to update password."); },
+    onSuccess: () => { setAccountStatus({ kind: "ok", text: "Password updated." }); setNewPassword(""); setConfirmPassword(""); setIsEditingPassword(false); },
+    onError: (error) => { setAccountStatus({ kind: "err", text: error.message || "Failed to update password." }); },
   });
 
   const updateProfileMutation = trpc.auth.updateProfile.useMutation({
-    onSuccess: () => { toast.success("Profile updated successfully!"); setIsEditingProfile(false); void refetchMe(); },
-    onError: (error) => { toast.error(error.message || "Failed to update profile."); },
+    onSuccess: () => { setAccountStatus({ kind: "ok", text: "Profile updated." }); setIsEditingProfile(false); void refetchMe(); },
+    onError: (error) => { setAccountStatus({ kind: "err", text: error.message || "Failed to update profile." }); },
   });
 
   const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -78,12 +78,12 @@ const ManageAccount: React.FC = () => {
 
   const deleteAccountMutation = trpc.auth.deleteAccount.useMutation({
     onSuccess: () => {
-      toast.success("Account deleted successfully!");
+      setAccountStatus({ kind: "ok", text: "Account deleted." });
       localStorage.removeItem("token");
       if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current);
       deleteTimerRef.current = setTimeout(() => { navigate("/"); }, 1500);
     },
-    onError: (error) => { toast.error(error.message || "Failed to delete account."); },
+    onError: (error) => { setAccountStatus({ kind: "err", text: error.message || "Failed to delete account." }); },
   });
 
   const user = meData?.user;
@@ -127,8 +127,8 @@ const ManageAccount: React.FC = () => {
 
   const handleUpdatePassword = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
-    if (newPassword !== confirmPassword) { toast.error("Passwords do not match."); return; }
-    if (!newPassword || newPassword.length < 8) { toast.error("Password must be at least 8 characters long."); return; }
+    if (newPassword !== confirmPassword) { setAccountStatus({ kind: "err", text: "Passwords do not match." }); return; }
+    if (!newPassword || newPassword.length < 8) { setAccountStatus({ kind: "err", text: "Password must be at least 8 characters long." }); return; }
     updatePasswordMutation.mutate({ newPassword });
   };
 
@@ -139,7 +139,7 @@ const ManageAccount: React.FC = () => {
 
   const handleDeleteAccount = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
-    if (deleteEmail !== user?.emailAddress) { toast.error("Email does not match. Please enter your correct email."); return; }
+    if (deleteEmail !== user?.emailAddress) { setAccountStatus({ kind: "err", text: "Email does not match. Please enter your correct email." }); return; }
     const ok = window.confirm("This will permanently delete your account and all associated data. This cannot be undone. Continue?");
     if (!ok) return;
     deleteAccountMutation.mutate();
@@ -150,9 +150,9 @@ const ManageAccount: React.FC = () => {
 
   const handlePhotoUpload = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
-    if (!profilePhoto) { toast.error("Please select a photo to upload."); return; }
-    if (!ALLOWED_PHOTO_TYPES.has(profilePhoto.type)) { toast.error("Only JPEG, PNG, WebP, or GIF images are allowed."); return; }
-    if (profilePhoto.size > MAX_PHOTO_BYTES) { toast.error("File too large. Maximum allowed size is 10 MB."); return; }
+    if (!profilePhoto) { setAccountStatus({ kind: "err", text: "Please select a photo to upload." }); return; }
+    if (!ALLOWED_PHOTO_TYPES.has(profilePhoto.type)) { setAccountStatus({ kind: "err", text: "Only JPEG, PNG, WebP, or GIF images are allowed." }); return; }
+    if (profilePhoto.size > MAX_PHOTO_BYTES) { setAccountStatus({ kind: "err", text: "File too large. Maximum allowed size is 10 MB." }); return; }
     const formData = new FormData();
     formData.append("photo", profilePhoto);
     try {
@@ -163,10 +163,10 @@ const ManageAccount: React.FC = () => {
       setPreviewPhoto(null);
       setProfilePhoto(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
-      toast.success("Profile photo uploaded successfully!");
+      setAccountStatus({ kind: "ok", text: "Profile photo uploaded." });
       void refetchMe();
     } catch (error: any) {
-      toast.error(error.response?.data?.error || "Failed to upload profile photo.");
+      setAccountStatus({ kind: "err", text: error.response?.data?.error || "Failed to upload profile photo." });
     }
   };
 
@@ -239,6 +239,24 @@ const ManageAccount: React.FC = () => {
 
   return (
     <div className="space-y-12">
+
+      {accountStatus && (
+        <div
+          role={accountStatus.kind === "err" ? "alert" : "status"}
+          className={`p-3 rounded-xl border text-sm flex items-center gap-2 ${
+            accountStatus.kind === "ok"
+              ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+              : "bg-red-50 border-red-200 text-red-700"
+          }`}
+        >
+          {accountStatus.kind === "ok" ? (
+            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+          ) : (
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          )}
+          {accountStatus.text}
+        </div>
+      )}
 
       {/* Profile header */}
       <section>

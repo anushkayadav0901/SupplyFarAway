@@ -1,13 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Eye, EyeOff, ArrowUpRight } from "lucide-react";
-import Toast from "../../components/Toast";
 import { trpc } from "../../lib/trpc";
-
-interface ToastState {
-  type: string;
-  message: string;
-}
 
 export default function CreateAccount() {
   const [firstName, setFirstName] = useState("");
@@ -18,7 +12,7 @@ export default function CreateAccount() {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [toastProps, setToastProps] = useState<ToastState>({ type: "", message: "" });
+  const [signupError, setSignupError] = useState<string>("");
   const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -30,13 +24,13 @@ export default function CreateAccount() {
   const createMutation = trpc.auth.createAccount.useMutation({
     onSuccess: (data: { token: string; [key: string]: unknown }) => {
       localStorage.setItem("token", data.token);
-      setToastProps({ type: "success", message: "Account created." });
+      setSignupError("");
       const next = searchParams.get("next") || "/dashboard";
       if (navTimerRef.current) clearTimeout(navTimerRef.current);
-      navTimerRef.current = setTimeout(() => navigate(next), 700);
+      navTimerRef.current = setTimeout(() => navigate(next), 200);
     },
     onError: (error: { message: string }) => {
-      setToastProps({ type: "error", message: error.message || "Sign up failed" });
+      setSignupError(error.message || "Sign up failed");
     },
   });
 
@@ -47,21 +41,22 @@ export default function CreateAccount() {
   const handleCreate = () => {
     if (loading) return;
     if (!firstName.trim() || !email || !password) {
-      setToastProps({ type: "warn", message: "First name, email, and password are required." });
+      setSignupError("First name, email, and password are required.");
       return;
     }
     if (!isValidEmail(email)) {
-      setToastProps({ type: "warn", message: "That email doesn't look right." });
+      setSignupError("That email doesn't look right.");
       return;
     }
     if (password.length < 8) {
-      setToastProps({ type: "warn", message: "Password must be at least 8 characters." });
+      setSignupError("Password must be at least 8 characters.");
       return;
     }
     if (password !== confirm) {
-      setToastProps({ type: "warn", message: "Passwords don't match." });
+      setSignupError("Passwords don't match.");
       return;
     }
+    setSignupError("");
     createMutation.mutate({
       firstName: firstName.trim(),
       lastName: lastName.trim() || undefined,
@@ -171,6 +166,10 @@ export default function CreateAccount() {
             )}
           </button>
 
+          {signupError && (
+            <p className="text-sm text-red-600 text-center" role="alert">{signupError}</p>
+          )}
+
           <p className="text-center text-sm text-gray-600 mt-6">
             Already have an account?{" "}
             <Link to="/" className="text-gray-900 font-medium hover:underline">
@@ -179,8 +178,6 @@ export default function CreateAccount() {
           </p>
         </div>
       </div>
-
-      <Toast type={toastProps.type} message={toastProps.message} />
     </div>
   );
 }

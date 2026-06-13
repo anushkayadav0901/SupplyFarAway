@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { toast } from "react-toastify";
 import { Truck, Boxes, Plus, Trash2, Users, RefreshCcw } from "lucide-react";
 import PageLead from "../../components/PageLead";
 import CardSkeleton from "../../components/skeletons/CardSkeleton";
@@ -23,12 +22,13 @@ export default function Fleet() {
   const [driverName, setDriverName] = useState("");
   const [driverPhone, setDriverPhone] = useState("");
 
+  const [fleetError, setFleetError] = useState<string>("");
   const utils = trpc.useUtils();
 
   const listTrucksQuery = trpc.trucks.list.useQuery();
   const registerTruckMutation = trpc.trucks.register.useMutation({
     onSuccess: () => {
-      toast.success("Truck registered.");
+      setFleetError("");
       setPlate("");
       setCapacity("");
       setBaseCity("");
@@ -37,25 +37,26 @@ export default function Fleet() {
       utils.trucks.list.invalidate().catch(() => null);
     },
     onError: (err) => {
-      toast.error(err.message || "Registration failed.");
+      setFleetError(err.message || "Registration failed.");
     },
   });
   const removeTruckMutation = trpc.trucks.remove.useMutation({
     onSuccess: () => {
-      toast.success("Truck removed.");
+      setFleetError("");
       utils.trucks.list.invalidate().catch(() => null);
     },
     onError: (err) => {
-      toast.error(err.message || "Failed to remove truck.");
+      setFleetError(err.message || "Failed to remove truck.");
     },
   });
 
   const handleRegisterTruck = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!plate.trim() || !capacity.trim() || !baseCity.trim() || !driverName.trim()) {
-      toast.error("Please fill in all required truck fields.");
+      setFleetError("Please fill in all required truck fields.");
       return;
     }
+    setFleetError("");
     await registerTruckMutation.mutateAsync({
       plate: plate.trim().toUpperCase(),
       capacityKg: parseFloat(capacity) || 1000,
@@ -164,6 +165,9 @@ export default function Fleet() {
                   />
                 </div>
               </div>
+              {fleetError && (
+                <p className="text-sm text-red-600" role="alert">{fleetError}</p>
+              )}
               <button
                 type="submit"
                 disabled={registerTruckMutation.isPending}

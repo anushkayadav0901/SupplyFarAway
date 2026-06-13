@@ -14,6 +14,7 @@ import { fraudRouter } from "./fraud.js";
 import { trucksRouter } from "./trucks.js";
 import { auditRouter } from "./audit.js";
 import { insightsRouter } from "./insights.js";
+import { newsContextRouter } from "./newsContext.js";
 
 /**
  * Root tRPC router. Domain agents will add their sub-routers
@@ -36,6 +37,7 @@ export const appRouter = router({
   trucks: trucksRouter,
   audit: auditRouter,
   insights: insightsRouter,
+  newsContext: newsContextRouter,
 });
 
 export type AppRouter = typeof appRouter;

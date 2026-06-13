@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
 import axios from "axios";
 import Papa from "papaparse";
 import { ShieldCheck, Upload, FileText, Camera, Send } from "lucide-react";
 import PageLead from "../../components/PageLead";
 import DraftPicker from "../../components/DraftPicker";
 import InsightsRail from "../../components/InsightsRail";
+import NewsContextCard from "../../components/NewsContextCard";
 import ComplianceResponse from "./ComplianceResponse";
 import { trpc } from "../../lib/trpc";
 
@@ -76,6 +76,7 @@ export default function Compliance() {
     string,
     unknown
   > | null>(null);
+  const [submitError, setSubmitError] = useState<string>("");
 
   // Sync draftId to URL
   useEffect(() => {
@@ -121,18 +122,10 @@ export default function Compliance() {
   // Compliance check mutation
   const checkMutation = trpc.compliance.check.useMutation({
     onSuccess: (data) => {
-      const status = String(
-        (data.complianceResponse as Record<string, unknown>)
-          ?.complianceStatus ?? ""
-      ).toLowerCase();
+      setSubmitError("");
       setComplianceResult({
         complianceResponse: data.complianceResponse,
       });
-      if (status === "ready for shipment") {
-        toast.success("Compliance approved!");
-      } else {
-        toast.warning("Compliance check flagged — review the results below.");
-      }
       // After a draftless submission the backend creates a new draft and
       // returns its id as recordId — sync it so the UI can link to it.
       const returnedId = data.recordId ? String(data.recordId) : "";
@@ -147,14 +140,14 @@ export default function Compliance() {
       }
     },
     onError: (err) => {
-      toast.error(err.message || "Compliance check failed.");
+      setSubmitError(err.message || "Compliance check failed.");
     },
   });
 
   // CSV draft mutation
   const csvDraftMutation = trpc.compliance.createDraftFromCsv.useMutation({
     onSuccess: (data) => {
-      toast.success("CSV imported — draft created.");
+      setCsvError(null);
       const newId = String(data.recordId ?? "");
       if (newId) {
         setDraftId(newId);
@@ -162,7 +155,7 @@ export default function Compliance() {
       }
     },
     onError: (err) => {
-      toast.error(err.message || "CSV import failed.");
+      setCsvError(err.message || "CSV import failed.");
     },
   });
 
@@ -199,7 +192,7 @@ export default function Compliance() {
           return;
         }
         if (result.data.length > 1) {
-          toast.warning(`${result.data.length} rows found — using first row only.`);
+          setCsvError(`Note: ${result.data.length} rows found — using the first row only.`);
         }
         const d = result.data[0];
         const parsed: ParsedCsvFormData = {
@@ -285,7 +278,6 @@ export default function Compliance() {
         };
         setCsvFile(file);
         setCsvParsed(parsed);
-        toast.success(`"${file.name}" parsed successfully.`);
       },
       error: () => {
         setCsvError("Failed to parse CSV. Check format and try again.");
@@ -309,7 +301,7 @@ export default function Compliance() {
       file.type === "" ||
       /\.csv$/i.test(file.name);
     if (ok) parseCsvFile(file);
-    else toast.warning("Please drop a CSV file.");
+    else setCsvError("Please drop a CSV file.");
   };
 
   const handleCsvSubmit = () => {
@@ -377,17 +369,16 @@ export default function Compliance() {
     link.href = URL.createObjectURL(blob);
     link.download = "shipment_template.csv";
     link.click();
-    toast.info("Template downloaded.");
   };
 
   // --- Image tab handlers ---
   const handleImageFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
-      toast.error("Only image files are supported.");
+      setImageResult({ error: "Only image files are supported." });
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      toast.error("Image too large. Max 10 MB.");
+      setImageResult({ error: "Image too large. Max 10 MB." });
       return;
     }
     setSelectedImage(file);
@@ -443,7 +434,7 @@ export default function Compliance() {
 
   const handleSendImageToDraft = () => {
     if (!imageResult?.draftId) {
-      toast.error("No draft available from this analysis.");
+      setImageResult({ error: "No draft available from this analysis." });
       return;
     }
     setDraftId(imageResult.draftId);
@@ -835,16 +826,28 @@ export default function Compliance() {
             </div>
           )}
 
+          {submitError && (
+            <p className="text-sm text-red-600" role="alert">{submitError}</p>
+          )}
+
           {/* ---- Results ---- */}
           {complianceResult && (
-            <ComplianceResponse
-              response={
-                complianceResult as {
-                  complianceResponse?: Record<string, unknown>;
-                  [key: string]: unknown;
+            <div className="space-y-6">
+              <NewsContextCard
+                surface="compliance"
+                origin={originCountry}
+                destination={destinationCountry}
+                hsCode={hsCode}
+              />
+              <ComplianceResponse
+                response={
+                  complianceResult as {
+                    complianceResponse?: Record<string, unknown>;
+                    [key: string]: unknown;
+                  }
                 }
-              }
-            />
+              />
+            </div>
           )}
         </div>
 

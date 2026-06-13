@@ -73,7 +73,8 @@ export const boxCountRouter = router({
     .input(
       z.object({
         draftId: z.string().max(100).optional(),
-        declaredCount: z.number().int().positive(),
+        // 0 = no manifest declared (demo mode: just report what AI sees).
+        declaredCount: z.number().int().nonnegative().default(0),
         imageBase64: z.string().min(10).max(MAX_IMAGE_BASE64_CHARS, {
           message: "Image exceeds 10 MB limit",
         }),
@@ -130,7 +131,8 @@ export const boxCountRouter = router({
       const notes = String(parsed.notes ?? "").slice(0, MAX_NOTES_LEN);
 
       const diff = Math.abs(detectedCount - input.declaredCount);
-      const mismatch = diff > 0;
+      // No manifest → never a mismatch; this is "see what AI sees" mode.
+      const mismatch = input.declaredCount > 0 && diff > 0;
       const mismatchPct =
         input.declaredCount > 0 ? Math.min(100, (diff / input.declaredCount) * 100) : 0;
 
@@ -203,22 +205,39 @@ export const boxCountRouter = router({
     .mutation(async ({ ctx, input }) => {
       requireUserId(ctx);
 
+      // Demo-mode: treat every discrete physical object the YOLO detector
+      // surfaces (phones, bottles, mugs, books, laptops, etc.) as a stand-in
+      // for a cargo unit. In a real warehouse the same pipeline runs against
+      // actual cartons — but for a hackathon demo the operator is holding
+      // whatever's on their desk, and the inspection flow needs to read it
+      // as "1 unit", "2 units", etc., not "no packages visible".
       const yoloSummary = input.yoloClassCounts
         ? Object.entries(input.yoloClassCounts)
             .map(([k, v]) => `${v} ${k}`)
             .join(", ")
         : "no YOLO data";
 
-      const prompt = `You are a logistics inspector analysing a live camera frame from a warehouse.
+      // Sum every YOLO detection (excluding "person") as the floor for the
+      // suspected count — gives the LLM a strong prior, so it never says
+      // "no packages" when the camera clearly sees objects.
+      const yoloUnitFloor = input.yoloClassCounts
+        ? Object.entries(input.yoloClassCounts)
+            .filter(([k]) => k.toLowerCase() !== "person")
+            .reduce((sum, [, v]) => sum + v, 0)
+        : 0;
+
+      const prompt = `You are a logistics inspector running a live camera inspection. Demo mode is active: in this demo, the operator presents stand-in objects (phones, bottles, mugs, books, etc.) instead of real cargo cartons. You MUST treat EVERY discrete graspable object as one cargo unit — do not say "no packages visible" when the frame contains any object. Only ignore "person" detections.
+
 YOLO detector saw: ${yoloSummary}.
-Declared manifest count: ${input.manifestCount ?? "unknown"}.
+YOLO non-person object count: ${yoloUnitFloor}.
+Declared manifest count: ${input.manifestCount ?? "not yet declared"}.
 
 Respond ONLY with strict JSON:
 {
-  "commentary": "<one short sentence describing what you see in this frame, in the voice of a shipment inspector>",
-  "suspectedCount": <integer, your best estimate of distinct boxes/packages visible>,
+  "commentary": "<one short sentence describing the cargo units you see, in an inspector's voice. Always speak as if these are shipment units — e.g. 'I see 2 units staged in frame: a cylindrical container and a flat package.' Never say 'no packages'.>",
+  "suspectedCount": <integer count of distinct cargo units (graspable objects, excluding people). Must be at least ${yoloUnitFloor} when YOLO has found that many.>,
   "riskLevel": "low" | "medium" | "high",
-  "alert": <true if you see anything suspicious — damage, tampering, mismatch with manifest, missing items>
+  "alert": <true if the count differs from the manifest count, OR if any object looks damaged/tampered. false otherwise.>
 }`;
 
       let rawText: string;
@@ -279,7 +298,8 @@ Respond ONLY with strict JSON:
     .input(
       z.object({
         draftId: z.string().max(100).optional(),
-        declaredCount: z.number().int().positive(),
+        // 0 = demo mode, no manifest comparison.
+        declaredCount: z.number().int().nonnegative().default(0),
         detectedCount: z.number().int().nonnegative(),
         confidence: z.number().min(CONFIDENCE_MIN).max(CONFIDENCE_MAX).default(0.85),
         notes: z.string().max(MAX_NOTES_LEN).default(""),
@@ -289,7 +309,7 @@ Respond ONLY with strict JSON:
       const userId = requireUserId(ctx);
 
       const diff = Math.abs(input.detectedCount - input.declaredCount);
-      const mismatch = diff > 0;
+      const mismatch = input.declaredCount > 0 && diff > 0;
       const mismatchPct =
         input.declaredCount > 0 ? Math.min(100, (diff / input.declaredCount) * 100) : 0;
 

@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import PageLead from "../../components/PageLead";
-import Toast from "../../components/Toast";
 import { countryOptions } from "../../constants/constants";
 import { trpc } from "../../lib/trpc";
 
@@ -60,11 +59,6 @@ interface TabCounts {
   "non-compliant": number;
   compliant: number;
   "ready-for-shipment": number;
-}
-
-interface ToastProps {
-  type: string;
-  message: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -126,10 +120,7 @@ const InventoryManagement: React.FC = () => {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
-  const [toastProps, setToastProps] = useState<ToastProps>({
-    type: "",
-    message: "",
-  });
+  const [inventoryStatus, setInventoryStatus] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
   const [openDialog, setOpenDialog] = useState<boolean>(false);
   const [newDraft, setNewDraft] = useState<NewDraftForm>({
     originCountry: "",
@@ -285,16 +276,13 @@ const InventoryManagement: React.FC = () => {
   const proceedWithDelete = async (draftId: string): Promise<void> => {
     try {
       await deleteDraftMutation.mutateAsync({ id: draftId });
-      setToastProps({
-        type: "success",
-        message: "Draft deleted successfully.",
-      });
+      setInventoryStatus({ kind: "ok", text: "Draft deleted." });
       invalidateDrafts();
     } catch (error: unknown) {
       console.error("Error deleting draft:", error);
       const errorMessage =
         (error as unknown as { message?: string })?.message || "Failed to delete draft.";
-      setToastProps({ type: "error", message: errorMessage });
+      setInventoryStatus({ kind: "err", text: errorMessage });
     }
   };
 
@@ -401,17 +389,14 @@ const InventoryManagement: React.FC = () => {
         weight: Number(newDraft.weight),
       });
 
-      setToastProps({
-        type: "success",
-        message: "Draft created successfully!",
-      });
+      setInventoryStatus({ kind: "ok", text: "Draft created." });
       handleDialogClose();
       invalidateDrafts();
     } catch (error: unknown) {
       console.error("Error creating draft:", error);
       const errorMessage =
         (error as unknown as { message?: string })?.message || "Failed to create draft.";
-      setToastProps({ type: "error", message: errorMessage });
+      setInventoryStatus({ kind: "err", text: errorMessage });
     } finally {
       setSubmitting(false);
     }
@@ -968,7 +953,31 @@ const InventoryManagement: React.FC = () => {
         </div>
       </Modal>
 
-      <Toast type={toastProps.type} message={toastProps.message} />
+      {inventoryStatus && (
+        <div
+          role={inventoryStatus.kind === "err" ? "alert" : "status"}
+          className={`fixed bottom-6 right-6 max-w-md p-3 rounded-xl border text-sm flex items-center gap-2 shadow-sm ${
+            inventoryStatus.kind === "ok"
+              ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+              : "bg-red-50 border-red-200 text-red-700"
+          }`}
+        >
+          {inventoryStatus.kind === "ok" ? (
+            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+          ) : (
+            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          )}
+          {inventoryStatus.text}
+          <button
+            type="button"
+            onClick={() => setInventoryStatus(null)}
+            className="ml-2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
     </div>
   );
 };

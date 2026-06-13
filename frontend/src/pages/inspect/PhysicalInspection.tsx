@@ -4,6 +4,8 @@ import { Camera, Scale, Tag, Diff, PlayCircle, CheckCircle2, Circle } from "luci
 import PageLead from "../../components/PageLead";
 import DraftPicker from "../../components/DraftPicker";
 import TrustGauge from "../../components/TrustGauge";
+import NewsContextCard from "../../components/NewsContextCard";
+import { trpc } from "../../lib/trpc";
 
 import BoxCountTab from "./BoxCountTab";
 import WeightCheckTab from "./WeightCheckTab";
@@ -88,6 +90,17 @@ export default function PhysicalInspection() {
     (v) => v !== null
   ).length;
 
+  // Pull shipment context for the selected draft so NewsContextCard can
+  // surface "AI saw this in the news" warnings tied to this exact shipment.
+  const draftQuery = trpc.inventory.getDraftById.useQuery(
+    { id: selectedDraftId },
+    { enabled: Boolean(selectedDraftId), retry: false }
+  );
+  const shipment =
+    (draftQuery.data?.draft as unknown as {
+      formData?: { ShipmentDetails?: Record<string, string> };
+    } | undefined)?.formData?.ShipmentDetails ?? {};
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12">
       <PageLead
@@ -107,6 +120,18 @@ export default function PhysicalInspection() {
           </>
         }
       />
+
+      {/* News-grounded AI intelligence — only when a draft is selected,
+          so it can speak to that specific shipment. */}
+      {selectedDraftId && (
+        <NewsContextCard
+          surface="inspect"
+          origin={shipment["Origin Country"]}
+          destination={shipment["Destination Country"]}
+          hsCode={shipment["HS Code"]}
+          productDescription={shipment["Product Description"]}
+        />
+      )}
 
       {/* Two-column layout: tabs + trust panel */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

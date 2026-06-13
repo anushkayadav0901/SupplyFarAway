@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { toast } from "react-toastify";
 import {
   MapPin,
   Navigation,
@@ -21,6 +20,7 @@ import MapView from "../inventory/MapView";
 import PageLead from "../../components/PageLead";
 import DraftPicker from "../../components/DraftPicker";
 import CardSkeleton from "../../components/skeletons/CardSkeleton";
+import NewsContextCard from "../../components/NewsContextCard";
 import { trpc } from "../../lib/trpc";
 
 // ---------------------------------------------------------------------------
@@ -221,20 +221,23 @@ export default function RoutePlanning() {
     setSearchParams(params, { replace: true });
   }, [draftId, setSearchParams]);
 
+  const [routeError, setRouteError] = useState<string>("");
+
   // Generate routes mutation
   const generateMutation = trpc.logistics.generateRoutes.useMutation({
     onSuccess: (data) => {
       const items = data as GeneratedRoute[];
       if (!items || items.length === 0) {
-        toast.error("No routes returned. Try different locations.");
+        setRouteError("No routes returned. Try different locations.");
+        setRoutes([]);
         return;
       }
+      setRouteError("");
       setRoutes(items);
       setSelectedIndex(0);
-      toast.success(`${items.length} routes generated.`);
     },
     onError: (err) => {
-      toast.error(err.message || "Failed to generate routes.");
+      setRouteError(err.message || "Failed to generate routes.");
     },
   });
 
@@ -367,6 +370,21 @@ export default function RoutePlanning() {
               <WeatherTile data={weatherQuery.data.origin} label="Origin" />
               <WeatherTile data={weatherQuery.data.destination} label="Destination" />
             </div>
+          )}
+
+          {/* Inline error if routes failed */}
+          {routeError && !generateMutation.isPending && (
+            <p className="text-sm text-red-600" role="alert">{routeError}</p>
+          )}
+
+          {/* News-grounded AI intelligence — visible workflow per CLAUDE.md */}
+          {!generateMutation.isPending && routes.length > 0 && (
+            <NewsContextCard
+              surface="route"
+              origin={from}
+              destination={to}
+              transportMode={routes[0]?.routeDirections?.[0]?.state}
+            />
           )}
 
           {/* Route results — flat section, result buttons are the result primitives */}

@@ -10,7 +10,6 @@ import {
   Maximize2,
   X,
 } from "lucide-react";
-import { toast } from "react-toastify";
 import { trpc } from "../../lib/trpc";
 
 const HistoryTab: React.FC = () => {
@@ -45,19 +44,21 @@ const HistoryTab: React.FC = () => {
 
   const loading = complianceLoading || routeLoading || productLoading;
 
+  const [deleteError, setDeleteError] = useState<string>("");
+
   const deleteComplianceMutation = trpc.compliance.deleteRecord.useMutation({
-    onSuccess: () => { toast.success("Compliance record deleted."); void refetchCompliance(); },
-    onError: () => { toast.error("Failed to delete compliance record."); },
+    onSuccess: () => { setDeleteError(""); void refetchCompliance(); },
+    onError: () => { setDeleteError("Failed to delete compliance record."); },
   });
 
   const deleteRouteMutation = trpc.logistics.deleteRouteRecord.useMutation({
-    onSuccess: () => { toast.success("Route record deleted."); void refetchRoute(); },
-    onError: () => { toast.error("Failed to delete route record."); },
+    onSuccess: () => { setDeleteError(""); void refetchRoute(); },
+    onError: () => { setDeleteError("Failed to delete route record."); },
   });
 
   const deleteProductAnalysisMutation = trpc.compliance.deleteProductAnalysis.useMutation({
-    onSuccess: () => { toast.success("Product analysis deleted."); void refetchProductAnalysis(); },
-    onError: () => { toast.error("Failed to delete product analysis record."); },
+    onSuccess: () => { setDeleteError(""); void refetchProductAnalysis(); },
+    onError: () => { setDeleteError("Failed to delete product analysis record."); },
   });
 
   const tabs = [
@@ -81,6 +82,9 @@ const HistoryTab: React.FC = () => {
 
   return (
     <div className="space-y-8">
+      {deleteError && (
+        <p className="text-sm text-red-600" role="alert">{deleteError}</p>
+      )}
       {/* Flat tab bar */}
       <div className="flex border-b border-slate-200 gap-6 pb-px overflow-x-auto">
         {tabs.map(({ value, label, icon: Icon }) => (

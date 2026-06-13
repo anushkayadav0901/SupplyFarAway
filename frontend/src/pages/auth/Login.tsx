@@ -1,13 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Eye, EyeOff, ArrowUpRight } from "lucide-react";
-import Toast from "../../components/Toast";
 import { trpc } from "../../lib/trpc";
-
-interface ToastState {
-  type: string;
-  message: string;
-}
 
 export default function Login() {
   const [emailAddress, setEmail] = useState("");
@@ -15,7 +9,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [toastProps, setToastProps] = useState<ToastState>({ type: "", message: "" });
+  const [loginError, setLoginError] = useState<string>("");
   const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -27,13 +21,13 @@ export default function Login() {
   const loginMutation = trpc.auth.loginUser.useMutation({
     onSuccess: (data: { token: string; [key: string]: unknown }) => {
       localStorage.setItem("token", data.token);
-      setToastProps({ type: "success", message: "Login successful." });
+      setLoginError("");
       const next = searchParams.get("next") || "/dashboard";
       if (navTimerRef.current) clearTimeout(navTimerRef.current);
-      navTimerRef.current = setTimeout(() => navigate(next), 700);
+      navTimerRef.current = setTimeout(() => navigate(next), 200);
     },
     onError: (error: { message: string }) => {
-      setToastProps({ type: "error", message: error.message || "Login failed" });
+      setLoginError(error.message || "Login failed");
     },
   });
 
@@ -44,13 +38,14 @@ export default function Login() {
   const handleLogin = () => {
     if (loading) return;
     if (!emailAddress || !password) {
-      setToastProps({ type: "warn", message: "Email and password are required." });
+      setLoginError("Email and password are required.");
       return;
     }
     if (!isValidEmail(emailAddress)) {
-      setToastProps({ type: "warn", message: "That email doesn't look right." });
+      setLoginError("That email doesn't look right.");
       return;
     }
+    setLoginError("");
     loginMutation.mutate({ emailAddress, password });
   };
 
@@ -144,6 +139,10 @@ export default function Login() {
             )}
           </button>
 
+          {loginError && (
+            <p className="text-sm text-red-600 text-center" role="alert">{loginError}</p>
+          )}
+
           <p className="text-center text-sm text-gray-600 mt-6">
             Don't have an account?{" "}
             <Link to="/createAccount" className="text-gray-900 font-medium hover:underline">
@@ -152,8 +151,6 @@ export default function Login() {
           </p>
         </div>
       </div>
-
-      <Toast type={toastProps.type} message={toastProps.message} />
     </div>
   );
 }

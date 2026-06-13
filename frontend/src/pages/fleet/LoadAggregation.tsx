@@ -1,5 +1,4 @@
 import { useCallback, useState } from "react";
-import { toast } from "react-toastify";
 import { MapPin, Package, RefreshCcw, Truck } from "lucide-react";
 
 import InsightsRail from "../../components/InsightsRail";
@@ -163,12 +162,13 @@ export default function LoadAggregation({ asTab = false }: { asTab?: boolean }) 
   const [notes, setNotes] = useState("");
 
   const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string>("");
 
   const utils = trpc.useUtils();
 
   const createOffer = trpc.loadMatch.createOffer.useMutation({
     onSuccess: () => {
-      toast.success("Load offer posted.");
+      setLoadError("");
       setOriginCity("");
       setDestinationCity("");
       setWeightKg("");
@@ -177,20 +177,20 @@ export default function LoadAggregation({ asTab = false }: { asTab?: boolean }) 
       utils.loadMatch.listMine.invalidate().catch(() => null);
     },
     onError: (err) => {
-      toast.error(err.message || "Failed to create load offer.");
+      setLoadError(err.message || "Failed to create load offer.");
     },
   });
 
   const cancelOffer = trpc.loadMatch.cancel.useMutation({
     onSuccess: (_data, variables) => {
-      toast.success("Offer cancelled.");
+      setLoadError("");
       utils.loadMatch.listMine.invalidate().catch(() => null);
       setSelectedOfferId((current) =>
         current === variables.offerId ? null : current,
       );
     },
     onError: (err) => {
-      toast.error(err.message || "Failed to cancel offer.");
+      setLoadError(err.message || "Failed to cancel offer.");
     },
   });
 
@@ -210,22 +210,23 @@ export default function LoadAggregation({ asTab = false }: { asTab?: boolean }) 
       e.preventDefault();
       if (createOffer.isPending) return;
       if (!originCity.trim()) {
-        toast.error("Origin city is required.");
+        setLoadError("Origin city is required.");
         return;
       }
       if (!destinationCity.trim()) {
-        toast.error("Destination city is required.");
+        setLoadError("Destination city is required.");
         return;
       }
       const weight = parseFloat(weightKg);
       if (isNaN(weight) || weight <= 0) {
-        toast.error("Weight must be a positive number.");
+        setLoadError("Weight must be a positive number.");
         return;
       }
       if (!pickupDate) {
-        toast.error("Pickup date is required.");
+        setLoadError("Pickup date is required.");
         return;
       }
+      setLoadError("");
       createOffer.mutate({
         originCity: originCity.trim(),
         destinationCity: destinationCity.trim(),
@@ -373,6 +374,9 @@ export default function LoadAggregation({ asTab = false }: { asTab?: boolean }) 
               />
             </div>
 
+            {loadError && (
+              <p className="text-sm text-red-600" role="alert">{loadError}</p>
+            )}
             <div className="flex justify-end">
               <button
                 type="submit"
