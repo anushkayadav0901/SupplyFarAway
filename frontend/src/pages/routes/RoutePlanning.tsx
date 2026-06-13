@@ -15,6 +15,7 @@ import {
   Leaf,
 } from "lucide-react";
 import MapView from "../inventory/MapView";
+import PageLead from "../../components/PageLead";
 import DraftPicker from "../../components/DraftPicker";
 import CardSkeleton from "../../components/skeletons/CardSkeleton";
 import { trpc } from "../../lib/trpc";
@@ -198,22 +199,13 @@ export default function RoutePlanning() {
   const selectedRoute = selectedIndex !== null ? routes[selectedIndex] : null;
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10 space-y-6">
 
-        {/* Draft context bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-white p-5 rounded-2xl border border-slate-200 shadow-sm gap-4">
-          <div>
-            <h2 className="text-lg font-bold text-slate-800">Operational Context</h2>
-            <p className="text-sm text-slate-500 mt-0.5">
-              Optionally link results to an active draft for map processing and compliance hand-off.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-slate-600">Draft:</span>
-            <DraftPicker value={draftId} onSelect={setDraftId} />
-          </div>
-        </div>
+        <PageLead
+          title="Plan a global shipping route"
+          sub="From and to. Gemini returns 7 options with cost, time, carbon, and a live map. Toggle live tracking on any saved route."
+          right={<DraftPicker value={draftId} onSelect={setDraftId} />}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
@@ -254,32 +246,18 @@ export default function RoutePlanning() {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">
-                      Cargo weight (kg)
-                    </label>
-                    <input
-                      type="number"
-                      min="0.1"
-                      step="any"
-                      value={weight}
-                      onChange={(e) => setWeight(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">
-                      Description
-                    </label>
-                    <input
-                      type="text"
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="General cargo"
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                    Cargo weight (kg)
+                  </label>
+                  <input
+                    type="number"
+                    min="0.1"
+                    step="any"
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
                 </div>
                 <button
                   type="submit"
@@ -483,7 +461,6 @@ export default function RoutePlanning() {
             </div>
           </div>
         </div>
-      </main>
     </div>
   );
 }

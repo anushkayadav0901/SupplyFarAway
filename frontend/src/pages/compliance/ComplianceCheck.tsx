@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Info } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
 import ComplianceResponse from "./ComplianceResponse";
 import ComplianceResponseSkeleton from "../../components/Skeleton/ComplianceResponseSkeleton";
 import {
@@ -395,9 +394,9 @@ const ComplianceForm: React.FC = () => {
           <select
             value={(value as string) || ""}
             onChange={(e) => handleInputChange(section, field, e.target.value)}
-            className={`w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
-              mandatory && !value ? "border-red-500" : "border-neutral-300"
-            } ${responseReceived ? "bg-neutral-200 cursor-not-allowed" : ""}`}
+            className={`w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base ${
+              mandatory && !value ? "border-red-500" : "border-slate-300"
+            } ${responseReceived ? "bg-slate-100 cursor-not-allowed" : ""}`}
             required={mandatory}
             disabled={responseReceived}
           >
@@ -426,9 +425,9 @@ const ComplianceForm: React.FC = () => {
           <select
             value={(value as string) || ""}
             onChange={(e) => handleInputChange(section, field, e.target.value)}
-            className={`w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
-              mandatory && !value ? "border-red-500" : "border-neutral-300"
-            } ${responseReceived ? "bg-neutral-200 cursor-not-allowed" : ""}`}
+            className={`w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base ${
+              mandatory && !value ? "border-red-500" : "border-slate-300"
+            } ${responseReceived ? "bg-slate-100 cursor-not-allowed" : ""}`}
             required={mandatory}
             disabled={responseReceived}
           >
@@ -450,9 +449,9 @@ const ComplianceForm: React.FC = () => {
             type="number"
             value={(value as string) || ""}
             onChange={(e) => handleInputChange(section, field, e.target.value)}
-            className={`w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
-              mandatory && !value ? "border-red-500" : "border-neutral-300"
-            } ${responseReceived ? "bg-neutral-200 cursor-not-allowed" : ""}`}
+            className={`w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base ${
+              mandatory && !value ? "border-red-500" : "border-slate-300"
+            } ${responseReceived ? "bg-slate-100 cursor-not-allowed" : ""}`}
             placeholder={placeholder}
             required={mandatory}
             min="0"
@@ -466,9 +465,9 @@ const ComplianceForm: React.FC = () => {
           <textarea
             value={(value as string) || ""}
             onChange={(e) => handleInputChange(section, field, e.target.value)}
-            className={`w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
-              mandatory && !value ? "border-red-500" : "border-neutral-300"
-            } ${responseReceived ? "bg-neutral-200 cursor-not-allowed" : ""}`}
+            className={`w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base ${
+              mandatory && !value ? "border-red-500" : "border-slate-300"
+            } ${responseReceived ? "bg-slate-100 cursor-not-allowed" : ""}`}
             placeholder={placeholder}
             rows={3}
             required={mandatory}
@@ -479,9 +478,9 @@ const ComplianceForm: React.FC = () => {
             type="text"
             value={(value as string) || ""}
             onChange={(e) => handleInputChange(section, field, e.target.value)}
-            className={`w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
-              mandatory && !value ? "border-red-500" : "border-neutral-300"
-            } ${responseReceived ? "bg-neutral-200 cursor-not-allowed" : ""}`}
+            className={`w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base ${
+              mandatory && !value ? "border-red-500" : "border-slate-300"
+            } ${responseReceived ? "bg-slate-100 cursor-not-allowed" : ""}`}
             placeholder={placeholder}
             required={mandatory}
             disabled={responseReceived}
@@ -497,11 +496,11 @@ const ComplianceForm: React.FC = () => {
               onChange={(e) =>
                 handleInputChange(section, field, e.target.value, "currency")
               }
-              className={`w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
+              className={`w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base ${
                 mandatory && !valObj?.currency
                   ? "border-red-500"
-                  : "border-neutral-300"
-              } ${responseReceived ? "bg-neutral-200 cursor-not-allowed" : ""}`}
+                  : "border-slate-300"
+              } ${responseReceived ? "bg-slate-100 cursor-not-allowed" : ""}`}
               required={mandatory}
               disabled={responseReceived}
             >
@@ -520,11 +519,11 @@ const ComplianceForm: React.FC = () => {
               onChange={(e) =>
                 handleInputChange(section, field, e.target.value, "amount")
               }
-              className={`w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
+              className={`w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base ${
                 mandatory && !valObj?.amount
                   ? "border-red-500"
-                  : "border-neutral-300"
-              } ${responseReceived ? "bg-neutral-200 cursor-not-allowed" : ""}`}
+                  : "border-slate-300"
+              } ${responseReceived ? "bg-slate-100 cursor-not-allowed" : ""}`}
               placeholder={placeholder}
               required={mandatory}
               min="0"
@@ -555,7 +554,7 @@ const ComplianceForm: React.FC = () => {
                   responseReceived ? "cursor-not-allowed opacity-50" : ""
                 }`}
               />
-              <span className="text-sm md:text-base text-neutral-700">
+              <span className="text-sm md:text-base text-slate-700">
                 {field}
               </span>
             </div>
@@ -581,7 +580,7 @@ const ComplianceForm: React.FC = () => {
                       }`}
                       disabled={responseReceived}
                     />
-                    <span className="text-sm md:text-base text-neutral-700">
+                    <span className="text-sm md:text-base text-slate-700">
                       {subItem.field}
                     </span>
                   </div>
@@ -598,9 +597,9 @@ const ComplianceForm: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-100 p-4 sm:p-6">
-      <div className="max-w-7xl mx-auto bg-white mt-6 shadow-lg rounded-2xl mb-6 overflow-x-auto border border-gray-100">
-        <div className="flex border-b border-gray-200 whitespace-nowrap bg-gray-50">
+    <div className="min-h-screen bg-slate-50 p-4 sm:p-6">
+      <div className="max-w-7xl mx-auto bg-white mt-6 border border-slate-200 rounded-xl mb-6 overflow-x-auto">
+        <div className="flex border-b border-slate-200 whitespace-nowrap bg-slate-50">
           {tabOrder.map((tab: string, tabIdx: number) => {
             const currentIdx = tabOrder.indexOf(activeTab);
             // Allow free navigation to already-visited tabs, but only allow
@@ -619,31 +618,31 @@ const ComplianceForm: React.FC = () => {
                 }}
                 aria-disabled={isLocked}
                 disabled={isLocked}
-                className={`flex-shrink-0 px-6 py-4 text-sm sm:text-base font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 relative ${
+                className={`flex-shrink-0 px-6 py-4 text-sm sm:text-base font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 relative ${
                   activeTab === tab
                     ? "text-blue-600 bg-white"
                     : isLocked
-                    ? "text-gray-400 cursor-not-allowed"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50/50"
+                    ? "text-slate-400 cursor-not-allowed"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                 }`}
               >
                 {tab.replace(/([A-Z])/g, " $1").trim()}
                 {activeTab === tab && (
-                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-600 rounded-t-full" />
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
                 )}
               </button>
             );
           })}
         </div>
       </div>
-      <div className="max-w-7xl mx-auto bg-white shadow-xl rounded-2xl p-6 sm:p-8 border border-gray-100">
+      <div className="max-w-7xl mx-auto bg-white rounded-xl p-6 sm:p-8 border border-slate-200">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-md">
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">
             {activeTab.replace(/([A-Z])/g, " $1").trim()}
           </h2>
         </div>
@@ -663,7 +662,7 @@ const ComplianceForm: React.FC = () => {
                 </span>
                 <label
                   htmlFor={`field-${activeTab}-${fieldData.field}`}
-                  className="text-sm font-medium text-tertiary-500"
+                  className="text-sm font-medium text-slate-600"
                 >
                   {fieldData.field}{" "}
                   {fieldData.mandatory && (
@@ -679,10 +678,10 @@ const ComplianceForm: React.FC = () => {
           <button
             onClick={handlePrevTab}
             disabled={tabOrder.indexOf(activeTab) === 0 || responseReceived}
-            className={`py-3 sm:py-3.5 px-6 sm:px-8 text-base sm:text-lg font-semibold rounded-xl transition-all duration-200 w-full sm:w-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 shadow-md ${
+            className={`py-2.5 px-6 text-sm font-semibold rounded-xl transition-colors w-full sm:w-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${
               tabOrder.indexOf(activeTab) === 0 || responseReceived
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed opacity-60"
-                : "bg-emerald-500 hover:bg-emerald-600 text-white hover:shadow-lg hover:scale-[1.02]"
+                ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                : "bg-emerald-500 hover:bg-emerald-600 text-white"
             }`}
           >
             Previous
@@ -693,10 +692,10 @@ const ComplianceForm: React.FC = () => {
               disabled={
                 !areCurrentTabMandatoryFieldsFilled() || responseReceived
               }
-              className={`py-3 sm:py-3.5 px-6 sm:px-8 text-base sm:text-lg font-semibold rounded-xl transition-all duration-200 w-full sm:w-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 shadow-md ${
+              className={`py-2.5 px-6 text-sm font-semibold rounded-xl transition-colors w-full sm:w-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
                 !areCurrentTabMandatoryFieldsFilled() || responseReceived
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed opacity-60"
-                  : "bg-blue-600 hover:bg-blue-700 text-white hover:shadow-lg hover:scale-[1.02]"
+                  ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700 text-white"
               }`}
             >
               Next
@@ -705,10 +704,10 @@ const ComplianceForm: React.FC = () => {
             <button
               onClick={handleSubmit}
               disabled={isButtonDisabled}
-              className={`py-3 sm:py-3.5 px-6 sm:px-8 text-base sm:text-lg font-semibold rounded-xl transition-all duration-200 w-full sm:w-auto min-w-[240px] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 inline-flex items-center justify-center gap-3 shadow-md ${
+              className={`py-2.5 px-6 text-sm font-semibold rounded-xl transition-colors w-full sm:w-auto min-w-[200px] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 inline-flex items-center justify-center gap-2 ${
                 isButtonDisabled
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed opacity-60"
-                  : "bg-blue-600 hover:bg-blue-700 text-white hover:shadow-lg hover:scale-[1.02]"
+                  ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700 text-white"
               }`}
             >
               {loading && (
@@ -724,40 +723,22 @@ const ComplianceForm: React.FC = () => {
                 </svg>
               )}
               {loading
-                ? "Checking Compliance..."
+                ? "Checking..."
                 : responseReceived
                 ? "Compliance Checked"
-                : "Compliance Check"}
+                : "Run Compliance Check"}
             </button>
           )}
         </div>
       </div>
       <div className="min-h-[400px]">
-        <AnimatePresence mode="wait">
-          {loading ? (
-            <motion.div
-              key="skeleton"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-            >
-              <ComplianceResponseSkeleton />
-            </motion.div>
-          ) : response ? (
-            <motion.div
-              key="response"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-            >
-              <ComplianceResponse
-                response={response as { complianceResponse?: Record<string, unknown>; [key: string]: unknown }}
-              />
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
+        {loading ? (
+          <ComplianceResponseSkeleton />
+        ) : response ? (
+          <ComplianceResponse
+            response={response as { complianceResponse?: Record<string, unknown>; [key: string]: unknown }}
+          />
+        ) : null}
       </div>
       {toastProps && (
         <Toast type={toastProps.type} message={toastProps.message} />

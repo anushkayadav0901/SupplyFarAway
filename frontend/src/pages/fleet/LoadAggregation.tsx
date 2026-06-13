@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { useCallback, useState } from "react";
 import { toast } from "react-toastify";
 import { MapPin, Package, RefreshCcw, Truck } from "lucide-react";
 
@@ -8,15 +7,6 @@ import CountUp from "../../components/CountUp";
 import CardSkeleton from "../../components/skeletons/CardSkeleton";
 import { trpc } from "../../lib/trpc";
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const SCAN_DURATION_MS = 1600;
-const MATCH_STAGGER_DELAY = 0.07;
-const MATCH_TRANSITION_DURATION = 0.2;
-const ARC_SWEEP_DURATION = 2.2;
-const RING_TRANSITION_DURATION = 0.6;
 
 // ---------------------------------------------------------------------------
 // Formatting helpers (V7)
@@ -64,29 +54,26 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// CorridorArc — animated SVG arc from origin → destination with scan beam.
+// CorridorArc — static SVG showing the origin → destination corridor.
 // Handles origin === destination gracefully (shows a dot, no arc).
 // ---------------------------------------------------------------------------
 
 function CorridorArc({
   origin,
   destination,
-  scanning,
 }: {
   origin: string;
   destination: string;
-  scanning: boolean;
 }) {
-  const shouldReduceMotion = useReducedMotion();
   const sameCity = origin.trim() !== "" && origin.trim() === destination.trim();
 
   if (sameCity) {
     return (
       <div
-        className="relative bg-slate-50 rounded-xl border border-slate-200 px-5 py-4 overflow-hidden"
+        className="bg-slate-50 rounded-xl border border-slate-200 px-5 py-4"
         aria-label={`Same origin and destination: ${origin}`}
       >
-        <svg viewBox="0 0 400 100" className="w-full h-24">
+        <svg viewBox="0 0 400 100" className="w-full h-16" aria-hidden="true">
           <circle cx="200" cy="50" r="18" fill="none" stroke="#3b82f6" strokeWidth="3" strokeDasharray="6,4" />
           <circle cx="200" cy="50" r="6" fill="#3b82f6" />
           <circle cx="200" cy="50" r="3" fill="#fff" />
@@ -103,45 +90,22 @@ function CorridorArc({
 
   return (
     <div
-      className="relative bg-slate-50 rounded-xl border border-slate-200 px-5 py-4 overflow-hidden"
+      className="bg-slate-50 rounded-xl border border-slate-200 px-5 py-4"
       aria-label={`Corridor from ${origin || "origin"} to ${destination || "destination"}`}
     >
-      <svg viewBox="0 0 400 100" className="w-full h-24" aria-hidden="true">
-        <defs>
-          <linearGradient id="arcGrad" x1="0" x2="1" y1="0" y2="0">
-            <stop offset="0%" stopColor="#3b82f6" />
-            <stop offset="100%" stopColor="#10b981" />
-          </linearGradient>
-        </defs>
+      <svg viewBox="0 0 400 100" className="w-full h-16" aria-hidden="true">
         <path
           d="M 30 80 Q 200 0 370 80"
           fill="none"
-          stroke="url(#arcGrad)"
+          stroke="#3b82f6"
           strokeWidth="2.5"
           strokeDasharray="5,4"
         />
-        {/* Scan beam — sweeps across while computing matches (V10: respects reduced-motion) */}
-        {scanning && !shouldReduceMotion && (
-          <motion.rect
-            y="0"
-            height="100"
-            width="2"
-            fill="#3b82f6"
-            opacity={0.55}
-            initial={{ x: 30 }}
-            animate={{ x: [30, 370, 30] }}
-            transition={{
-              duration: ARC_SWEEP_DURATION,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          />
-        )}
         {/* Origin pin */}
         <circle cx="30" cy="80" r="6" fill="#3b82f6" />
         <circle cx="30" cy="80" r="3" fill="#fff" />
         {/* Destination pin */}
-        <circle cx="370" cy="80" r="6" fill="#10b981" />
+        <circle cx="370" cy="80" r="6" fill="#3b82f6" />
         <circle cx="370" cy="80" r="3" fill="#fff" />
       </svg>
       <div className="flex items-center justify-between text-xs text-slate-600 font-semibold mt-1">
@@ -151,7 +115,7 @@ function CorridorArc({
         </span>
         <span className="flex items-center gap-1">
           {destination || "—"}
-          <MapPin className="w-3 h-3 text-emerald-600" aria-hidden="true" />
+          <MapPin className="w-3 h-3 text-blue-600" aria-hidden="true" />
         </span>
       </div>
     </div>
@@ -171,7 +135,7 @@ const SimilarityRing = ({ pct }: { pct: number }) => {
     <div className="relative w-12 h-12" aria-label={`${Math.round(safePct)}% match`}>
       <svg viewBox="0 0 44 44" className="w-full h-full -rotate-90" aria-hidden="true">
         <circle cx="22" cy="22" r={r} stroke="#e2e8f0" strokeWidth="4" fill="none" />
-        <motion.circle
+        <circle
           cx="22"
           cy="22"
           r={r}
@@ -180,9 +144,7 @@ const SimilarityRing = ({ pct }: { pct: number }) => {
           strokeLinecap="round"
           fill="none"
           strokeDasharray={c}
-          initial={{ strokeDashoffset: c }}
-          animate={{ strokeDashoffset: offset }}
-          transition={{ duration: RING_TRANSITION_DURATION, ease: "easeOut" }}
+          strokeDashoffset={offset}
         />
       </svg>
       <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-blue-700">
@@ -205,8 +167,6 @@ export default function LoadAggregation({ asTab = false }: { asTab?: boolean }) 
 
   // Track which offer's matches are currently shown
   const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
-  const [scanning, setScanning] = useState(false);
-  const scanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const utils = trpc.useUtils();
 
@@ -251,19 +211,6 @@ export default function LoadAggregation({ asTab = false }: { asTab?: boolean }) 
   );
   const matches: MatchResult[] =
     (matchQuery.data?.matches as unknown as MatchResult[]) ?? [];
-
-  // Trigger the scan beam whenever the user picks an offer to inspect
-  // or matches are reloading. Clean up timer on unmount (V4).
-  useEffect(() => {
-    if (selectedOfferId) {
-      setScanning(true);
-      if (scanTimerRef.current) clearTimeout(scanTimerRef.current);
-      scanTimerRef.current = setTimeout(() => setScanning(false), SCAN_DURATION_MS);
-    }
-    return () => {
-      if (scanTimerRef.current) clearTimeout(scanTimerRef.current);
-    };
-  }, [selectedOfferId, matchQuery.isLoading]);
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
@@ -323,7 +270,7 @@ export default function LoadAggregation({ asTab = false }: { asTab?: boolean }) 
       ---------------------------------------------------------------- */}
       <div className="lg:col-span-8 space-y-6">
 
-            {/* Post Load Form (C2: gradient card top, C8: rounded-2xl) */}
+            {/* Post Load Form */}
             <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
               <h2 className="text-xl font-bold text-slate-900 mb-1">
                 Post a Load Offer
@@ -339,7 +286,6 @@ export default function LoadAggregation({ asTab = false }: { asTab?: boolean }) 
                   <CorridorArc
                     origin={originCity}
                     destination={destinationCity}
-                    scanning={false}
                   />
                 </div>
               )}
@@ -439,14 +385,11 @@ export default function LoadAggregation({ asTab = false }: { asTab?: boolean }) 
                 </div>
 
                 <div className="flex justify-end">
-                  {/* C1: glow on primary button */}
-                  <motion.button
+                  <button
                     type="submit"
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.97 }}
                     disabled={createOffer.isPending}
                     aria-label="Post load offer"
-                    className="px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-sm hover:shadow-blue-200 hover:shadow-md transition-all flex items-center gap-2"
+                    className="px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-sm transition-colors flex items-center gap-2"
                   >
                     {createOffer.isPending ? (
                       <>
@@ -459,7 +402,7 @@ export default function LoadAggregation({ asTab = false }: { asTab?: boolean }) 
                     ) : (
                       "Post Load Offer"
                     )}
-                  </motion.button>
+                  </button>
                 </div>
               </form>
             </section>
@@ -517,7 +460,6 @@ export default function LoadAggregation({ asTab = false }: { asTab?: boolean }) 
                       key={offer._id}
                       offer={offer}
                       isSelected={selectedOfferId === offer._id}
-                      scanning={scanning}
                       matches={matches}
                       matchLoading={matchQuery.isLoading}
                       matchError={matchQuery.error?.message ?? null}
@@ -566,7 +508,6 @@ export default function LoadAggregation({ asTab = false }: { asTab?: boolean }) 
 interface OfferCardProps {
   offer: LoadOffer;
   isSelected: boolean;
-  scanning: boolean;
   matches: MatchResult[];
   matchLoading: boolean;
   matchError: string | null;
@@ -579,7 +520,6 @@ interface OfferCardProps {
 const OfferCard = ({
   offer,
   isSelected,
-  scanning,
   matches,
   matchLoading,
   matchError,
@@ -589,11 +529,7 @@ const OfferCard = ({
   onRefetchMatches,
 }: OfferCardProps) => {
   return (
-    <motion.div
-      layout
-      whileHover={{ y: -1 }}
-      className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6 transition-shadow hover:shadow-md"
-    >
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-2 flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
@@ -634,8 +570,8 @@ const OfferCard = ({
         <div className="flex items-center gap-2 shrink-0">
           {offer.status === "open" && (
             <>
-              <motion.button
-                whileTap={{ scale: 0.97 }}
+              <button
+                type="button"
                 onClick={() => onFindMatches(offer._id)}
                 aria-label={
                   isSelected
@@ -645,12 +581,12 @@ const OfferCard = ({
                 aria-expanded={isSelected}
                 className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
                   isSelected
-                    ? "bg-blue-600 text-white shadow-md shadow-blue-200"
+                    ? "bg-blue-600 text-white"
                     : "bg-blue-50 text-blue-700 hover:bg-blue-100"
                 }`}
               >
                 {isSelected ? "Hide Matches" : "Find Matches"}
-              </motion.button>
+              </button>
 
               <button
                 type="button"
@@ -666,110 +602,88 @@ const OfferCard = ({
         </div>
       </div>
 
-      {/* Match results panel with AnimatePresence for fade out/in (V1) */}
-      <AnimatePresence mode="wait">
-        {isSelected && (
-          <motion.div
-            key={`matches-${offer._id}`}
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: MATCH_TRANSITION_DURATION }}
-            className="mt-5 pt-5 border-t border-slate-100 overflow-hidden"
-          >
-            <h3 className="text-sm font-bold text-slate-700 mb-3">
-              Compatible Load Matches
-            </h3>
+      {isSelected && (
+        <div className="mt-5 pt-5 border-t border-slate-100">
+          <h3 className="text-sm font-bold text-slate-700 mb-3">
+            Compatible Load Matches
+          </h3>
 
-            <div className="mb-4">
-              <CorridorArc
-                origin={offer.originCity}
-                destination={offer.destinationCity}
-                scanning={scanning || matchLoading}
-              />
+          <div className="mb-4">
+            <CorridorArc
+              origin={offer.originCity}
+              destination={offer.destinationCity}
+            />
+          </div>
+
+          {matchLoading ? (
+            <div className="space-y-3" aria-busy="true">
+              <CardSkeleton height={70} />
+              <CardSkeleton height={70} />
             </div>
-
-            {matchLoading ? (
-              <div className="space-y-3" aria-busy="true">
-                <CardSkeleton height={70} />
-                <CardSkeleton height={70} />
-              </div>
-            ) : matchError ? (
-              /* V3: query error + retry */
-              <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-                <p className="text-sm text-red-700 font-medium">{matchError}</p>
-                <button
-                  type="button"
-                  onClick={onRefetchMatches}
-                  className="text-xs text-red-600 hover:text-red-700 underline mt-1"
+          ) : matchError ? (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+              <p className="text-sm text-red-700 font-medium">{matchError}</p>
+              <button
+                type="button"
+                onClick={onRefetchMatches}
+                className="text-xs text-red-600 hover:text-red-700 underline mt-1"
+              >
+                Retry
+              </button>
+            </div>
+          ) : matches.length === 0 ? (
+            <div className="flex flex-col items-center py-6 text-center">
+              <Package
+                className="w-8 h-8 text-slate-300 mb-2"
+                aria-hidden="true"
+              />
+              <p className="text-sm text-slate-500 font-medium">
+                No compatible loads found
+              </p>
+              <p className="text-xs text-slate-400 mt-1">
+                Check back later or adjust your offer details.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3" role="list" aria-label="Match results">
+              {matches.map((match) => (
+                <div
+                  key={match._id}
+                  role="listitem"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-blue-50 rounded-xl p-4"
                 >
-                  Retry
-                </button>
-              </div>
-            ) : matches.length === 0 ? (
-              /* V2: empty matches state */
-              <div className="flex flex-col items-center py-6 text-center">
-                <Package
-                  className="w-8 h-8 text-slate-300 mb-2"
-                  aria-hidden="true"
-                />
-                <p className="text-sm text-slate-500 font-medium">
-                  No compatible loads found
-                </p>
-                <p className="text-xs text-slate-400 mt-1">
-                  Check back later or adjust your offer details.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3" role="list" aria-label="Match results">
-                <AnimatePresence initial={false} mode="sync">
-                  {matches.map((match, idx) => (
-                    <motion.div
-                      key={match._id}
-                      role="listitem"
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      transition={{
-                        delay: idx * MATCH_STAGGER_DELAY,
-                        duration: MATCH_TRANSITION_DURATION,
-                      }}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-blue-50 rounded-xl p-4"
-                    >
-                      <div className="space-y-1 flex-1 min-w-0">
-                        <div className="text-sm font-semibold text-slate-800">
-                          {match.originCity}
-                          <span className="mx-2 text-blue-400" aria-hidden="true">→</span>
-                          {match.destinationCity}
-                        </div>
-                        <div className="flex flex-wrap gap-3 text-xs text-slate-600">
-                          <span>{fmtWeight(match.weightKg)}</span>
-                          <span>Pickup: {fmtDate(match.pickupDate)}</span>
-                          {match.notes && (
-                            <span className="italic text-slate-500 truncate">
-                              {match.notes}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                  <div className="space-y-1 flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-slate-800">
+                      {match.originCity}
+                      <span className="mx-2 text-blue-400" aria-hidden="true">→</span>
+                      {match.destinationCity}
+                    </div>
+                    <div className="flex flex-wrap gap-3 text-xs text-slate-600">
+                      <span>{fmtWeight(match.weightKg)}</span>
+                      <span>Pickup: {fmtDate(match.pickupDate)}</span>
+                      {match.notes && (
+                        <span className="italic text-slate-500 truncate">
+                          {match.notes}
+                        </span>
+                      )}
+                    </div>
+                  </div>
 
-                      <div className="flex items-center gap-3 shrink-0">
-                        <SimilarityRing pct={match.similarityScore} />
-                        <p className="text-xs text-slate-500 whitespace-nowrap">
-                          Combined:{" "}
-                          <strong className="text-slate-700">
-                            {fmtWeight(offer.weightKg + match.weightKg)}
-                          </strong>
-                        </p>
-                      </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <SimilarityRing pct={match.similarityScore} />
+                    <p className="text-xs text-slate-500 whitespace-nowrap">
+                      Combined:{" "}
+                      <strong className="text-slate-700">
+                        {fmtWeight(offer.weightKg + match.weightKg)}
+                      </strong>
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 };

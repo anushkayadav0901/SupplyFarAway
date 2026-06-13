@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   Line,
   LineChart,
@@ -64,7 +63,6 @@ interface WeightCheckTabProps {
 }
 
 export default function WeightCheckTab({ draftId, onResult }: WeightCheckTabProps) {
-  const shouldReduceMotion = useReducedMotion();
   const [form, setForm] = useState<FormState>(initialForm);
   const [series, setSeries] = useState<{ t: number; kg: number }[]>(() =>
     makeIdleSeries()
@@ -367,11 +365,10 @@ export default function WeightCheckTab({ draftId, onResult }: WeightCheckTabProp
                   Cancel
                 </button>
               )}
-              <motion.button
+              <button
                 type="submit"
-                whileTap={shouldReduceMotion ? {} : { scale: 0.97 }}
                 disabled={submitMutation.isPending || streaming}
-                className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold rounded-xl shadow-sm transition-colors duration-150 flex items-center gap-2"
+                className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold rounded-xl transition-colors duration-150 flex items-center gap-2"
               >
                 {streaming ? (
                   <>
@@ -389,19 +386,14 @@ export default function WeightCheckTab({ draftId, onResult }: WeightCheckTabProp
                     Stream & Verify
                   </>
                 )}
-              </motion.button>
+              </button>
             </div>
           </form>
         </div>
 
-        <AnimatePresence>
-          {latestResult && (
-            <motion.div
-              key="r"
-              initial={shouldReduceMotion ? {} : { opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 6 }}
-              className={`rounded-2xl border-2 p-6 flex flex-col sm:flex-row items-start sm:items-center gap-6 shadow-sm ${
+        {latestResult && (
+            <div
+              className={`rounded-2xl border-2 p-6 flex flex-col sm:flex-row items-start sm:items-center gap-6 ${
                 latestResult.flagged
                   ? "bg-red-50 border-red-300"
                   : "bg-emerald-50 border-emerald-300"
@@ -428,9 +420,8 @@ export default function WeightCheckTab({ draftId, onResult }: WeightCheckTabProp
                   {latestResult.thresholdPct}%)
                 </p>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+        )}
 
         {!latestResult && !isNaN(declaredFloat) && !isNaN(measuredFloat) && (
           <div className="rounded-2xl border border-slate-200 bg-white p-6 flex items-center gap-6 shadow-sm">
@@ -578,7 +569,6 @@ function ScaleNeedle({
   angle?: number;
   flagged: boolean;
 }) {
-  const shouldReduceMotion = useReducedMotion();
   const a = angle ?? Math.max(-90, Math.min(90, (pct / 25) * 90));
   const color = flagged ? "#ef4444" : "#10b981";
   return (
@@ -601,7 +591,7 @@ function ScaleNeedle({
             <line key={tick} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#cbd5e1" strokeWidth="2" />
           );
         })}
-        <motion.line
+        <line
           x1={100}
           y1={110}
           x2={100}
@@ -609,14 +599,11 @@ function ScaleNeedle({
           stroke={color}
           strokeWidth="3"
           strokeLinecap="round"
-          initial={false}
-          animate={{ rotate: a }}
-          style={{ originX: "100px", originY: "110px" }}
-          transition={
-            shouldReduceMotion
-              ? { duration: 0 }
-              : { type: "spring", stiffness: 110, damping: 14 }
-          }
+          style={{
+            transformOrigin: "100px 110px",
+            transform: `rotate(${a}deg)`,
+            transition: "transform 0.4s ease-out",
+          }}
         />
         <circle cx="100" cy="110" r="6" fill={color} />
       </svg>

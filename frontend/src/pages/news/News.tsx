@@ -1,13 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { motion, useReducedMotion } from "framer-motion";
-import {
-  FaNewspaper,
-  FaSearch,
-  FaCalendarAlt,
-  FaChevronDown,
-  FaChevronUp,
-} from "react-icons/fa";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { Newspaper, Search, Calendar, ChevronDown, ChevronUp } from "lucide-react";
 import Toast from "./../../components/Toast";
 import { trpc } from "../../lib/trpc";
 
@@ -188,7 +180,7 @@ const News: React.FC = () => {
       return {
         key: index,
         label,
-        icon: <FaCalendarAlt />,
+        icon: <Calendar size={12} />,
       };
     });
   };
@@ -260,12 +252,6 @@ const News: React.FC = () => {
     return targetDate.toLocaleDateString();
   };
 
-  const prefersReducedMotion = useReducedMotion();
-  const containerVariants = {
-    hidden: { opacity: prefersReducedMotion ? 1 : 0, y: prefersReducedMotion ? 0 : 10 },
-    visible: { opacity: 1, y: 0, transition: { duration: prefersReducedMotion ? 0 : 0.2, ease: "easeOut" } },
-  };
-
   const handleClearSearch = (): void => {
     setSearchQuery("");
     setTempSearchQuery("");
@@ -274,15 +260,10 @@ const News: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-neutral-100 p-4 sm:p-6">
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
-      >
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6 mb-8">
           <h2 className="text-xl font-semibold text-slate-800 mb-2 flex items-center gap-2">
-            <FaNewspaper /> News
+            <Newspaper size={18} /> News
           </h2>
           <p className="text-sm text-slate-600 mb-4">
             Showing news for {getDateDisplayText()}
@@ -293,14 +274,14 @@ const News: React.FC = () => {
               onClick={() => setIsSearchOpen(!isSearchOpen)}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors duration-150 w-full sm:w-auto"
             >
-              <FaSearch />
+              <Search size={14} />
               Manual Search
-              {isSearchOpen ? <FaChevronUp /> : <FaChevronDown />}
+              {isSearchOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
             </button>
             {isSearchOpen && (
               <div className="flex flex-col sm:flex-row gap-4 mt-4">
                 <div className="relative w-full max-w-md flex-1">
-                  <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10" />
+                  <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10" />
                   <input
                     type="text"
                     id="search"
@@ -335,7 +316,7 @@ const News: React.FC = () => {
                   onClick={handleSearch}
                   className="h-[50px] px-4 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 min-w-[100px] sm:min-w-[120px] justify-center"
                 >
-                  <FaSearch />
+                  <Search size={14} />
                   Search
                 </button>
               </div>
@@ -435,7 +416,7 @@ const News: React.FC = () => {
             </table>
           </div>
         </div>
-      </motion.div>
+      </div>
       <Toast type={toastProps.type} message={toastProps.message} />
     </div>
   );

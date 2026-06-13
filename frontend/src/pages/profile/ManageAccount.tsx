@@ -2,15 +2,15 @@ import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
-  FaUser,
-  FaTrash,
-  FaCamera,
-  FaCheckCircle,
-  FaExclamationCircle,
-  FaEdit,
-  FaSave,
-  FaTimes,
-} from "react-icons/fa";
+  User,
+  Trash2,
+  Camera,
+  CheckCircle2,
+  AlertCircle,
+  Pencil,
+  Save,
+  X,
+} from "lucide-react";
 import { toast } from "react-toastify";
 import { trpc } from "../../lib/trpc";
 
@@ -310,13 +310,13 @@ const ManageAccount: React.FC = () => {
           <span className="text-sm font-semibold text-blue-600">{profileCompletion}%</span>
         </div>
         <div className="w-full bg-slate-100 rounded-full h-2 mb-3">
-          <div className="bg-blue-600 h-2 rounded-full transition-all" style={{ width: `${profileCompletion}%` }} />
+          <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${profileCompletion}%` }} />
         </div>
         <p className="text-xs text-slate-500">
           {profileCompletion < 100 ? (
-            <><FaExclamationCircle className="inline mr-1 text-yellow-500" />Complete your profile to unlock personalized features.</>
+            <><AlertCircle className="inline w-3.5 h-3.5 mr-1 text-yellow-500" />Complete your profile to unlock personalized features.</>
           ) : (
-            <><FaCheckCircle className="inline mr-1 text-emerald-500" />Profile is fully complete!</>
+            <><CheckCircle2 className="inline w-3.5 h-3.5 mr-1 text-emerald-500" />Profile is fully complete!</>
           )}
         </p>
       </div>
@@ -332,7 +332,7 @@ const ManageAccount: React.FC = () => {
               />
             ) : (
               <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center">
-                <FaUser className="text-3xl text-white" />
+                <User className="w-8 h-8 text-white" />
               </div>
             )}
           </div>
@@ -360,7 +360,7 @@ const ManageAccount: React.FC = () => {
             </div>
           </div>
           <button type="submit" className="mt-3 flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-colors">
-            <FaCamera /> Upload Photo
+            <Camera className="w-3.5 h-3.5" /> Upload Photo
           </button>
         </form>
       </div>
@@ -372,7 +372,7 @@ const ManageAccount: React.FC = () => {
           {!isEditingUsername && (
             <button onClick={() => setIsEditingUsername(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
-              <FaEdit /> Edit
+              <Pencil className="w-3.5 h-3.5" /> Edit
             </button>
           )}
         </div>
@@ -390,11 +390,11 @@ const ManageAccount: React.FC = () => {
             <div className="flex gap-2 mt-3">
               <button type="submit" disabled={updateUsernameMutation.isPending}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-colors">
-                <FaSave /> {updateUsernameMutation.isPending ? "Saving..." : "Save"}
+                <Save className="w-3.5 h-3.5" /> {updateUsernameMutation.isPending ? "Saving..." : "Save"}
               </button>
               <button type="button" onClick={() => handleCancelEdit("username")}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
-                <FaTimes /> Cancel
+                <X className="w-3.5 h-3.5" /> Cancel
               </button>
             </div>
           )}
@@ -408,7 +408,7 @@ const ManageAccount: React.FC = () => {
           {!isEditingProfile && (
             <button onClick={() => setIsEditingProfile(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
-              <FaEdit /> Edit
+              <Pencil className="w-3.5 h-3.5" /> Edit
             </button>
           )}
         </div>
@@ -437,11 +437,11 @@ const ManageAccount: React.FC = () => {
             <div className="flex gap-2">
               <button type="submit" disabled={updateProfileMutation.isPending}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-colors">
-                <FaSave /> {updateProfileMutation.isPending ? "Saving..." : "Save"}
+                <Save className="w-3.5 h-3.5" /> {updateProfileMutation.isPending ? "Saving..." : "Save"}
               </button>
               <button type="button" onClick={() => handleCancelEdit("profile")}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
-                <FaTimes /> Cancel
+                <X className="w-3.5 h-3.5" /> Cancel
               </button>
             </div>
           </form>
@@ -473,7 +473,7 @@ const ManageAccount: React.FC = () => {
           {!isEditingPassword && (
             <button onClick={() => setIsEditingPassword(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
-              <FaEdit /> Change
+              <Pencil className="w-3.5 h-3.5" /> Change
             </button>
           )}
         </div>
@@ -494,11 +494,11 @@ const ManageAccount: React.FC = () => {
             <div className="flex gap-2">
               <button type="submit" disabled={updatePasswordMutation.isPending}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-colors">
-                <FaSave /> {updatePasswordMutation.isPending ? "Saving..." : "Save"}
+                <Save className="w-3.5 h-3.5" /> {updatePasswordMutation.isPending ? "Saving..." : "Save"}
               </button>
               <button type="button" onClick={() => handleCancelEdit("password")}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
-                <FaTimes /> Cancel
+                <X className="w-3.5 h-3.5" /> Cancel
               </button>
             </div>
           </form>
@@ -521,7 +521,7 @@ const ManageAccount: React.FC = () => {
           </div>
           <button type="submit" disabled={deleteAccountMutation.isPending}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 text-xs font-semibold rounded-xl transition-colors">
-            <FaTrash /> {deleteAccountMutation.isPending ? "Deleting..." : "Delete Account"}
+            <Trash2 className="w-3.5 h-3.5" /> {deleteAccountMutation.isPending ? "Deleting..." : "Delete Account"}
           </button>
         </form>
       </div>

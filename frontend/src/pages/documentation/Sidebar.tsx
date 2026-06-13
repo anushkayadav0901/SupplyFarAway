@@ -1,13 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import {
-  FaTimes,
-  FaSearch,
-  FaChevronRight,
-  FaChevronDown,
-  FaChevronUp,
-  FaBookOpen,
-} from "react-icons/fa";
+import { X, Search, ChevronRight, ChevronDown, ChevronUp, BookOpen } from "lucide-react";
 import { navigationStructure } from "../../constants/docs_constants";
 
 interface SearchResult {
@@ -146,7 +138,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <FaBookOpen className="text-white text-sm" />
+              <BookOpen size={14} className="text-white" />
             </div>
             <h2 className="text-lg sm:text-xl font-bold text-gray-900">
               Supply Chain
@@ -158,14 +150,14 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
             aria-label="Close documentation sidebar"
             className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
           >
-            <FaTimes className="text-gray-500" />
+            <X size={16} className="text-gray-500" />
           </button>
         </div>
 
         {/* Search */}
         <div className="relative">
           <div className="relative">
-            <FaSearch className="absolute left-3 top-3 text-gray-400 text-sm" />
+            <Search size={14} className="absolute left-3 top-3 text-gray-400" />
             <input
               type="text"
               placeholder="Search docs..."
@@ -178,59 +170,46 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
           </div>
 
           {/* Search Results */}
-          <AnimatePresence>
-            {searchQuery.trim() && searchResults.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-10 max-h-64 overflow-y-auto"
-              >
-                <div className="p-2 text-xs text-gray-500 border-b bg-gray-50 rounded-t-xl">
-                  Found {searchResults.length} result
-                  {searchResults.length !== 1 ? "s" : ""}
-                </div>
-                {searchResults.map((result, index) => (
-                  <button
-                    key={`${result.category}-${result.id}`}
-                    onClick={() => handleNavigate(result.category, result.id)}
-                    className="w-full text-left p-3 hover:bg-blue-50 border-b border-gray-100 last:border-b-0 last:rounded-b-xl transition-colors"
-                  >
-                    <div className="font-medium text-gray-900 text-sm">
-                      {highlightMatch(result.title, searchQuery)}
+          {searchQuery.trim() && searchResults.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-sm z-10 max-h-64 overflow-y-auto">
+              <div className="p-2 text-xs text-slate-500 border-b bg-slate-50 rounded-t-xl">
+                Found {searchResults.length} result
+                {searchResults.length !== 1 ? "s" : ""}
+              </div>
+              {searchResults.map((result, index) => (
+                <button
+                  key={`${result.category}-${result.id}`}
+                  onClick={() => handleNavigate(result.category, result.id)}
+                  className="w-full text-left p-3 hover:bg-blue-50 border-b border-slate-100 last:border-b-0 last:rounded-b-xl transition-colors duration-150"
+                >
+                  <div className="font-medium text-slate-900 text-sm">
+                    {highlightMatch(result.title, searchQuery)}
+                  </div>
+                  <div className="text-xs text-slate-500 mt-1">
+                    in {result.categoryTitle}
+                  </div>
+                  {index < 3 && (
+                    <div className="flex items-center gap-1 mt-1">
+                      <div className="w-1 h-1 bg-blue-500 rounded-full"></div>
+                      <span className="text-xs text-blue-600">
+                        {index === 0 ? "Best match" : "Top result"}
+                      </span>
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      in {result.categoryTitle}
-                    </div>
-                    {/* Show relevance indicator for top results */}
-                    {index < 3 && (
-                      <div className="flex items-center gap-1 mt-1">
-                        <div className="w-1 h-1 bg-blue-500 rounded-full"></div>
-                        <span className="text-xs text-blue-600">
-                          {index === 0 ? "Best match" : "Top result"}
-                        </span>
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </motion.div>
-            )}
-            {searchQuery.trim() && searchResults.length === 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-10 p-4 text-center"
-              >
-                <div className="text-sm text-gray-500">
-                  No results found for "{searchQuery}"
-                </div>
-                <div className="text-xs text-gray-400 mt-1">
-                  Try different keywords or browse categories below
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+          {searchQuery.trim() && searchResults.length === 0 && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-sm z-10 p-4 text-center">
+              <div className="text-sm text-slate-500">
+                No results found for "{searchQuery}"
+              </div>
+              <div className="text-xs text-slate-400 mt-1">
+                Try different keywords or browse categories below
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -255,44 +234,38 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
                 </h3>
               </div>
               {isExpanded ? (
-                <FaChevronDown className="text-xs text-gray-400 group-hover:text-gray-600" />
+                <ChevronDown size={14} className="text-gray-400 group-hover:text-gray-600" />
               ) : (
-                <FaChevronUp className="text-xs text-gray-400 group-hover:text-gray-600" />
+                <ChevronUp size={14} className="text-gray-400 group-hover:text-gray-600" />
               )}
             </button>
 
             {/* Category Sections */}
-            <AnimatePresence initial={false}>
-              {isExpanded && (
-                <motion.ul
-                  id={accordionId}
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.2, ease: "easeInOut" }}
-                  className="ml-4 mt-2 space-y-1 overflow-hidden"
-                >
-                  {category.sections.map((section) => (
-                    <li key={section.id}>
-                      <button
-                        onClick={() =>
-                          handleNavigate(categoryKey, section.id)
-                        }
-                        className={`w-full text-left p-3 rounded-lg transition-colors duration-150 flex items-center justify-between group text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 ${
-                          activeCategory === categoryKey &&
-                          activeSection === section.id
-                            ? "bg-blue-50 text-blue-700 font-medium border-l-4 border-blue-500"
-                            : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-                        }`}
-                      >
-                        <span className="flex-1">{section.title}</span>
-                        <FaChevronRight className="text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex-shrink-0" />
-                      </button>
-                    </li>
-                  ))}
-                </motion.ul>
-              )}
-            </AnimatePresence>
+            {isExpanded && (
+              <ul
+                id={accordionId}
+                className="ml-4 mt-2 space-y-1"
+              >
+                {category.sections.map((section) => (
+                  <li key={section.id}>
+                    <button
+                      onClick={() =>
+                        handleNavigate(categoryKey, section.id)
+                      }
+                      className={`w-full text-left p-3 rounded-lg transition-colors duration-150 flex items-center justify-between group text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 ${
+                        activeCategory === categoryKey &&
+                        activeSection === section.id
+                          ? "bg-blue-50 text-blue-700 font-medium border-l-4 border-blue-500"
+                          : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                      }`}
+                    >
+                      <span className="flex-1">{section.title}</span>
+                      <ChevronRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex-shrink-0" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
           );
         })}
@@ -360,21 +333,11 @@ const Sidebar: React.FC<SidebarProps> = ({
     }));
   };
 
-  const prefersReducedMotion = useReducedMotion();
-
-  // For mobile, render animated sidebar (solid white surface, no glassmorphism)
+  // For mobile, render fixed sidebar (no animated slide)
   if (isMobile) {
     return (
-      <motion.aside
-        initial={{ x: "-100%" }}
-        animate={{ x: 0 }}
-        exit={{ x: "-100%" }}
-        transition={
-          prefersReducedMotion
-            ? { duration: 0 }
-            : { type: "tween", duration: 0.2, ease: "easeOut" }
-        }
-        className="fixed inset-y-0 left-0 z-50 w-80 sm:w-72 xl:w-80 bg-white shadow-xl overflow-hidden"
+      <aside
+        className="fixed inset-y-0 left-0 z-50 w-80 sm:w-72 xl:w-80 bg-white border-r border-slate-200 shadow-sm overflow-hidden"
         style={{
           borderTopRightRadius: "1.5rem",
           borderBottomRightRadius: "1.5rem",
@@ -391,14 +354,14 @@ const Sidebar: React.FC<SidebarProps> = ({
           expandedCategories={expandedCategories}
           toggleCategory={toggleCategory}
         />
-      </motion.aside>
+      </aside>
     );
   }
 
   // For desktop, render static sidebar
   return (
     <aside
-      className="w-80 sm:w-72 xl:w-80 bg-white shadow-lg rounded-r-3xl overflow-hidden"
+      className="w-80 sm:w-72 xl:w-80 bg-white border border-slate-200 shadow-sm rounded-r-3xl overflow-hidden"
       style={{
         borderTopRightRadius: "1.5rem",
         borderBottomRightRadius: "1.5rem",

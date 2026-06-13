@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import MapView from "./MapView";
 import {
   Plus,
@@ -10,6 +9,7 @@ import {
   Clock,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import PageLead from "../../components/PageLead";
 import Toast from "../../components/Toast";
 import { countryOptions } from "../../constants/constants";
 import { trpc } from "../../lib/trpc";
@@ -117,7 +117,6 @@ const Modal: React.FC<ModalProps> = ({ open, onClose, children, maxWidth = "sm" 
 // ---------------------------------------------------------------------------
 
 const InventoryManagement: React.FC = () => {
-  const prefersReducedMotion = useReducedMotion();
   const [activeTab, setActiveTab] = useState<string>("all");
   const [viewportWidth, setViewportWidth] = useState<number>(
     typeof window !== "undefined" ? window.innerWidth : 1024,
@@ -481,20 +480,23 @@ const InventoryManagement: React.FC = () => {
   const isWide = viewportWidth >= 600;
 
   return (
-    <div className="min-h-screen bg-neutral-100 p-2 sm:p-4 md:p-6">
+    <div className="p-2 sm:p-4 md:p-6">
 
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 py-6 md:py-8">
-        {/* Search bar */}
-        <div className="mb-4">
-          <input
-            type="search"
-            aria-label="Search drafts"
-            placeholder="Search by HS Code, product, or country..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full max-w-md px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-800 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
-          />
-        </div>
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 py-6 md:py-8 space-y-6">
+        <PageLead
+          title="Active shipment drafts"
+          sub="Every shipment in flight. Filter by status, jump into a draft to verify, or export the manifest as a PDF."
+          right={
+            <input
+              type="search"
+              aria-label="Search drafts"
+              placeholder="HS Code, product, country…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-64 px-4 py-2 bg-white border border-slate-300 rounded-xl text-slate-800 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
+            />
+          }
+        />
 
         {/* Tabs */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm mb-6 overflow-x-auto">
@@ -515,7 +517,7 @@ const InventoryManagement: React.FC = () => {
           </div>
         </div>
 
-        <div className="space-y-4 sm:space-y-6" style={{ minHeight: 400 }}>
+        <div style={{ minHeight: 400 }}>
           {loading ? (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
@@ -564,15 +566,9 @@ const InventoryManagement: React.FC = () => {
               )}
             </div>
           ) : (
-            <AnimatePresence initial={false}>
+            <div>
             {getFilteredDrafts().map((draft, index) => (
-              <motion.div
-                key={draft._id}
-                initial={prefersReducedMotion ? false : { opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={prefersReducedMotion ? {} : { opacity: 0 }}
-                transition={{ duration: 0.15, delay: prefersReducedMotion ? 0 : Math.min(index * 0.05, 0.2) }}
-              >
+              <div key={draft._id} className="mb-4 sm:mb-6">
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:-translate-y-0.5 hover:shadow transition-all duration-150">
                   <div className="p-4 sm:p-6">
                     <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
@@ -689,9 +685,9 @@ const InventoryManagement: React.FC = () => {
                     </div>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             ))}
-            </AnimatePresence>
+            </div>
           )}
         </div>
 
@@ -796,8 +792,8 @@ const InventoryManagement: React.FC = () => {
 
         {/* Delete Dialog */}
         <Modal open={openDeleteDialog} onClose={handleDeleteCancel} maxWidth="sm">
-          <div className="px-6 pt-6 pb-4 bg-red-500 rounded-t-2xl text-center">
-            <h2 className="text-xl font-bold text-white">Warning: Deleting Draft</h2>
+          <div className="px-6 pt-6 pb-4 border-b border-slate-200">
+            <h2 className="text-xl font-bold text-red-600">Warning: Deleting Draft</h2>
           </div>
           <div className="px-6 py-6">
             <p className="text-slate-700 mb-3">
@@ -843,8 +839,8 @@ const InventoryManagement: React.FC = () => {
 
         {/* Create Draft Dialog */}
         <Modal open={openDialog} onClose={handleDialogClose} maxWidth="md">
-          <div className="px-6 pt-5 pb-4 bg-blue-600 rounded-t-2xl text-center">
-            <h2 className="text-xl sm:text-2xl font-bold text-white">Create New Draft</h2>
+          <div className="px-6 pt-6 pb-2 border-b border-slate-200">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Create New Draft</h2>
           </div>
           <div className="px-4 sm:px-6 py-6 overflow-y-auto">
             <form

@@ -1,15 +1,15 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  FaShieldAlt,
-  FaRoute,
-  FaBox,
-  FaTrash,
-  FaClock,
-  FaImage,
-  FaExpand,
-  FaTimes,
-} from "react-icons/fa";
+  ShieldCheck,
+  Route,
+  Package,
+  Trash2,
+  Clock,
+  Image,
+  Maximize2,
+  X,
+} from "lucide-react";
 import { toast } from "react-toastify";
 import { trpc } from "../../lib/trpc";
 
@@ -61,9 +61,9 @@ const HistoryTab: React.FC = () => {
   });
 
   const tabs = [
-    { value: "compliance", label: "Compliance", icon: FaShieldAlt },
-    { value: "route", label: "Saved Routes", icon: FaRoute },
-    { value: "product", label: "Product Analysis", icon: FaBox },
+    { value: "compliance", label: "Compliance", icon: ShieldCheck },
+    { value: "route", label: "Saved Routes", icon: Route },
+    { value: "product", label: "Product Analysis", icon: Package },
   ];
 
   if (loading) {
@@ -90,7 +90,7 @@ const HistoryTab: React.FC = () => {
                 ? "bg-blue-600 text-white"
                 : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
             }`}>
-            <Icon className="text-base" />
+            <Icon className="w-4 h-4" />
             {label}
           </button>
         ))}
@@ -109,7 +109,7 @@ const HistoryTab: React.FC = () => {
             </div>
           ) : complianceHistory.length === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
-              <FaShieldAlt className="text-4xl text-slate-300 mx-auto mb-4" />
+              <ShieldCheck className="w-10 h-10 text-slate-300 mx-auto mb-4" />
               <p className="text-slate-500 mb-4">No compliance checks yet.</p>
               <button onClick={() => navigate("/compliance")}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-colors">
@@ -128,7 +128,7 @@ const HistoryTab: React.FC = () => {
                       <div>
                         <p className="font-semibold text-slate-800 text-sm">Compliance Check</p>
                         <p className="text-xs text-slate-400 flex items-center gap-1">
-                          <FaClock /> {new Date(entry.timestamp).toLocaleDateString()}
+                          <Clock className="w-3 h-3" /> {new Date(entry.timestamp).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
@@ -142,7 +142,7 @@ const HistoryTab: React.FC = () => {
                       </span>
                       <button onClick={() => deleteComplianceMutation.mutate({ recordId: entry._id })}
                         className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                        <FaTrash />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
@@ -204,7 +204,7 @@ const HistoryTab: React.FC = () => {
             </div>
           ) : routeHistory.length === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
-              <FaRoute className="text-4xl text-slate-300 mx-auto mb-4" />
+              <Route className="w-10 h-10 text-slate-300 mx-auto mb-4" />
               <p className="text-slate-500 mb-4">No saved routes yet.</p>
               <button onClick={() => navigate("/routes")}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-colors">
@@ -223,7 +223,7 @@ const HistoryTab: React.FC = () => {
                       <div>
                         <p className="font-semibold text-slate-800 text-sm">Route Optimization</p>
                         <p className="text-xs text-slate-400 flex items-center gap-1">
-                          <FaClock /> {new Date(entry.timestamp).toLocaleDateString()}
+                          <Clock className="w-3 h-3" /> {new Date(entry.timestamp).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
@@ -231,7 +231,7 @@ const HistoryTab: React.FC = () => {
                       <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">Saved</span>
                       <button onClick={() => deleteRouteMutation.mutate({ recordId: entry._id })}
                         className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                        <FaTrash />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
@@ -280,7 +280,7 @@ const HistoryTab: React.FC = () => {
             </div>
           ) : productAnalysisHistory.length === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
-              <FaBox className="text-4xl text-slate-300 mx-auto mb-4" />
+              <Package className="w-10 h-10 text-slate-300 mx-auto mb-4" />
               <p className="text-slate-500 mb-4">No product analyses yet.</p>
               <button onClick={() => navigate("/compliance")}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-colors">
@@ -293,19 +293,19 @@ const HistoryTab: React.FC = () => {
                 <div key={entry._id} className="bg-white rounded-2xl border border-slate-200 p-6">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 bg-purple-50 rounded-full flex items-center justify-center">
-                        <span className="text-purple-600 font-bold text-sm">#{index + 1}</span>
+                      <div className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center">
+                        <span className="text-slate-600 font-bold text-sm">#{index + 1}</span>
                       </div>
                       <div>
                         <p className="font-semibold text-slate-800 text-sm">Product Analysis</p>
                         <p className="text-xs text-slate-400 flex items-center gap-1">
-                          <FaClock /> {new Date(entry.timestamp).toLocaleDateString()}
+                          <Clock className="w-3 h-3" /> {new Date(entry.timestamp).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
                     <button onClick={() => deleteProductAnalysisMutation.mutate({ recordId: entry._id })}
                       className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                      <FaTrash />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -328,12 +328,12 @@ const HistoryTab: React.FC = () => {
                           />
                           <button onClick={() => setSelectedImage(entry.imageDetails.signedUrl)}
                             className="absolute bottom-2 right-2 bg-slate-800 text-white p-1.5 rounded-full hover:bg-slate-700 transition-colors">
-                            <FaExpand className="text-xs" />
+                            <Maximize2 className="w-3 h-3" />
                           </button>
                         </div>
                       ) : (
                         <div className="w-full h-40 flex flex-col items-center justify-center bg-slate-100 rounded-lg">
-                          <FaImage className="text-2xl text-slate-400 mb-1" />
+                          <Image className="w-6 h-6 text-slate-400 mb-1" />
                           <p className="text-xs text-slate-400">No image available</p>
                         </div>
                       )}
@@ -359,10 +359,10 @@ const HistoryTab: React.FC = () => {
       {/* Image Lightbox */}
       {selectedImage && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onClick={() => setSelectedImage(null)}>
-          <div className="relative bg-white rounded-2xl p-6 max-w-3xl w-full mx-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="relative bg-white rounded-2xl p-6 max-w-3xl w-full mx-4 shadow-sm border border-slate-200" onClick={(e) => e.stopPropagation()}>
             <button onClick={() => setSelectedImage(null)} aria-label="Close"
               className="absolute top-4 right-4 bg-red-600 rounded-full p-2 text-white hover:bg-red-700 transition-colors">
-              <FaTimes />
+              <X className="w-4 h-4" />
             </button>
             <div className="min-h-[200px] flex items-center justify-center">
               <img src={selectedImage} alt="Expanded Product" className="w-full h-auto max-h-[70vh] object-contain rounded-lg" />

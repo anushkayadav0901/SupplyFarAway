@@ -1,5 +1,4 @@
 import React from "react";
-import { motion } from "framer-motion";
 import { CheckCircle2, AlertTriangle } from "lucide-react";
 import {
   BarChart,
@@ -126,197 +125,143 @@ const ComplianceResponse: React.FC<ComplianceResponseProps> = ({ response }) => 
     { name: "Intended Use", score: scores.IntendedUseDetails || 0 },
   ];
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.06,
-        delayChildren: 0.1,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { y: 12, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: { duration: 0.2, ease: "easeOut" as const },
-    },
-  };
-
   return (
     <ErrorBoundary>
-      <div className="max-w-7xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25, ease: "easeOut" }}
-          className="mt-6 bg-blue-50 shadow-custom-medium rounded-lg p-8"
-        >
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
+      <div className="max-w-7xl mx-auto mt-6 bg-white border border-slate-200 rounded-xl p-8 space-y-6">
+        {/* Header */}
+        <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+          {complianceStatus === "Ready for Shipment" ? (
+            <CheckCircle2 className="text-emerald-500 shrink-0" size={28} />
+          ) : (
+            <AlertTriangle className="text-red-500 shrink-0" size={28} />
+          )}
+          Compliance Results
+        </h2>
+
+        {/* Compliance Status */}
+        <div>
+          <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-1">Status</h3>
+          <span
+            className={`inline-block px-3 py-1 rounded text-sm font-semibold ${
+              complianceStatus === "Ready for Shipment"
+                ? "bg-emerald-100 text-emerald-700"
+                : "bg-red-100 text-red-700"
+            }`}
           >
-            {/* Header */}
-            <motion.h2
-              variants={itemVariants}
-              className="text-3xl font-bold text-gray-900 mb-6 flex items-center"
-            >
-              <span className="mr-2">
-                {complianceStatus === "Ready for Shipment" ? (
-                  <CheckCircle2 className="text-emerald-500" size={32} />
-                ) : (
-                  <AlertTriangle className="text-red-500" size={32} />
-                )}
-              </span>
-              Compliance Check Results
-            </motion.h2>
+            {complianceStatus}
+          </span>
+        </div>
 
-            {/* Compliance Status */}
-            <motion.div variants={itemVariants} className="mb-6">
-              <h3 className="text-xl font-semibold text-gray-900">Status</h3>
-              <span
-                className={`inline-block px-4 py-2 mt-2 rounded-full text-white font-medium ${
-                  complianceStatus === "Ready for Shipment"
-                    ? "bg-green-500"
-                    : "bg-red-500"
-                }`}
-              >
-                {complianceStatus}
-              </span>
-            </motion.div>
+        {/* Summary */}
+        <div>
+          <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-1">Summary</h3>
+          <p className="text-slate-700">{summary}</p>
+        </div>
 
-            {/* Summary */}
-            <motion.div variants={itemVariants} className="mb-6">
-              <h3 className="text-xl font-semibold text-gray-900">Summary</h3>
-              <p className="mt-2 text-gray-600">{summary}</p>
-            </motion.div>
+        {/* Risk Level */}
+        <div>
+          <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-2">
+            Risk Score — {riskLevel.riskScore}/100
+          </h3>
+          <div className="w-full bg-slate-200 rounded h-2 overflow-hidden">
+            <div
+              style={{ width: `${riskLevel.riskScore}%` }}
+              className={`h-2 rounded ${
+                riskLevel.riskScore < 30
+                  ? "bg-emerald-500"
+                  : riskLevel.riskScore < 60
+                  ? "bg-yellow-500"
+                  : "bg-red-500"
+              }`}
+            />
+          </div>
+          <p className="mt-2 text-sm text-slate-600">{riskLevel.summary}</p>
+        </div>
 
-            {/* Risk Level */}
-            <motion.div variants={itemVariants} className="mb-6">
-              <h3 className="text-xl font-semibold text-gray-900">
-                Risk Level
-              </h3>
-              <div className="mt-2">
-                <p className="text-gray-600">
-                  Risk Score: {riskLevel.riskScore}/100
-                </p>
-                <div className="w-full bg-gray-200 rounded-full h-4 mt-2 overflow-hidden">
-                  <motion.div
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: riskLevel.riskScore / 100 }}
-                    transition={{ duration: 0.5, ease: "easeOut" }}
-                    style={{ transformOrigin: "left" }}
-                    className={`h-4 w-full rounded-full ${
-                      riskLevel.riskScore < 30
-                        ? "bg-green-500"
-                        : riskLevel.riskScore < 60
-                        ? "bg-yellow-500"
-                        : "bg-red-500"
-                    }`}
-                  />
-                </div>
-                <p className="mt-2 text-gray-600">{riskLevel.summary}</p>
-              </div>
-            </motion.div>
-
-            {/* Violations and Recommendations */}
-            {(violations.length > 0 || recommendations.length > 0) && (
-              <motion.div variants={itemVariants} className="mb-6">
-                <h3 className="text-xl font-semibold text-gray-900">
-                  Issues & Recommendations
-                </h3>
-                <div className="overflow-x-auto mt-2">
-                  <table className="min-w-full bg-white rounded-lg shadow-sm">
-                    <thead>
-                      <tr className="bg-blue-100">
-                        <th className="px-4 py-2 text-left text-blue-700">
-                          Field
-                        </th>
-                        <th className="px-4 py-2 text-left text-blue-700">
-                          Violation
-                        </th>
-                        <th className="px-4 py-2 text-left text-blue-700">
-                          Recommendation
-                        </th>
+        {/* Violations and Recommendations */}
+        {(violations.length > 0 || recommendations.length > 0) && (
+          <div>
+            <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-2">
+              Issues & Recommendations
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="min-w-full border border-slate-200 rounded-lg text-sm">
+                <thead>
+                  <tr className="bg-slate-50">
+                    <th className="px-4 py-2 text-left text-slate-700 font-semibold border-b border-slate-200">
+                      Field
+                    </th>
+                    <th className="px-4 py-2 text-left text-slate-700 font-semibold border-b border-slate-200">
+                      Violation
+                    </th>
+                    <th className="px-4 py-2 text-left text-slate-700 font-semibold border-b border-slate-200">
+                      Recommendation
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {violations.map((violation, index) => {
+                    const matchingRecommendation = recommendations.find(
+                      (rec) => rec.field === violation.field
+                    );
+                    return (
+                      <tr key={index} className="border-b border-slate-100">
+                        <td className="px-4 py-2 text-slate-800">
+                          {violation.field || "Unknown"}
+                        </td>
+                        <td className="px-4 py-2 text-red-600">
+                          {violation.message || "No message"}
+                        </td>
+                        <td className="px-4 py-2 text-emerald-600">
+                          {matchingRecommendation?.message || "N/A"}
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {violations.map((violation, index) => {
-                        const matchingRecommendation = recommendations.find(
-                          (rec) => rec.field === violation.field
-                        );
-                        return (
-                          <motion.tr
-                            key={index}
-                            variants={itemVariants}
-                            className="border-b"
-                          >
-                            <td className="px-4 py-2 text-gray-800">
-                              {violation.field || "Unknown"}
-                            </td>
-                            <td className="px-4 py-2 text-red-600">
-                              {violation.message || "No message"}
-                            </td>
-                            <td className="px-4 py-2 text-green-600">
-                              {matchingRecommendation?.message || "N/A"}
-                            </td>
-                          </motion.tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </motion.div>
-            )}
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
-            {/* Scores */}
-            <motion.div variants={itemVariants} className="mb-6">
-              <h3 className="text-xl font-semibold text-gray-900">
-                Compliance Scores
-              </h3>
-              <div className="mt-4 h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData}>
-                    <XAxis
-                      dataKey="name"
-                      angle={-45}
-                      textAnchor="end"
-                      height={60}
-                    />
-                    <YAxis domain={[0, 100]} />
-                    <Tooltip />
-                    <Bar dataKey="score" fill="#2563EB" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </motion.div>
+        {/* Scores */}
+        <div>
+          <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">
+            Compliance Scores
+          </h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData}>
+                <XAxis
+                  dataKey="name"
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
+                />
+                <YAxis domain={[0, 100]} />
+                <Tooltip />
+                <Bar dataKey="score" fill="#2563EB" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
 
-            {/* Additional Tips */}
-            {additionalTips.length > 0 && (
-              <motion.div variants={itemVariants}>
-                <h3 className="text-xl font-semibold text-gray-900">
-                  Additional Tips
-                </h3>
-                <ul className="mt-2 space-y-2">
-                  {additionalTips.map((tip, index) => (
-                    <motion.li
-                      key={index}
-                      variants={itemVariants}
-                      className="flex items-start"
-                    >
-                      <span className="text-blue-500 mr-2">•</span>
-                      <span className="text-gray-600">{tip}</span>
-                    </motion.li>
-                  ))}
-                </ul>
-              </motion.div>
-            )}
-          </motion.div>
-        </motion.div>
+        {/* Additional Tips */}
+        {additionalTips.length > 0 && (
+          <div>
+            <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-2">
+              Additional Tips
+            </h3>
+            <ul className="space-y-1">
+              {additionalTips.map((tip, index) => (
+                <li key={index} className="flex items-start gap-2 text-sm text-slate-600">
+                  <span className="text-blue-500 mt-0.5 shrink-0">•</span>
+                  {tip}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </ErrorBoundary>
   );

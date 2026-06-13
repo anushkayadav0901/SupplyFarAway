@@ -420,19 +420,18 @@ const CsvUploadPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-100 p-4 sm:p-6">
-      {/* Header - Unchanged */}
+    <div className="min-h-screen bg-slate-50 p-4 sm:p-6">
       {/* Main Content */}
-      <div className="flex flex-col items-center px-4 sm:px-6 py-12">
+      <div className="flex flex-col items-center px-4 sm:px-6 py-8">
         {/* Upload Card */}
         <div className="w-full max-w-4xl">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
             {/* Card Header */}
-            <div className="bg-blue-600 p-8">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center">
+            <div className="p-6 border-b border-slate-200">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
                   <svg
-                    className="w-6 h-6 text-white"
+                    className="w-5 h-5 text-white"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -446,160 +445,56 @@ const CsvUploadPage: React.FC = () => {
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-white">
-                    Upload Your CSV File
+                  <h2 className="text-xl font-bold text-slate-900">
+                    CSV Bulk Import
                   </h2>
-                  <p className="text-white/80 text-sm mt-1">
-                    Streamline your compliance process with bulk data upload
+                  <p className="text-slate-500 text-sm mt-0.5">
+                    Upload a CSV to create a compliance draft.
                   </p>
                 </div>
               </div>
             </div>
 
             {/* Card Body */}
-            <div className="p-8 sm:p-12">
+            <div className="p-8">
               {/* Upload Zone */}
-              <div className="relative mb-8">
+              <div className="mb-6">
                 <div
-                  className={`
-                    relative border-2 border-dashed rounded-2xl p-12 text-center transition-colors duration-150
-                    ${
-                      isDragging
-                        ? "border-blue-400 bg-blue-50 shadow-sm"
-                        : "border-gray-300 bg-gray-50 hover:border-blue-300 hover:bg-blue-50"
-                    }
-                  `}
+                  className={`border-2 border-dashed rounded-xl p-10 text-center transition-colors duration-150 ${
+                    isDragging
+                      ? "border-blue-400 bg-blue-50"
+                      : "border-slate-200 bg-slate-50 hover:border-blue-300 hover:bg-blue-50/40"
+                  }`}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                 >
-                  {/* Background Pattern */}
-                  <div className="absolute inset-0 opacity-5">
-                    <svg className="w-full h-full" viewBox="0 0 100 100">
-                      <defs>
-                        <pattern
-                          id="grid"
-                          width="10"
-                          height="10"
-                          patternUnits="userSpaceOnUse"
-                        >
-                          <path
-                            d="M 10 0 L 0 0 0 10"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1"
-                          />
-                        </pattern>
-                      </defs>
-                      <rect width="100" height="100" fill="url(#grid)" />
-                    </svg>
-                  </div>
-
                   {uploadedFile ? (
-                    <div className="relative">
-                      <div className="mb-6">
-                        <div className="w-16 h-16 bg-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                          <svg
-                            className="w-8 h-8 text-white"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        </div>
-                        <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                          File Successfully Uploaded
-                        </h3>
-                        <p className="text-gray-600">
-                          <span className="font-medium text-blue-600">
-                            {uploadedFile.name}
-                          </span>
-                        </p>
-                      </div>
-
-                      <div className="flex flex-col sm:flex-row justify-center gap-4">
+                    <div className="space-y-4">
+                      <p className="text-sm font-semibold text-slate-800">{uploadedFile.name}</p>
+                      <p className="text-xs text-slate-500">Parsed — ready to import.</p>
+                      <div className="flex flex-col sm:flex-row justify-center gap-3">
                         <button
                           onClick={handleRemoveFile}
-                          className="group relative px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                          className="px-4 py-2 text-sm text-slate-600 border border-slate-300 hover:bg-slate-100 rounded-lg font-medium transition-colors"
                           disabled={loading}
                         >
-                          <span className="relative flex items-center justify-center space-x-2">
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              />
-                            </svg>
-                            <span>Remove File</span>
-                          </span>
+                          Remove
                         </button>
-
                         <button
                           onClick={handleSendToCompliance}
-                          className="group relative px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                          className="px-5 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-60"
                           disabled={loading || !formData}
                         >
-                          <span className="relative flex items-center justify-center space-x-2">
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M13 10V3L4 14h7v7l9-11h-7z"
-                              />
-                            </svg>
-                            <span>Send to Compliance Check</span>
-                          </span>
+                          {loading ? "Processing..." : "Send to Compliance Check"}
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <div className="relative">
-                      <div className="mb-6">
-                        <div className="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                          <svg
-                            className="w-10 h-10 text-white"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                            />
-                          </svg>
-                        </div>
-                        <h3 className="text-2xl font-bold text-gray-800 mb-3">
-                          {isDragging
-                            ? "Drop your file here!"
-                            : "Choose your CSV file"}
-                        </h3>
-                        <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                          Drag and drop your CSV file here, or click the button
-                          below to browse and select your file
-                        </p>
-                      </div>
-
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium text-slate-600">
+                        {isDragging ? "Drop your file here" : "Drag & drop CSV or click to browse"}
+                      </p>
                       <input
                         type="file"
                         accept=".csv"
@@ -608,28 +503,12 @@ const CsvUploadPage: React.FC = () => {
                         className="hidden"
                         disabled={loading}
                       />
-
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="group relative px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-lg transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                        className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                         disabled={loading}
                       >
-                        <span className="relative flex items-center justify-center space-x-3">
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                            />
-                          </svg>
-                          <span>Select CSV File</span>
-                        </span>
+                        Select CSV File
                       </button>
                     </div>
                   )}
@@ -638,129 +517,40 @@ const CsvUploadPage: React.FC = () => {
 
               {/* Template Download Section */}
               {send && (
-                <div className="bg-emerald-50 rounded-2xl p-6 mb-8 border border-emerald-200">
-                  <div className="flex flex-col sm:flex-row items-center justify-between">
-                    <div className="flex items-center space-x-4 mb-4 sm:mb-0">
-                      <div className="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center">
-                        <svg
-                          className="w-6 h-6 text-white"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                          />
-                        </svg>
-                      </div>
-                      <div>
-                        <h4 className="text-lg font-semibold text-gray-800">
-                          Need a template?
-                        </h4>
-                        <p className="text-gray-600 text-sm">
-                          Download our pre-formatted CSV template to get started
-                        </p>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={handleDownloadTemplate}
-                      className="group relative px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-                      disabled={loading}
-                    >
-                      <span className="relative flex items-center justify-center space-x-2">
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                          />
-                        </svg>
-                        <span>Download Template</span>
-                      </span>
-                    </button>
+                <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-xl mb-4">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">Need a template?</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Download with all required column headers.</p>
                   </div>
+                  <button
+                    onClick={handleDownloadTemplate}
+                    className="px-4 py-2 text-xs bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-semibold transition-colors"
+                    disabled={loading}
+                  >
+                    Download Template
+                  </button>
                 </div>
               )}
 
               {/* Error Display */}
               {csvError && (
-                <div className="bg-red-50 border border-red-200 rounded-2xl p-6 mb-6">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
-                      <svg
-                        className="w-5 h-5 text-red-600"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                    </div>
-                    <p className="text-red-700 font-medium">{csvError}</p>
-                  </div>
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl mb-4">
+                  <p className="text-red-700 text-sm">{csvError}</p>
                 </div>
               )}
 
               {/* Loading State */}
               {loading && (
-                <div className="flex flex-col items-center justify-center py-8">
-                  <div className="relative">
-                    <div className="w-16 h-16 border-4 border-blue-200 rounded-full animate-spin">
-                      <div className="absolute top-0 left-0 w-16 h-16 border-4 border-transparent border-t-blue-500 rounded-full animate-spin"></div>
-                    </div>
-                  </div>
-                  <p className="text-gray-600 mt-4 font-medium">
-                    Processing your file...
-                  </p>
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-700 animate-pulse mb-4">
+                  Processing your file...
                 </div>
               )}
 
               {/* Instructions */}
               {send && (
-                <div className="bg-blue-50 rounded-2xl p-6 border border-blue-200">
-                  <div className="flex items-start space-x-3">
-                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mt-0.5">
-                      <svg
-                        className="w-4 h-4 text-blue-600"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-800 mb-2">
-                        File Format Requirements
-                      </h4>
-                      <p className="text-gray-600 text-sm leading-relaxed">
-                        Upload a CSV file with headers matching the form fields
-                        (e.g., "Origin Country", "HS Code", etc.). Use the
-                        template above for the correct format and ensure all
-                        required fields are included.
-                      </p>
-                    </div>
-                  </div>
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-600">
+                  <span className="font-semibold text-slate-700">Format: </span>
+                  CSV headers must match field names (e.g., "Origin Country", "HS Code"). Use the template above for the correct format.
                 </div>
               )}
             </div>

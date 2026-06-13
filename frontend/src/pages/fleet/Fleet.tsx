@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { toast } from "react-toastify";
 import { Truck, Boxes, Plus, Trash2, Users, RefreshCcw } from "lucide-react";
+import PageLead from "../../components/PageLead";
 import CardSkeleton from "../../components/skeletons/CardSkeleton";
 import { trpc } from "../../lib/trpc";
 import LoadAggregation from "./LoadAggregation";
@@ -68,6 +69,11 @@ export default function Fleet() {
   return (
     <div className="min-h-screen bg-slate-50">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-6">
+
+        <PageLead
+          title="Manage your fleet"
+          sub="Register trucks with plate, capacity, and base city. Match small loads sharing corridors so empty backhauls don't waste fuel."
+        />
 
         {/* Navigation Tabs */}
         <div className="flex border-b border-slate-200 gap-1 overflow-x-auto pb-px">

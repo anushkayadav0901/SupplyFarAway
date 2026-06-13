@@ -18,6 +18,7 @@ import {
   RefreshCcw,
   Radar,
 } from "lucide-react";
+import PageLead from "../../components/PageLead";
 import DraftPicker from "../../components/DraftPicker";
 import TrustGauge from "../../components/TrustGauge";
 import { trpc } from "../../lib/trpc";
@@ -56,28 +57,6 @@ function SeverityBadge({ severity }: { severity: string }) {
   );
 }
 
-function StatCard({
-  label,
-  value,
-  accent,
-}: {
-  label: string;
-  value: number | string;
-  accent?: "red" | "amber" | "blue" | "emerald";
-}) {
-  const colors: Record<string, string> = {
-    red: "text-red-600",
-    amber: "text-amber-600",
-    blue: "text-blue-600",
-    emerald: "text-emerald-600",
-  };
-  return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 flex flex-col gap-1">
-      <p className="text-xs text-slate-500 font-medium">{label}</p>
-      <p className={`text-2xl font-bold ${colors[accent ?? "blue"]}`}>{value}</p>
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Empty state
@@ -255,66 +234,60 @@ export default function RiskCenter() {
     <div className="min-h-screen bg-slate-50">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6">
 
-        {/* ---- Draft picker ---- */}
-        <div className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col sm:flex-row sm:items-center gap-4">
-          <div className="flex-1">
-            <p className="text-base font-bold text-slate-800">Shipment Risk Center</p>
-            <p className="text-sm text-slate-500 mt-0.5">
-              Select a draft for shipment-specific trust, scan, and audit trail.
-              Portfolio overview shows below regardless.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-500">Draft:</span>
-            <DraftPicker value={draftId} onSelect={setDraftId} />
-            {draftId && (
-              <button
-                type="button"
-                onClick={() => setDraftId("")}
-                className="text-xs text-slate-400 hover:text-slate-600 underline"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-        </div>
+        <PageLead
+          title="Find tampered shipments"
+          sub="Trust score, AI anomaly scan, and audit trail per shipment. Portfolio fraud feed shows below regardless."
+          right={
+            <>
+              <DraftPicker value={draftId} onSelect={setDraftId} />
+              {draftId && (
+                <button
+                  type="button"
+                  onClick={() => setDraftId("")}
+                  className="text-xs text-slate-400 hover:text-slate-600 underline"
+                >
+                  Clear
+                </button>
+              )}
+            </>
+          }
+        />
 
-        {/* ---- Portfolio stats strip (always visible) ---- */}
+        {/* ---- Portfolio summary strip (always visible) ---- */}
         {fraudQuery.data && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            <StatCard
-              label="Box Mismatches"
-              value={fraudData?.boxCountMismatches ?? 0}
-              accent={(fraudData?.boxCountMismatches ?? 0) > 0 ? "red" : "emerald"}
-            />
-            <StatCard
-              label="RFID Missing"
-              value={fraudData?.totalRfidMissing ?? 0}
-              accent={(fraudData?.totalRfidMissing ?? 0) > 0 ? "amber" : "emerald"}
-            />
-            <StatCard
-              label="Weight Flagged"
-              value={fraudData?.weightFlagged ?? 0}
-              accent={(fraudData?.weightFlagged ?? 0) > 0 ? "amber" : "emerald"}
-            />
-            <StatCard
-              label="High Severity"
-              value={fraudData?.anomalyHighSeverity ?? 0}
-              accent={(fraudData?.anomalyHighSeverity ?? 0) > 0 ? "red" : "emerald"}
-            />
-            <StatCard
-              label="Account Integrity"
-              value={overallIntegrity !== null ? `${overallIntegrity}%` : "--"}
-              accent={
-                overallIntegrity === null
-                  ? "blue"
-                  : overallIntegrity >= 80
-                  ? "emerald"
-                  : overallIntegrity >= 50
-                  ? "amber"
-                  : "red"
-              }
-            />
+          <div className="bg-white border border-slate-200 rounded-lg px-5 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500">Box mismatches</span>
+              <span className={`text-sm font-semibold ${(fraudData?.boxCountMismatches ?? 0) > 0 ? "text-red-600" : "text-slate-700"}`}>
+                {fraudData?.boxCountMismatches ?? 0}
+              </span>
+            </div>
+            <div className="h-3 w-px bg-slate-200 hidden sm:block" />
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500">RFID missing</span>
+              <span className={`text-sm font-semibold ${(fraudData?.totalRfidMissing ?? 0) > 0 ? "text-amber-600" : "text-slate-700"}`}>
+                {fraudData?.totalRfidMissing ?? 0}
+              </span>
+            </div>
+            <div className="h-3 w-px bg-slate-200 hidden sm:block" />
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500">High severity</span>
+              <span className={`text-sm font-semibold ${(fraudData?.anomalyHighSeverity ?? 0) > 0 ? "text-red-600" : "text-slate-700"}`}>
+                {fraudData?.anomalyHighSeverity ?? 0}
+              </span>
+            </div>
+            <div className="h-3 w-px bg-slate-200 hidden sm:block" />
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500">Integrity</span>
+              <span className={`text-sm font-semibold ${
+                overallIntegrity === null ? "text-slate-500"
+                : overallIntegrity >= 80 ? "text-emerald-600"
+                : overallIntegrity >= 50 ? "text-amber-600"
+                : "text-red-600"
+              }`}>
+                {overallIntegrity !== null ? `${overallIntegrity}%` : "--"}
+              </span>
+            </div>
           </div>
         )}
 
@@ -328,12 +301,6 @@ export default function RiskCenter() {
             <div className="h-36">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartSeries} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="riskGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.18} />
-                      <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.01} />
-                    </linearGradient>
-                  </defs>
                   <XAxis dataKey="i" hide />
                   <YAxis
                     width={30}
@@ -352,8 +319,9 @@ export default function RiskCenter() {
                     dataKey="risk"
                     stroke="#3b82f6"
                     strokeWidth={2}
-                    fill="url(#riskGradient)"
-                    isAnimationActive
+                    fill="#3b82f6"
+                    fillOpacity={0.06}
+                    isAnimationActive={false}
                   />
                 </AreaChart>
               </ResponsiveContainer>

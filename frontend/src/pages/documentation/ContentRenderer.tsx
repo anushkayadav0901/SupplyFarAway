@@ -1,15 +1,14 @@
 import React, { useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import {
-  FaHome,
-  FaChevronRight,
-  FaExternalLinkAlt,
-  FaLightbulb,
-  FaChevronLeft,
-  FaBars,
-  FaTimes,
-  FaDownload,
-} from "react-icons/fa";
+  Home,
+  ChevronRight,
+  ExternalLink,
+  Lightbulb,
+  ChevronLeft,
+  Menu,
+  X,
+  Download,
+} from "lucide-react";
 import { navigationStructure } from "../../constants/docs_constants";
 import { useNavigate } from "react-router-dom";
 import ProfileCards from "./ProfileCards";
@@ -219,15 +218,10 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
   };
 
   return (
-    <AnimatePresence mode="wait">
-    <motion.div
+    <div
       ref={contentRef}
       key={`${activeCategory}-${activeSection}`}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.15, ease: "easeOut" }}
-      className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 xl:p-12 bg-white shadow-lg rounded-l-3xl"
+      className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 xl:p-12 bg-white shadow-sm rounded-l-3xl"
       style={{
         borderTopLeftRadius: "1.5rem",
         borderBottomLeftRadius: "1.5rem",
@@ -235,8 +229,8 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
     >
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6 flex-wrap relative">
-        <FaHome className="text-xs flex-shrink-0" />
-        <FaChevronRight className="text-xs flex-shrink-0" />
+        <Home size={12} className="flex-shrink-0" />
+        <ChevronRight size={12} className="flex-shrink-0" />
         <span className="capitalize">
           {
             navigationStructure[
@@ -244,7 +238,7 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
             ].title
           }
         </span>
-        <FaChevronRight className="text-xs flex-shrink-0" />
+        <ChevronRight size={12} className="flex-shrink-0" />
         <span className="text-gray-900 font-medium">
           {currentSection.title}
         </span>
@@ -255,7 +249,7 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
           aria-expanded={isSidebarOpen}
           className="lg:hidden ml-auto p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
         >
-          {isSidebarOpen ? <FaTimes aria-hidden="true" /> : <FaBars aria-hidden="true" />}
+          {isSidebarOpen ? <X size={16} aria-hidden="true" /> : <Menu size={16} aria-hidden="true" />}
         </button>
       </nav>
 
@@ -276,9 +270,9 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
 
       {/* Downloads Section - Only show if downloads exist */}
       {currentSection.downloads && (
-        <div className="bg-green-50 rounded-xl p-4 sm:p-6 mb-8">
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 sm:p-6 mb-8">
           <div className="flex items-center gap-2 mb-4">
-            <FaDownload className="text-green-500 flex-shrink-0" />
+            <Download size={16} className="text-slate-500 flex-shrink-0" />
             <h3 className="text-lg font-semibold text-gray-900">
               Download Templates
             </h3>
@@ -288,10 +282,10 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
               <button
                 key={index}
                 onClick={() => handleDownload(download.url, download.filename)}
-                className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-white hover:shadow-md transition-colors duration-150 transition-shadow duration-150 text-left group"
+                className="flex items-center gap-3 p-4 border border-slate-200 rounded-lg hover:bg-white transition-colors duration-150 text-left group"
               >
                 <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                  <FaDownload className="text-blue-600 text-sm" />
+                  <Download size={14} className="text-blue-600" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
@@ -309,9 +303,9 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
 
       {/* Examples Section */}
       {currentSection.examples && (
-        <div className="bg-blue-50 rounded-xl p-4 sm:p-6 mb-8">
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 sm:p-6 mb-8">
           <div className="flex items-center gap-2 mb-4">
-            <FaLightbulb className="text-blue-500 flex-shrink-0" />
+            <Lightbulb size={16} className="text-blue-500 flex-shrink-0" />
             <h3 className="text-lg font-semibold text-gray-900">Examples</h3>
           </div>
           <ul className="space-y-2">
@@ -340,7 +334,7 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
               : "text-blue-600 hover:bg-blue-50"
           }`}
         >
-          <FaChevronLeft className="flex-shrink-0" />
+          <ChevronLeft size={16} className="flex-shrink-0" />
           <span>Previous</span>
         </button>
 
@@ -351,7 +345,7 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
               onClick={handleNavigate}
               className="flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors text-sm bg-transparent border-none cursor-pointer"
             >
-              <FaExternalLinkAlt className="text-sm flex-shrink-0" />
+              <ExternalLink size={14} className="flex-shrink-0" />
               <span className="hidden sm:inline">View on Web</span>
               <span className="sm:hidden">Web</span>
             </button>
@@ -368,11 +362,10 @@ const ContentRenderer: React.FC<ContentRendererProps> = ({
           }`}
         >
           <span>Next</span>
-          <FaChevronRight className="flex-shrink-0" />
+          <ChevronRight size={16} className="flex-shrink-0" />
         </button>
       </div>
-    </motion.div>
-    </AnimatePresence>
+    </div>
   );
 };
 

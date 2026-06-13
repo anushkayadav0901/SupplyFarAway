@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { toast } from "react-toastify";
 import { Radio, Terminal, Tag, RefreshCcw } from "lucide-react";
 import CountUp from "../../components/CountUp";
@@ -68,27 +67,11 @@ function TagBadge({
 }
 
 function AntennaPulse({ scanning }: { scanning: boolean }) {
-  const shouldReduceMotion = useReducedMotion();
   return (
-    <div className="relative w-32 h-32 flex items-center justify-center" aria-hidden="true">
-      {[0, 1, 2].map((i) => (
-        <motion.div
-          key={i}
-          className="absolute inset-0 rounded-full border-2 border-blue-500/40"
-          initial={{ scale: 0.4, opacity: 0 }}
-          animate={
-            scanning && !shouldReduceMotion
-              ? { scale: [0.4, 1.4], opacity: [0.7, 0] }
-              : { scale: 0.4, opacity: 0 }
-          }
-          transition={{ duration: 1.6, ease: "easeOut", repeat: scanning ? Infinity : 0, delay: i * 0.5 }}
-        />
-      ))}
+    <div className="relative w-20 h-20 flex items-center justify-center flex-shrink-0" aria-hidden="true">
       <div
-        className={`w-16 h-16 rounded-full flex items-center justify-center text-white shadow-md ${
-          scanning
-            ? "bg-blue-500 shadow-blue-200"
-            : "bg-slate-400"
+        className={`w-16 h-16 rounded-full flex items-center justify-center text-white ${
+          scanning ? "bg-blue-500" : "bg-slate-400"
         }`}
       >
         <Radio className="w-7 h-7" />
@@ -109,11 +92,9 @@ function MatchGauge({ pct }: { pct: number }) {
         </span>
       </div>
       <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
-        <motion.div
-          className={`h-full rounded-full ${color}`}
-          initial={{ width: 0 }}
-          animate={{ width: `${Math.min(pct, 100)}%` }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${color}`}
+          style={{ width: `${Math.min(pct, 100)}%` }}
         />
       </div>
     </div>
@@ -129,23 +110,13 @@ function ChipRail({
   tags: string[];
   variant: "matched" | "missing" | "extra";
 }) {
-  const shouldReduceMotion = useReducedMotion();
   return (
     <div>
       <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">{title}</p>
       <div className="flex flex-wrap gap-1.5">
-        <AnimatePresence initial>
-          {tags.map((t, i) => (
-            <motion.span
-              key={`${t}-${i}`}
-              initial={shouldReduceMotion ? {} : { opacity: 0, scale: 0.94 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.018, duration: 0.16 }}
-            >
-              <TagBadge tag={t} variant={variant} />
-            </motion.span>
-          ))}
-        </AnimatePresence>
+        {tags.map((t, i) => (
+          <TagBadge key={`${t}-${i}`} tag={t} variant={variant} />
+        ))}
       </div>
     </div>
   );
@@ -246,7 +217,6 @@ interface RfidVerificationTabProps {
 }
 
 export default function RfidVerificationTab({ draftId, onResult }: RfidVerificationTabProps) {
-  const shouldReduceMotion = useReducedMotion();
   const [manifestInput, setManifestInput] = useState("");
   const [manifestTouched, setManifestTouched] = useState(false);
   const [scannedInput, setScannedInput] = useState("");
@@ -380,28 +350,19 @@ export default function RfidVerificationTab({ draftId, onResult }: RfidVerificat
 
           <div
             ref={streamRef}
-            className="mt-5 h-32 overflow-y-auto bg-slate-950 rounded-xl px-4 py-3 font-mono text-[11px] text-emerald-300 border border-slate-800"
+            className="mt-5 h-32 overflow-y-auto bg-slate-50 rounded-xl px-4 py-3 font-mono text-[11px] text-slate-700 border border-slate-200"
           >
             {streamLines.length === 0 ? (
-              <p className="text-slate-500">
+              <p className="text-slate-400">
                 {streaming ? "listening…" : "no carrier"}
               </p>
             ) : (
-              <AnimatePresence initial={false}>
-                {streamLines.map((line, i) => (
-                  <motion.div
-                    key={i}
-                    initial={shouldReduceMotion ? {} : { opacity: 0, x: -6 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.18 }}
-                  >
-                    {line}
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+              streamLines.map((line, i) => (
+                <div key={i}>{line}</div>
+              ))
             )}
             {streaming && (
-              <span className="inline-block w-2 h-3 bg-emerald-300 animate-pulse ml-0.5 align-middle" />
+              <span className="inline-block w-2 h-3 bg-blue-500 animate-pulse ml-0.5 align-middle" />
             )}
           </div>
         </div>
@@ -458,25 +419,19 @@ export default function RfidVerificationTab({ draftId, onResult }: RfidVerificat
                   Cancel
                 </button>
               )}
-              <motion.button
+              <button
                 type="submit"
-                whileTap={shouldReduceMotion ? {} : { scale: 0.97 }}
                 disabled={submitting}
                 className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm font-semibold rounded-xl transition-colors duration-200 flex items-center gap-2"
               >
                 {streaming ? "Scanning…" : "Scan & Verify"}
-              </motion.button>
+              </button>
             </div>
           </form>
         </div>
 
-        <AnimatePresence>
-          {result && (
-            <motion.div
-              key="r"
-              initial={shouldReduceMotion ? {} : { opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 6 }}
+        {result && (
+            <div
               className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-7 space-y-5"
             >
               <MatchGauge pct={result.matchPct} />
@@ -503,9 +458,8 @@ export default function RfidVerificationTab({ draftId, onResult }: RfidVerificat
               {result.extra.length > 0 && (
                 <ChipRail title={`Extra Tags (${result.extra.length})`} tags={result.extra} variant="extra" />
               )}
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+        )}
 
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-7">
           <div className="flex items-center justify-between mb-5">

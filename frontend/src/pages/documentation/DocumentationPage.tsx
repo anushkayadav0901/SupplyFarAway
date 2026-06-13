@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "./Sidebar";
 import ContentRenderer from "./ContentRenderer";
 import { getAllSections } from "../../constants/docs_constants";
@@ -102,31 +101,26 @@ const DocumentationPage: React.FC = () => {
           </div>
 
           {/* Mobile Sidebar - Toggle */}
-          <AnimatePresence>
-            {isSidebarOpen && (
-              <>
-                <Sidebar
-                  isOpen={isSidebarOpen}
-                  onClose={() => setIsSidebarOpen(false)}
-                  activeCategory={activeCategory}
-                  activeSection={activeSection}
-                  onNavigate={navigateToSection}
-                  searchQuery={searchQuery}
-                  onSearch={handleSearch}
-                  searchResults={searchResults}
-                />
+          {isSidebarOpen && (
+            <>
+              <Sidebar
+                isOpen={isSidebarOpen}
+                onClose={() => setIsSidebarOpen(false)}
+                activeCategory={activeCategory}
+                activeSection={activeSection}
+                onNavigate={navigateToSection}
+                searchQuery={searchQuery}
+                onSearch={handleSearch}
+                searchResults={searchResults}
+              />
 
-                {/* Mobile Overlay */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="fixed inset-0 bg-transparent  z-40 lg:hidden"
-                />
-              </>
-            )}
-          </AnimatePresence>
+              {/* Mobile Overlay */}
+              <div
+                onClick={() => setIsSidebarOpen(false)}
+                className="fixed inset-0 bg-transparent z-40 lg:hidden"
+              />
+            </>
+          )}
 
           {/* Main Content */}
           <main className="flex-1" ref={contentRef}>

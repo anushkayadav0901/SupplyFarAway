@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import axios from "axios";
 import Papa from "papaparse";
 import { ShieldCheck, Upload, FileText, Camera, Send } from "lucide-react";
+import PageLead from "../../components/PageLead";
 import DraftPicker from "../../components/DraftPicker";
 import InsightsRail from "../../components/InsightsRail";
 import ComplianceResponse from "./ComplianceResponse";
@@ -466,23 +467,11 @@ export default function Compliance() {
     <div className="min-h-screen bg-slate-50">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-6">
 
-        {/* Draft context card */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-white p-5 rounded-2xl border border-slate-200 shadow-sm gap-4">
-          <div>
-            <h2 className="text-lg font-bold text-slate-800">
-              Compliance Context
-            </h2>
-            <p className="text-sm text-slate-500 mt-0.5">
-              Select an active draft to pre-fill fields — AI infers the rest.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-slate-600">
-              Active Draft:
-            </span>
-            <DraftPicker value={draftId} onSelect={setDraftId} />
-          </div>
-        </div>
+        <PageLead
+          title="Screen for export compliance"
+          sub="Pick a draft — Gemini extracts the HS code, regulatory flags, and dual-use warnings. Or drop a CSV / product photo to skip the form."
+          right={<DraftPicker value={draftId} onSelect={setDraftId} />}
+        />
 
         {/* Mode tabs */}
         <div className="flex border-b border-slate-200 gap-1 overflow-x-auto pb-px">

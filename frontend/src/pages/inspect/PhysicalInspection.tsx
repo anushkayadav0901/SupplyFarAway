@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Camera, Scale, Tag, Diff, PlayCircle, CheckCircle2, Circle } from "lucide-react";
+import PageLead from "../../components/PageLead";
 import DraftPicker from "../../components/DraftPicker";
 import TrustGauge from "../../components/TrustGauge";
 
@@ -90,34 +91,23 @@ export default function PhysicalInspection() {
   return (
     <div className="min-h-screen bg-slate-50">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-6">
-        {/* Draft selector + Run All Checks */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-white p-5 rounded-2xl border border-slate-200 gap-4">
-          <div>
-            <h2 className="text-lg font-bold text-slate-800">
-              Inspection Context
-            </h2>
-            <p className="text-sm text-slate-500 mt-0.5">
-              Select a draft to run verification across all subsystems.
-            </p>
-          </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-sm font-semibold text-slate-600">
-              Active Draft:
-            </span>
-            <DraftPicker
-              value={selectedDraftId}
-              onSelect={setSelectedDraftId}
-            />
-            <button
-              type="button"
-              onClick={handleRunAll}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            >
-              <PlayCircle className="w-4 h-4" />
-              Run All Checks
-            </button>
-          </div>
-        </div>
+        <PageLead
+          title="Verify a shipment"
+          sub="Run camera count, scale weight, RFID match, and damage diff against the manifest. Trust score updates after each check."
+          right={
+            <>
+              <DraftPicker value={selectedDraftId} onSelect={setSelectedDraftId} />
+              <button
+                type="button"
+                onClick={handleRunAll}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                <PlayCircle className="w-4 h-4" />
+                Run All Checks
+              </button>
+            </>
+          }
+        />
 
         {/* Two-column layout: tabs + trust panel */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Copy, Send } from "lucide-react";
-import { motion } from "framer-motion";
 import { FaTrash, FaImage } from "react-icons/fa";
 import Toast from "./../../components/Toast";
 
@@ -182,34 +181,18 @@ const ProductAnalysis: React.FC = () => {
     navigate(`/compliance?draftId=${analysisResult.draftId}`);
   };
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.06 } },
-  };
-
-  const itemVariants = {
-    hidden: { y: 12, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: { duration: 0.2, ease: "easeOut" as const },
-    },
-  };
-
   return (
-    <div className="min-h-screen bg-neutral-100 p-4 sm:p-6">
-      {/* Header */}
-
+    <div className="min-h-screen bg-slate-50 p-4 sm:p-6">
       {/* Main Content */}
-      <div className="flex flex-col items-center px-4 sm:px-6 py-12">
+      <div className="flex flex-col items-center px-4 sm:px-6 py-8">
         <div className="w-full max-w-4xl">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
             {/* Card Header */}
-            <div className="bg-blue-600 p-8">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center">
+            <div className="p-6 border-b border-slate-200">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
                   <svg
-                    className="w-6 h-6 text-white"
+                    className="w-5 h-5 text-white"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -223,150 +206,69 @@ const ProductAnalysis: React.FC = () => {
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-white">
-                    Analyze Product Image
+                  <h2 className="text-xl font-bold text-slate-900">
+                    Product Image Analysis
                   </h2>
-                  <p className="text-white/80 text-sm mt-1">
-                    Upload a product image for AI-powered analysis and
-                    compliance insights
+                  <p className="text-slate-500 text-sm mt-0.5">
+                    Upload a product photo to extract HS code and required export documents.
                   </p>
                 </div>
               </div>
             </div>
 
             {/* Card Body */}
-            <div className="p-8 sm:p-12">
+            <div className="p-8">
               {/* Upload Zone */}
-              <div className="relative mb-8">
+              <div className="mb-6">
                 <div
-                  className={`
-                    relative border-2 border-dashed rounded-2xl p-12 text-center transition-colors duration-150
-                    ${
-                      isDragging
-                        ? "border-blue-400 bg-blue-50 shadow-sm"
-                        : "border-gray-300 bg-gray-50 hover:border-blue-300 hover:bg-blue-50"
-                    }
-                  `}
+                  className={`border-2 border-dashed rounded-xl p-10 text-center transition-colors duration-150 ${
+                    isDragging
+                      ? "border-blue-400 bg-blue-50"
+                      : "border-slate-200 bg-slate-50 hover:border-blue-300 hover:bg-blue-50/40 cursor-pointer"
+                  }`}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
+                  onClick={() => !selectedImage && fileInputRef.current?.click()}
                 >
-                  {/* Background Pattern */}
-                  <div className="absolute inset-0 opacity-5">
-                    <svg className="w-full h-full" viewBox="0 0 100 100">
-                      <defs>
-                        <pattern
-                          id="grid"
-                          width="10"
-                          height="10"
-                          patternUnits="userSpaceOnUse"
-                        >
-                          <path
-                            d="M 10 0 L 0 0 0 10"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1"
-                          />
-                        </pattern>
-                      </defs>
-                      <rect width="100" height="100" fill="url(#grid)" />
-                    </svg>
-                  </div>
-
                   {selectedImage ? (
-                    <div className="relative">
-                      <div className="mb-6">
-                        <div className="mx-auto w-[320px] aspect-[4/3] relative mb-4">
-                          {previewUrl && (
-                            <img
-                              src={previewUrl}
-                              alt="Preview"
-                              width={320}
-                              height={240}
-                              className="w-full h-full object-contain rounded-2xl shadow-xl"
-                            />
-                          )}
+                    <div className="space-y-4">
+                      {previewUrl && (
+                        <div className="mx-auto w-64 aspect-[4/3]">
+                          <img
+                            src={previewUrl}
+                            alt="Preview"
+                            className="w-full h-full object-contain rounded-lg border border-slate-200"
+                          />
                         </div>
-                        <div className="w-16 h-16 bg-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                          <svg
-                            className="w-8 h-8 text-white"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        </div>
-                        <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                          Image Successfully Uploaded
-                        </h3>
-                        <p className="text-gray-600">
-                          <span className="font-medium text-blue-600">
-                            {selectedImage.name}
-                          </span>
-                        </p>
-                      </div>
-
-                      <div className="flex flex-col sm:flex-row justify-center gap-4">
+                      )}
+                      <p className="text-sm font-semibold text-slate-800">{selectedImage.name}</p>
+                      <p className="text-xs text-slate-500">{(selectedImage.size / 1024).toFixed(1)} KB</p>
+                      <div className="flex flex-col sm:flex-row justify-center gap-3">
                         <button
-                          onClick={handleRemoveImage}
-                          className="group relative px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                          onClick={(e) => { e.stopPropagation(); handleRemoveImage(); }}
+                          className="px-4 py-2 text-sm text-slate-600 border border-slate-300 hover:bg-slate-100 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                           disabled={isLoading}
                         >
-                          <span className="relative flex items-center justify-center space-x-2">
-                            <FaTrash className="w-4 h-4" />
-                            <span>Remove Image</span>
-                          </span>
+                          <FaTrash className="w-3 h-3" />
+                          Remove
                         </button>
-
                         <button
-                          onClick={() => void handleAnalyze()}
-                          className="group relative px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 min-w-[180px]"
+                          onClick={(e) => { e.stopPropagation(); void handleAnalyze(); }}
+                          className="px-5 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-60"
                           disabled={isLoading}
                         >
-                          <span className="relative flex items-center justify-center space-x-2">
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M13 10V3L4 14h7v7l9-11h-7z"
-                              />
-                            </svg>
-                            <span>
-                              {isLoading ? "Analyzing..." : "Analyze Product"}
-                            </span>
-                          </span>
+                          {isLoading ? "Analyzing..." : "Analyze Product"}
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <div className="relative">
-                      <div className="mb-6">
-                        <div className="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                          <FaImage className="text-white text-2xl" />
-                        </div>
-                        <h3 className="text-2xl font-bold text-gray-800 mb-3">
-                          {isDragging
-                            ? "Drop your image here!"
-                            : "Upload Product Image"}
-                        </h3>
-                        <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                          Drag and drop your product image here, or click the
-                          button below to browse and select your file
-                        </p>
-                      </div>
-
+                    <div className="space-y-3">
+                      <FaImage className="text-slate-400 text-3xl mx-auto" />
+                      <p className="text-sm font-medium text-slate-600">
+                        {isDragging ? "Drop your image here" : "Drag & drop or click to upload"}
+                      </p>
+                      <p className="text-xs text-slate-400">JPG, PNG, WebP — max 10 MB</p>
                       <input
                         type="file"
                         accept="image/*"
@@ -375,29 +277,6 @@ const ProductAnalysis: React.FC = () => {
                         className="hidden"
                         disabled={isLoading}
                       />
-
-                      <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="group relative px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-lg transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                        disabled={isLoading}
-                      >
-                        <span className="relative flex items-center justify-center space-x-3">
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                            />
-                          </svg>
-                          <span>Select Image</span>
-                        </span>
-                      </button>
                     </div>
                   )}
                 </div>
@@ -405,293 +284,104 @@ const ProductAnalysis: React.FC = () => {
 
               {/* Loading State */}
               {isLoading && (
-                <div className="flex flex-col items-center justify-center py-8 mb-8">
-                  <div className="relative">
-                    <div className="w-16 h-16 border-4 border-blue-200 rounded-full animate-spin">
-                      <div className="absolute top-0 left-0 w-16 h-16 border-4 border-transparent border-t-blue-500 rounded-full animate-spin"></div>
-                    </div>
-                  </div>
-                  <p className="text-gray-600 mt-4 font-medium">
-                    Analyzing your product image...
-                  </p>
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-700 animate-pulse mb-6">
+                  Scanning product characteristics and retrieving HS code...
                 </div>
               )}
 
               {/* Analysis Results */}
               {analysisResult && (
-                <motion.div
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                  className="space-y-6"
-                >
+                <div className="space-y-4">
                   {analysisResult.data ? (
                     <>
-                      <motion.div
-                        variants={itemVariants}
-                        className="bg-emerald-50 rounded-2xl p-6 border border-emerald-200"
-                      >
-                        <div className="flex items-center space-x-3 mb-4">
-                          <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center">
-                            <svg
-                              className="w-5 h-5 text-white"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                              />
-                            </svg>
+                      {/* Product Details */}
+                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                        <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Product Details</h3>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-xs text-slate-500 block">HS Code</span>
+                            <span className="text-sm font-bold text-slate-800">{analysisResult.data["HS Code"]}</span>
                           </div>
-                          <h3 className="text-xl font-semibold text-gray-800">
-                            Product Details
-                          </h3>
+                          <button
+                            title="Copy HS Code"
+                            onClick={() => handleCopy(analysisResult.data!["HS Code"])}
+                            className="p-2 text-slate-400 hover:text-blue-600 transition-colors rounded-lg hover:bg-blue-50"
+                          >
+                            <Copy size={15} />
+                          </button>
                         </div>
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between p-4 bg-white rounded-xl">
-                            <div className="flex-1">
-                              <span className="text-gray-600 font-medium block mb-1">
-                                HS Code:
-                              </span>
-                              <span className="text-gray-800 font-semibold">
-                                {analysisResult.data["HS Code"]}
-                              </span>
-                            </div>
-                            <button
-                              title="Copy HS Code"
-                              onClick={() =>
-                                handleCopy(analysisResult.data!["HS Code"])
-                              }
-                              className="ml-2 p-2 text-gray-500 hover:text-teal-600 transition rounded-lg hover:bg-teal-50"
-                            >
-                              <Copy size={16} />
-                            </button>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 mr-2">
+                            <span className="text-xs text-slate-500 block">Description</span>
+                            <span className="text-sm text-slate-700">{analysisResult.data["Product Description"]}</span>
                           </div>
-                          <div className="flex items-center justify-between p-4 bg-white rounded-xl">
-                            <div className="flex-1">
-                              <span className="text-gray-600 font-medium block mb-1">
-                                Description:
-                              </span>
-                              <span className="text-gray-800">
-                                {analysisResult.data["Product Description"]}
-                              </span>
-                            </div>
-                            <button
-                              title="Copy Description"
-                              onClick={() =>
-                                handleCopy(
-                                  analysisResult.data!["Product Description"]
-                                )
-                              }
-                              className="ml-2 p-2 text-gray-500 hover:text-teal-600 transition rounded-lg hover:bg-teal-50"
-                            >
-                              <Copy size={16} />
-                            </button>
+                          <button
+                            title="Copy Description"
+                            onClick={() => handleCopy(analysisResult.data!["Product Description"])}
+                            className="p-2 text-slate-400 hover:text-blue-600 transition-colors rounded-lg hover:bg-blue-50 shrink-0"
+                          >
+                            <Copy size={15} />
+                          </button>
+                        </div>
+                        <div className="flex gap-4 pt-1">
+                          <div>
+                            <span className="text-xs text-slate-500 block">Perishable</span>
+                            <span className={`text-sm font-semibold ${analysisResult.data["Perishable"] ? "text-orange-600" : "text-emerald-600"}`}>
+                              {analysisResult.data["Perishable"] ? "Yes" : "No"}
+                            </span>
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="p-4 bg-white rounded-xl">
-                              <span className="text-gray-600 font-medium block mb-1">
-                                Perishable:
-                              </span>
-                              <span
-                                className={`font-semibold ${
-                                  analysisResult.data["Perishable"]
-                                    ? "text-orange-600"
-                                    : "text-green-600"
-                                }`}
-                              >
-                                {analysisResult.data["Perishable"]
-                                  ? "Yes"
-                                  : "No"}
-                              </span>
-                            </div>
-                            <div className="p-4 bg-white rounded-xl">
-                              <span className="text-gray-600 font-medium block mb-1">
-                                Hazardous:
-                              </span>
-                              <span
-                                className={`font-semibold ${
-                                  analysisResult.data["Hazardous"]
-                                    ? "text-red-600"
-                                    : "text-green-600"
-                                }`}
-                              >
-                                {analysisResult.data["Hazardous"]
-                                  ? "Yes"
-                                  : "No"}
-                              </span>
-                            </div>
+                          <div>
+                            <span className="text-xs text-slate-500 block">Hazardous</span>
+                            <span className={`text-sm font-semibold ${analysisResult.data["Hazardous"] ? "text-red-600" : "text-emerald-600"}`}>
+                              {analysisResult.data["Hazardous"] ? "Yes" : "No"}
+                            </span>
                           </div>
                         </div>
-                      </motion.div>
+                      </div>
 
-                      <motion.div
-                        variants={itemVariants}
-                        className="bg-blue-50 rounded-2xl p-6 border border-blue-200"
-                      >
-                        <div className="flex items-center space-x-3 mb-4">
-                          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
-                            <svg
-                              className="w-5 h-5 text-white"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                              />
-                            </svg>
-                          </div>
-                          <h3 className="text-xl font-semibold text-gray-800">
-                            Required Export Documents
-                          </h3>
+                      {/* Required Export Documents */}
+                      {analysisResult.data["Required Export Document List"].length > 0 && (
+                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                          <h3 className="text-sm font-semibold text-blue-800 mb-2">Required Export Documents</h3>
+                          <ul className="space-y-1">
+                            {analysisResult.data["Required Export Document List"].map((doc, index) => (
+                              <li key={index} className="flex items-center gap-2 text-sm text-slate-700">
+                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
+                                {doc}
+                              </li>
+                            ))}
+                          </ul>
                         </div>
-                        <div className="space-y-2">
-                          {analysisResult.data[
-                            "Required Export Document List"
-                          ].map((doc, index) => (
-                            <div
-                              key={index}
-                              className="flex items-center space-x-3 p-3 bg-white rounded-lg"
-                            >
-                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                              <span className="text-gray-800">{doc}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </motion.div>
+                      )}
 
-                      <motion.div
-                        variants={itemVariants}
-                        className="bg-amber-50 rounded-2xl p-6 border border-amber-200"
-                      >
-                        <div className="flex items-center space-x-3 mb-4">
-                          <div className="w-10 h-10 bg-amber-600 rounded-xl flex items-center justify-center">
-                            <svg
-                              className="w-5 h-5 text-white"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                              />
-                            </svg>
-                          </div>
-                          <h3 className="text-xl font-semibold text-gray-800">
-                            Recommendations
-                          </h3>
-                        </div>
-                        <div className="space-y-4">
-                          <div className="p-4 bg-white rounded-xl">
-                            <p className="text-gray-800">
-                              <strong className="text-amber-700">
-                                Message:
-                              </strong>{" "}
-                              {analysisResult.data.Recommendations.message}
-                            </p>
-                          </div>
-                          <div className="p-4 bg-white rounded-xl">
-                            <p className="text-gray-800">
-                              <strong className="text-amber-700">
-                                Additional Tips:
-                              </strong>{" "}
-                              {
-                                analysisResult.data.Recommendations
-                                  .additionalTip
-                              }
-                            </p>
-                          </div>
-                        </div>
-                      </motion.div>
+                      {/* Recommendations */}
+                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                        <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Recommendations</h3>
+                        <p className="text-sm text-slate-700">{analysisResult.data.Recommendations.message}</p>
+                        <p className="text-sm text-slate-600 italic">{analysisResult.data.Recommendations.additionalTip}</p>
+                      </div>
 
-                      <motion.div
-                        variants={itemVariants}
-                        className="flex justify-center"
+                      <button
+                        onClick={handleSendToCompliance}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                       >
-                        <button
-                          onClick={handleSendToCompliance}
-                          className="group relative px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-lg transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                        >
-                          <span className="relative flex items-center justify-center space-x-3">
-                            <Send size={20} />
-                            <span>Send to Compliance Check</span>
-                          </span>
-                        </button>
-                      </motion.div>
+                        <Send size={16} />
+                        Send to Compliance Check
+                      </button>
                     </>
                   ) : (
-                    <motion.div
-                      variants={itemVariants}
-                      className="bg-red-50 border border-red-200 rounded-2xl p-6"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
-                          <svg
-                            className="w-5 h-5 text-red-600"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                          </svg>
-                        </div>
-                        <p className="text-red-700 font-medium">
-                          Error: {analysisResult.error}
-                        </p>
-                      </div>
-                    </motion.div>
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
+                      <p className="text-red-700 text-sm font-medium">Error: {analysisResult.error}</p>
+                    </div>
                   )}
-                </motion.div>
+                </div>
               )}
 
               {/* Instructions */}
               {works && (
-                <div className="bg-blue-50 rounded-2xl p-6 border border-blue-200 mt-8">
-                  <div className="flex items-start space-x-3">
-                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mt-0.5">
-                      <svg
-                        className="w-4 h-4 text-blue-600"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-800 mb-2">
-                        How it works
-                      </h4>
-                      <p className="text-gray-600 text-sm leading-relaxed">
-                        Upload a clear image of your product and our AI will
-                        analyze it to determine the HS code, product
-                        description, and required export documentation. For best
-                        results, ensure the product is clearly visible and
-                        well-lit in the image.
-                      </p>
-                    </div>
-                  </div>
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-600 mt-6">
+                  <span className="font-semibold text-slate-700">How it works: </span>
+                  Upload a clear, well-lit product image. The system extracts the HS code, product description, and required export documentation from it.
                 </div>
               )}
             </div>

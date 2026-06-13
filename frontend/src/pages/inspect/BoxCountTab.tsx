@@ -453,7 +453,7 @@ export default function BoxCountTab({ draftId, onResult, runAllRequested }: BoxC
               </div>
             </div>
 
-            <div className="flex-1 bg-slate-950 rounded-2xl relative overflow-hidden flex items-center justify-center h-64 border border-slate-800">
+            <div className="flex-1 bg-slate-100 rounded-2xl relative overflow-hidden flex items-center justify-center h-64 border border-slate-200">
               <video
                 ref={videoRef}
                 autoPlay
@@ -465,14 +465,14 @@ export default function BoxCountTab({ draftId, onResult, runAllRequested }: BoxC
               <canvas ref={overlayRef} className="absolute inset-0 w-full h-full pointer-events-none" />
 
               {mode === "idle" && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 gap-2 bg-slate-950/80">
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 gap-2 bg-slate-100/90">
                   <Camera className="w-8 h-8" />
                   <p className="text-sm">Camera preview inactive</p>
                 </div>
               )}
               {mode === "starting" && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 gap-2 bg-slate-950/80">
-                  <span className="w-8 h-8 border-2 border-slate-500 border-t-white rounded-full animate-spin" />
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 gap-2 bg-slate-100/90">
+                  <span className="w-8 h-8 border-2 border-slate-300 border-t-blue-500 rounded-full animate-spin" />
                   <p className="text-sm">Configuring camera stream...</p>
                 </div>
               )}
@@ -494,11 +494,11 @@ export default function BoxCountTab({ draftId, onResult, runAllRequested }: BoxC
         {log.length > 0 && (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
             <h3 className="text-sm font-semibold text-slate-700 mb-3">Inspection Terminal</h3>
-            <div className="h-48 overflow-y-auto bg-slate-950 rounded-xl px-4 py-3 font-mono text-xs text-emerald-300 border border-slate-800">
+            <div className="h-48 overflow-y-auto bg-slate-50 rounded-xl px-4 py-3 font-mono text-xs text-slate-700 border border-slate-200">
               {log.map((l) => (
                 <div key={l.id} className="mb-1 leading-relaxed">
-                  <span className="text-slate-500">[{l.ts}]</span>{" "}
-                  <span className={l.type === "alert" ? "text-red-400" : l.type === "system" ? "text-blue-400" : "text-emerald-300"}>
+                  <span className="text-slate-400">[{l.ts}]</span>{" "}
+                  <span className={l.type === "alert" ? "text-red-600" : l.type === "system" ? "text-blue-600" : "text-slate-700"}>
                     {l.text}
                   </span>
                 </div>

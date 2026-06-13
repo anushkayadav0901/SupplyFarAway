@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { toast } from "react-toastify";
 import { Image as ImageIcon, Upload, X, AlertTriangle, RefreshCcw } from "lucide-react";
 import CountUp from "../../components/CountUp";
@@ -68,7 +67,7 @@ function RiskGauge({ score }: { score: number }) {
     <div className="relative w-44 h-44" aria-label={`Risk score: ${score}`}>
       <svg viewBox="0 0 160 160" className="w-full h-full -rotate-90" aria-hidden="true">
         <circle cx="80" cy="80" r={radius} stroke="#e2e8f0" strokeWidth="10" fill="none" />
-        <motion.circle
+        <circle
           cx="80"
           cy="80"
           r={radius}
@@ -77,9 +76,8 @@ function RiskGauge({ score }: { score: number }) {
           strokeLinecap="round"
           fill="none"
           strokeDasharray={circumference}
-          initial={{ strokeDashoffset: circumference }}
-          animate={{ strokeDashoffset: offset }}
-          transition={{ duration: 0.9, ease: "easeOut" }}
+          strokeDashoffset={offset}
+          style={{ transition: "stroke-dashoffset 0.6s ease-out" }}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -107,7 +105,6 @@ function ScanImage({
   onPick: () => void;
   inputId: string;
 }) {
-  const shouldReduceMotion = useReducedMotion();
   return (
     <div>
       <label htmlFor={inputId} className="block text-sm font-semibold text-slate-700 mb-2">
@@ -130,18 +127,11 @@ function ScanImage({
           </div>
         )}
         {scanning && preview && (
-          <>
-            <motion.div
-              className="absolute left-0 right-0 h-[3px] bg-blue-500 shadow-[0_0_18px_4px_rgba(59,130,246,0.55)]"
-              initial={{ top: 0 }}
-              animate={shouldReduceMotion ? {} : { top: ["0%", "100%", "0%"] }}
-              transition={{ duration: 2.2, ease: "easeInOut", repeat: Infinity }}
-            />
-            <div className="absolute inset-0 ring-2 ring-blue-400/40 pointer-events-none" />
-            <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-blue-600 text-white text-[10px] font-bold tracking-wider">
-              SCANNING
-            </div>
-          </>
+          <div className="absolute inset-0 flex items-center justify-center bg-white/50 pointer-events-none">
+            <span className="px-2 py-0.5 rounded-md bg-blue-600 text-white text-[10px] font-bold tracking-wider animate-pulse">
+              ANALYZING
+            </span>
+          </div>
         )}
       </div>
     </div>
@@ -154,7 +144,6 @@ interface ShipmentDiffTabProps {
 }
 
 export default function ShipmentDiffTab({ draftId, onResult }: ShipmentDiffTabProps) {
-  const shouldReduceMotion = useReducedMotion();
   const [beforeFile, setBeforeFile] = useState<File | null>(null);
   const [afterFile, setAfterFile] = useState<File | null>(null);
   const [beforePreview, setBeforePreview] = useState<string>("");
@@ -311,14 +300,13 @@ export default function ShipmentDiffTab({ draftId, onResult }: ShipmentDiffTabPr
                 >
                   Reset
                 </button>
-                <motion.button
+                <button
                   type="submit"
-                  whileTap={shouldReduceMotion ? {} : { scale: 0.97 }}
                   disabled={isLoading}
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-sm transition-colors text-sm"
+                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold rounded-xl transition-colors text-sm"
                 >
                   {isLoading ? "Analyzing…" : "Run Diff Analysis"}
-                </motion.button>
+                </button>
               </div>
             )}
           </form>
@@ -393,16 +381,13 @@ export default function ShipmentDiffTab({ draftId, onResult }: ShipmentDiffTabPr
                   <h3 className="text-sm font-semibold text-slate-700 mb-2">Missing Items</h3>
                   <div className="flex flex-wrap gap-2">
                     {result.missingItems.map((item, i) => (
-                      <motion.span
+                      <span
                         key={`${item}-${i}`}
-                        initial={shouldReduceMotion ? {} : { opacity: 0, scale: 0.94 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: i * 0.04, duration: 0.18 }}
                         className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-50 text-red-700 border border-red-200 rounded-full text-xs font-medium"
                       >
                         <X className="w-3.5 h-3.5" aria-hidden="true" />
                         {item}
-                      </motion.span>
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -452,9 +437,8 @@ export default function ShipmentDiffTab({ draftId, onResult }: ShipmentDiffTabPr
               {historyQuery.data.map((record) => {
                 const id = (record._id as unknown as { toString(): string }).toString();
                 return (
-                  <motion.div
+                  <div
                     key={id}
-                    whileHover={shouldReduceMotion ? {} : { y: -1 }}
                     className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border border-slate-100 rounded-xl hover:border-slate-200 hover:bg-slate-50 transition-colors"
                   >
                     <div className="flex-1 min-w-0">
@@ -472,7 +456,7 @@ export default function ShipmentDiffTab({ draftId, onResult }: ShipmentDiffTabPr
                         {Math.round(record.tamperingProbability * 100)}% tamper
                       </span>
                     </div>
-                  </motion.div>
+                  </div>
                 );
               })}
             </div>
