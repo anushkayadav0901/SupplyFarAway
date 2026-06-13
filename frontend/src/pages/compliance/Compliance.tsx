@@ -1,21 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { useSearchParams } from "react-router-dom";
 import Papa from "papaparse";
-import { ShieldCheck, Upload, FileText, Camera, Send } from "lucide-react";
+import { ShieldCheck, Upload, FileText } from "lucide-react";
 import PageLead from "../../components/PageLead";
-import DraftPicker from "../../components/DraftPicker";
 import InsightsRail from "../../components/InsightsRail";
 import NewsContextCard from "../../components/NewsContextCard";
 import ComplianceResponse from "./ComplianceResponse";
+import AIThinking from "../../components/AIThinking";
+import ReferenceNewsButton from "../../components/ReferenceNewsButton";
 import { trpc } from "../../lib/trpc";
 
-// Fall back to local dev when VITE_BACKEND_URL is unset
-const BACKEND_URL =
-  (import.meta.env.VITE_BACKEND_URL as string | undefined) ||
-  "http://localhost:5000";
-
-type ComplianceMode = "form" | "csv" | "image";
+type ComplianceMode = "form" | "csv";
 
 // Structured parsed CSV form data shape matching backend expectation
 interface ParsedCsvFormData {
@@ -27,24 +22,8 @@ interface ParsedCsvFormData {
   IntendedUseDetails: Record<string, string>;
 }
 
-interface ImageAnalysisData {
-  "HS Code": string;
-  "Product Description": string;
-  Perishable: boolean;
-  Hazardous: boolean;
-  "Required Export Document List": string[];
-  Recommendations: { message: string; additionalTip: string };
-}
-
-interface ImageAnalysisResult {
-  data?: ImageAnalysisData;
-  draftId?: string;
-  error?: string;
-}
-
 export default function Compliance() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
   const [draftId, setDraftId] = useState<string>(
     searchParams.get("draftId") ?? ""
   );
@@ -62,15 +41,6 @@ export default function Compliance() {
   const [isDragging, setIsDragging] = useState(false);
   const csvInputRef = useRef<HTMLInputElement>(null);
 
-  // --- Image tab state ---
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [imageResult, setImageResult] = useState<ImageAnalysisResult | null>(
-    null
-  );
-  const imageInputRef = useRef<HTMLInputElement>(null);
-
   // --- Results ---
   const [complianceResult, setComplianceResult] = useState<Record<
     string,
@@ -84,17 +54,6 @@ export default function Compliance() {
     if (draftId) params.draftId = draftId;
     setSearchParams(params);
   }, [draftId, setSearchParams]);
-
-  // Cleanup image preview URL on unmount/change
-  useEffect(() => {
-    if (!selectedImage) {
-      setPreviewUrl(null);
-      return;
-    }
-    const url = URL.createObjectURL(selectedImage);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [selectedImage]);
 
   const utils = trpc.useUtils();
 
@@ -371,77 +330,6 @@ export default function Compliance() {
     link.click();
   };
 
-  // --- Image tab handlers ---
-  const handleImageFile = (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      setImageResult({ error: "Only image files are supported." });
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      setImageResult({ error: "Image too large. Max 10 MB." });
-      return;
-    }
-    setSelectedImage(file);
-    setImageResult(null);
-  };
-
-  const handleImageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) handleImageFile(file);
-  };
-
-  const handleImageDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file) handleImageFile(file);
-  };
-
-  const handleAnalyzeImage = async () => {
-    if (!selectedImage) return;
-    setIsAnalyzing(true);
-    setImageResult(null);
-    const formData = new FormData();
-    formData.append("image", selectedImage);
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("No auth token found");
-      const res = await axios.post(
-        `${BACKEND_URL}/api/analyze-product`,
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      setImageResult(res.data as ImageAnalysisResult);
-    } catch (err: unknown) {
-      let msg = "Image analysis failed.";
-      if (axios.isAxiosError(err)) {
-        msg =
-          (err.response?.data as { error?: string } | undefined)?.error ||
-          err.message ||
-          msg;
-      } else if (err instanceof Error) {
-        msg = err.message;
-      }
-      setImageResult({ error: msg });
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const handleSendImageToDraft = () => {
-    if (!imageResult?.draftId) {
-      setImageResult({ error: "No draft available from this analysis." });
-      return;
-    }
-    setDraftId(imageResult.draftId);
-    setActiveMode("form");
-    navigate(`/compliance?draftId=${imageResult.draftId}`);
-  };
-
   // Tab config
   const TABS: { id: ComplianceMode; label: string; icon: React.ReactNode }[] =
     [
@@ -455,11 +343,6 @@ export default function Compliance() {
         label: "CSV Intake",
         icon: <FileText className="w-4 h-4" />,
       },
-      {
-        id: "image",
-        label: "Image Inference",
-        icon: <Camera className="w-4 h-4" />,
-      },
     ];
 
   return (
@@ -467,8 +350,7 @@ export default function Compliance() {
 
       <PageLead
         title="Screen for export compliance"
-        sub="Pick a draft — Gemini extracts the HS code, regulatory flags, and dual-use warnings. Or drop a CSV / product photo to skip the form."
-        right={<DraftPicker value={draftId} onSelect={setDraftId} />}
+        sub="Gemini extracts the HS code, regulatory flags, and dual-use warnings. Fill the form or drop a CSV to get started."
       />
 
       {/* Mode tabs */}
@@ -503,12 +385,6 @@ export default function Compliance() {
                   3 fields required — AI infers compliance from the full draft context.
                 </p>
               </div>
-
-              {!draftId && (
-                <p className="text-sm text-slate-500">
-                  No draft selected. Fill fields manually or pick a draft above to auto-populate.
-                </p>
-              )}
 
               <form onSubmit={handleFormSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -557,9 +433,13 @@ export default function Compliance() {
                 </div>
 
                 {checkMutation.isPending && (
-                  <p className="text-sm text-blue-700">
-                    AI is running compliance check against WCO standards...
-                  </p>
+                  <AIThinking
+                    steps={[
+                      "Reading shipment context…",
+                      "Cross-checking trade regulations…",
+                      "Computing compliance score & documents…",
+                    ]}
+                  />
                 )}
 
                 <div className="flex justify-end pt-1">
@@ -681,150 +561,6 @@ export default function Compliance() {
             </div>
           )}
 
-          {/* ---- IMAGE TAB ---- */}
-          {activeMode === "image" && (
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
-              <div>
-                <h2 className="text-xl font-bold text-slate-900">
-                  Product Image Inference
-                </h2>
-                <p className="text-sm text-slate-500 mt-1">
-                  Upload a product photo — AI extracts HS code, perishability,
-                  and required docs.
-                </p>
-              </div>
-
-              {!selectedImage ? (
-                <div
-                  className="border-2 border-dashed border-slate-200 rounded-lg p-10 flex flex-col items-center justify-center gap-3 bg-slate-50 hover:border-blue-300 hover:bg-blue-50/40 cursor-pointer"
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={handleImageDrop}
-                  onClick={() => imageInputRef.current?.click()}
-                >
-                  <Camera className="w-8 h-8 text-slate-400" />
-                  <p className="text-sm font-medium text-slate-600">
-                    Drag & drop or click to upload
-                  </p>
-                  <p className="text-sm text-slate-400">
-                    JPG, PNG, WebP — max 10 MB
-                  </p>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    ref={imageInputRef}
-                    onChange={handleImageInputChange}
-                    className="hidden"
-                  />
-                </div>
-              ) : (
-                <div className="space-y-5">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <div className="border border-slate-200 rounded-lg overflow-hidden flex items-center justify-center bg-slate-50 min-h-48">
-                      {previewUrl && (
-                        <img
-                          src={previewUrl}
-                          alt="Product preview"
-                          className="max-h-48 object-contain p-2"
-                        />
-                      )}
-                    </div>
-                    <div className="flex flex-col justify-center gap-3">
-                      <p className="text-sm font-semibold text-slate-800 truncate">
-                        {selectedImage.name}
-                      </p>
-                      <p className="text-sm text-slate-500">
-                        {(selectedImage.size / 1024).toFixed(1)} KB
-                      </p>
-                      <div className="flex gap-2 flex-wrap">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedImage(null);
-                            setImageResult(null);
-                            if (imageInputRef.current)
-                              imageInputRef.current.value = "";
-                          }}
-                          className="px-5 py-3 border border-gray-200 hover:bg-gray-50 text-gray-900 text-sm font-semibold rounded-lg"
-                        >
-                          Remove
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void handleAnalyzeImage()}
-                          disabled={isAnalyzing}
-                          className="px-5 py-3 bg-gray-900 hover:bg-gray-800 disabled:opacity-60 text-white text-sm font-semibold rounded-lg"
-                        >
-                          {isAnalyzing ? "Analyzing..." : "Analyze Product"}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {isAnalyzing && (
-                    <p className="text-sm text-blue-700">
-                      AI is scanning product characteristics and retrieving HS code...
-                    </p>
-                  )}
-
-                  {imageResult?.error && (
-                    <p className="text-sm text-red-600">{imageResult.error}</p>
-                  )}
-
-                  {imageResult?.data && (
-                    <div className="space-y-5 border-t border-slate-200 pt-5">
-                      <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-                        <div>
-                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-0.5">HS Code</p>
-                          <p className="text-sm font-bold text-slate-900">{imageResult.data["HS Code"]}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-0.5">Description</p>
-                          <p className="text-sm text-slate-700">{imageResult.data["Product Description"]}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-0.5">Perishable</p>
-                          <p className={`text-sm font-semibold ${imageResult.data.Perishable ? "text-orange-600" : "text-emerald-600"}`}>
-                            {imageResult.data.Perishable ? "Yes" : "No"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-0.5">Hazardous</p>
-                          <p className={`text-sm font-semibold ${imageResult.data.Hazardous ? "text-red-600" : "text-emerald-600"}`}>
-                            {imageResult.data.Hazardous ? "Yes" : "No"}
-                          </p>
-                        </div>
-                      </div>
-
-                      {imageResult.data["Required Export Document List"]?.length > 0 && (
-                        <div>
-                          <p className="text-sm font-medium text-slate-700 mb-2">Required Export Documents</p>
-                          <ul className="space-y-1">
-                            {imageResult.data["Required Export Document List"].map((doc, i) => (
-                              <li key={i} className="text-sm text-slate-600 flex items-center gap-2">
-                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />
-                                {doc}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {imageResult.draftId && (
-                        <button
-                          type="button"
-                          onClick={handleSendImageToDraft}
-                          className="flex items-center gap-2 px-5 py-3 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-lg"
-                        >
-                          <Send className="w-4 h-4" />
-                          Send to Compliance Form
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
 
           {submitError && (
             <p className="text-sm text-red-600" role="alert">{submitError}</p>
@@ -846,6 +582,10 @@ export default function Compliance() {
                     [key: string]: unknown;
                   }
                 }
+              />
+              <ReferenceNewsButton
+                subject={hsCode || `${originCountry} ${destinationCountry}`}
+                kind="compliance"
               />
             </div>
           )}

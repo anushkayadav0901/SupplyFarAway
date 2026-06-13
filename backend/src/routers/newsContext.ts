@@ -338,6 +338,142 @@ Rules:
 }
 
 // ---------------------------------------------------------------------------
+// Market Insights — types and helpers
+// ---------------------------------------------------------------------------
+
+const MarketInsightsInputSchema = z.object({
+  subject: z.string().max(300),
+  kind: z.enum(["product", "route", "compliance"]),
+});
+
+type MarketInsightsInput = z.infer<typeof MarketInsightsInputSchema>;
+
+interface MarketInsightsResult {
+  supplyChain: string;
+  priceTrends: string;
+  logistics: string;
+  transportCosts: string;
+  bulkTrends: string;
+  marketRisks: string;
+  articles: Array<{ title: string; source: string; url: string }>;
+}
+
+function buildMarketInsightsQuery(input: MarketInsightsInput): string {
+  const { subject, kind } = input;
+  if (kind === "product") {
+    return `"${subject}" supply chain OR market OR pricing OR "trade volume"`;
+  }
+  if (kind === "route") {
+    return `"${subject}" shipping OR "trade lane" OR logistics OR freight OR "port congestion"`;
+  }
+  // compliance
+  return `"${subject}" "trade policy" OR tariffs OR regulation OR sanctions OR customs`;
+}
+
+function emptyMarketInsights(): MarketInsightsResult {
+  return {
+    supplyChain: "No data available.",
+    priceTrends: "No data available.",
+    logistics: "No data available.",
+    transportCosts: "No data available.",
+    bulkTrends: "No data available.",
+    marketRisks: "No data available.",
+    articles: [],
+  };
+}
+
+async function analyzeMarketInsightsWithGemini(
+  input: MarketInsightsInput,
+  articles: FetchedArticle[],
+): Promise<MarketInsightsResult> {
+  const articlesText =
+    articles.length > 0
+      ? articles
+          .map(
+            (a, i) =>
+              `[${i + 1}] (${a.source}) ${a.title}\n    ${a.description}\n    URL: ${a.url}`,
+          )
+          .join("\n\n")
+      : "(no articles — use general world knowledge)";
+
+  const kindFocus =
+    input.kind === "product"
+      ? "product supply chain, manufacturing, and pricing dynamics"
+      : input.kind === "route"
+      ? "shipping lane operations, freight costs, and logistics capacity"
+      : "trade policy, regulatory compliance, and tariff environment";
+
+  const prompt = `You are a market intelligence analyst specializing in ${kindFocus}. Analyze the subject and any available news to produce concise market insights.
+
+SUBJECT: ${input.subject}
+KIND: ${input.kind}
+
+RECENT NEWS:
+${articlesText}
+
+Return ONLY JSON in this exact shape — no markdown, no explanation:
+{
+  "supplyChain": "<one short sentence about supply chain status or dynamics>",
+  "priceTrends": "<one short sentence about current price trends or pressures>",
+  "logistics": "<one short sentence about logistics conditions or capacity>",
+  "transportCosts": "<one short sentence about transport cost trends>",
+  "bulkTrends": "<one short sentence about bulk transaction or volume trends>",
+  "marketRisks": "<one short sentence about key market risks or uncertainties>",
+  "topArticleIndexes": [<1-based indexes of 2-3 most relevant articles, or [] if none>]
+}
+
+Rules:
+- Every string value ≤ 30 words. No markdown, no bullet points, no line breaks.
+- Base insights on the news where possible; fill gaps from general world knowledge.
+- Be specific and actionable, not generic.`;
+
+  try {
+    const response = await Promise.race([
+      genai().models.generateContent({ model: FLASH_MODEL, contents: prompt }),
+      new Promise<never>((_, rej) =>
+        setTimeout(() => rej(new Error("Gemini timeout")), GEMINI_TIMEOUT_MS),
+      ),
+    ]);
+
+    const raw = ((response as { text?: string }).text ?? "").trim();
+    const jsonText = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
+
+    let parsed: {
+      supplyChain?: string;
+      priceTrends?: string;
+      logistics?: string;
+      transportCosts?: string;
+      bulkTrends?: string;
+      marketRisks?: string;
+      topArticleIndexes?: number[];
+    };
+    try {
+      parsed = JSON.parse(jsonText);
+    } catch {
+      return emptyMarketInsights();
+    }
+
+    const topIndexes = (parsed.topArticleIndexes ?? []).slice(0, 3);
+    const selectedArticles = topIndexes
+      .map((idx) => articles[idx - 1])
+      .filter((a): a is FetchedArticle => !!a)
+      .map((a) => ({ title: a.title, source: a.source, url: a.url }));
+
+    return {
+      supplyChain: parsed.supplyChain ?? "No data available.",
+      priceTrends: parsed.priceTrends ?? "No data available.",
+      logistics: parsed.logistics ?? "No data available.",
+      transportCosts: parsed.transportCosts ?? "No data available.",
+      bulkTrends: parsed.bulkTrends ?? "No data available.",
+      marketRisks: parsed.marketRisks ?? "No data available.",
+      articles: selectedArticles,
+    };
+  } catch {
+    return emptyMarketInsights();
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Router
 // ---------------------------------------------------------------------------
 
@@ -371,5 +507,17 @@ export const newsContextRouter = router({
       const result = await analyzeWithGemini(input, articles);
       warningCache.set(key, { at: Date.now(), value: result });
       return result;
+    }),
+
+  /**
+   * On-demand market intelligence for any subject (product, trade route,
+   * or compliance topic). User-triggered — not auto-fetched.
+   */
+  marketInsights: publicProcedure
+    .input(MarketInsightsInputSchema)
+    .mutation(async ({ input }) => {
+      const query = buildMarketInsightsQuery(input);
+      const articles = await fetchNews(query);
+      return analyzeMarketInsightsWithGemini(input, articles);
     }),
 });

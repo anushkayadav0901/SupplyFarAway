@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import React, { useState, useMemo } from "react";
 import {
   Area,
   AreaChart,
@@ -9,18 +8,18 @@ import {
   YAxis,
 } from "recharts";
 import {
-  ShieldCheck,
   AlertTriangle,
   CheckCircle,
   Activity,
   ScrollText,
   RefreshCcw,
   Radar,
+  Database,
 } from "lucide-react";
 import PageLead from "../../components/PageLead";
-import DraftPicker from "../../components/DraftPicker";
-import TrustGauge from "../../components/TrustGauge";
 import NewsContextCard from "../../components/NewsContextCard";
+import AIThinking from "../../components/AIThinking";
+import ReferenceNewsButton from "../../components/ReferenceNewsButton";
 import { trpc } from "../../lib/trpc";
 
 // ---------------------------------------------------------------------------
@@ -58,35 +57,11 @@ function SeverityBadge({ severity }: { severity: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// Empty state
-// ---------------------------------------------------------------------------
-
-function EmptyState({ onPickDraft }: { onPickDraft: () => void }) {
-  return (
-    <div className="py-16 text-center">
-      <ShieldCheck className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-      <p className="text-base font-semibold text-slate-700">No shipment selected</p>
-      <p className="text-sm text-slate-500 mt-1 mb-6">
-        Pick a draft above to see its trust score, run an anomaly scan, and inspect the audit trail.
-      </p>
-      <button
-        type="button"
-        onClick={onPickDraft}
-        className="px-5 py-3 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-lg"
-      >
-        Pick a draft
-      </button>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 
 export default function RiskCenter() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [draftId, setDraftId] = useState<string>(searchParams.get("draftId") ?? "");
+  const [draftId] = useState<string>("");
 
   // Anomaly scanner form
   const [originCity, setOriginCity] = useState("");
@@ -101,27 +76,55 @@ export default function RiskCenter() {
   const [eventSummary, setEventSummary] = useState("");
   const [eventType, setEventType] = useState("manual-check");
 
+  // Demo seed presets
+  const DEMO_PRESETS = {
+    low: {
+      originCity: "Mumbai",
+      destinationCity: "Singapore",
+      declaredCount: "50",
+      detectedCount: "50",
+      declaredWeight: "2000",
+      measuredWeight: "2002",
+      routeDeviation: "12",
+    },
+    medium: {
+      originCity: "Mumbai",
+      destinationCity: "Rotterdam",
+      declaredCount: "50",
+      detectedCount: "46",
+      declaredWeight: "2000",
+      measuredWeight: "2150",
+      routeDeviation: "85",
+    },
+    high: {
+      originCity: "Karachi",
+      destinationCity: "Caracas",
+      declaredCount: "50",
+      detectedCount: "37",
+      declaredWeight: "2000",
+      measuredWeight: "2650",
+      routeDeviation: "320",
+    },
+  } as const;
+
+  function applyDemoPreset(tier: keyof typeof DEMO_PRESETS) {
+    const p = DEMO_PRESETS[tier];
+    setOriginCity(p.originCity);
+    setDestinationCity(p.destinationCity);
+    setDeclaredCount(p.declaredCount);
+    setDetectedCount(p.detectedCount);
+    setDeclaredWeight(p.declaredWeight);
+    setMeasuredWeight(p.measuredWeight);
+    setRouteDeviation(p.routeDeviation);
+    setScanError("");
+  }
+
   // Expand/collapse audit rows
   const [expandedAudit, setExpandedAudit] = useState<Set<string>>(new Set());
-
-  // Ref for DraftPicker focus trigger (CTA button)
-  const draftPickerRef = useRef<HTMLButtonElement>(null);
-
-  // Sync URL
-  useEffect(() => {
-    const params: Record<string, string> = {};
-    if (draftId) params.draftId = draftId;
-    setSearchParams(params);
-  }, [draftId, setSearchParams]);
 
   const utils = trpc.useUtils();
 
   // ---- queries ----
-  const trustQuery = trpc.insights.shipmentTrustScore.useQuery(
-    { draftId },
-    { enabled: Boolean(draftId), retry: false }
-  );
-
   const auditQuery = trpc.audit.forDraft.useQuery(
     { draftId, order: "newest", limit: 50 },
     { enabled: Boolean(draftId), retry: false }
@@ -229,30 +232,12 @@ export default function RiskCenter() {
     });
   }
 
-  // ---- trust score breakdown ----
-  const trustData = trustQuery.data;
-  const breakdown = trustData?.breakdown;
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12">
 
       <PageLead
         title="Find tampered shipments"
         sub="Trust score, AI anomaly scan, and audit trail per shipment. Portfolio fraud feed shows below regardless."
-        right={
-          <>
-            <DraftPicker value={draftId} onSelect={setDraftId} />
-            {draftId && (
-              <button
-                type="button"
-                onClick={() => setDraftId("")}
-                className="text-xs text-slate-400 hover:text-slate-600 underline"
-              >
-                Clear
-              </button>
-            )}
-          </>
-        }
       />
 
       {/* ---- Portfolio summary strip (always visible) ---- */}
@@ -332,66 +317,8 @@ export default function RiskCenter() {
         </section>
       )}
 
-      {/* ---- Draft-specific panel ---- */}
-      {!draftId ? (
-        <EmptyState onPickDraft={() => draftPickerRef.current?.click()} />
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-
-          {/* Left: Trust Gauge + breakdown */}
-          <section className="lg:col-span-4">
-            <h2 className="text-xl font-bold text-slate-900 mb-5">Trust Score</h2>
-            {trustQuery.isLoading ? (
-              <p className="text-sm text-slate-400 py-8">Loading…</p>
-            ) : trustData ? (
-              <>
-                <div className="flex justify-center mb-5">
-                  <TrustGauge
-                    value={trustData.score}
-                    label={trustData.verdict}
-                    size={160}
-                  />
-                </div>
-                <div className="border-t border-slate-200 pt-4 space-y-3">
-                  {breakdown &&
-                    (Object.entries(breakdown) as Array<
-                      [string, { score: number; note: string; latestAt: Date | null }]
-                    >).map(([key, val]) => (
-                      <div key={key} className="flex items-center justify-between text-xs">
-                        <span className="text-slate-500 capitalize">{key}</span>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="h-1.5 rounded-full bg-slate-200 w-20 overflow-hidden"
-                            title={val.note}
-                          >
-                            <div
-                              className={`h-full rounded-full ${
-                                val.score >= 80
-                                  ? "bg-emerald-500"
-                                  : val.score >= 50
-                                  ? "bg-blue-500"
-                                  : val.score >= 30
-                                  ? "bg-amber-500"
-                                  : "bg-red-500"
-                              }`}
-                              style={{ width: `${val.score}%` }}
-                            />
-                          </div>
-                          <span className="font-semibold text-slate-700 w-7 text-right">
-                            {val.score}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </>
-            ) : (
-              <p className="text-sm text-slate-400 py-8">No trust data for this draft.</p>
-            )}
-          </section>
-
-          {/* Right: Scanner + Audit Trail */}
-          <div className="lg:col-span-8 space-y-12">
+      {/* ---- Scanner + Audit Trail ---- */}
+      <div className="space-y-12">
 
             {/* Anomaly Scanner */}
             <section>
@@ -399,6 +326,33 @@ export default function RiskCenter() {
                 <Radar className="w-4 h-4 text-blue-600" />
                 <h2 className="text-xl font-bold text-slate-900">Anomaly Scanner</h2>
               </div>
+              {/* Demo seed buttons */}
+              <div className="flex items-center gap-2 mb-4">
+                <Database className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                <span className="text-xs text-slate-400 font-medium mr-1">Demo:</span>
+                <button
+                  type="button"
+                  onClick={() => applyDemoPreset("low")}
+                  className="px-3 py-1.5 text-xs font-medium border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  Low Risk
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyDemoPreset("medium")}
+                  className="px-3 py-1.5 text-xs font-medium border border-amber-300 text-amber-700 rounded-lg hover:bg-amber-50 transition-colors"
+                >
+                  Medium Risk
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyDemoPreset("high")}
+                  className="px-3 py-1.5 text-xs font-medium border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors"
+                >
+                  High Risk
+                </button>
+              </div>
+
               <div className="bg-white border border-slate-200 rounded-xl p-6">
                 <form onSubmit={handleScan} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
@@ -501,6 +455,18 @@ export default function RiskCenter() {
                 </form>
               </div>
 
+              {analyzeMut.isPending && (
+                <div className="mt-4">
+                  <AIThinking
+                    steps={[
+                      "Reading shipment signals…",
+                      "Comparing against baseline patterns…",
+                      "Generating risk summary…",
+                    ]}
+                  />
+                </div>
+              )}
+
               {scanError && (
                 <p className="mt-3 text-sm text-red-600" role="alert">{scanError}</p>
               )}
@@ -518,31 +484,43 @@ export default function RiskCenter() {
 
               {/* Latest scan result — kept as a result panel */}
               {analyzeMut.data && (
-                <div
-                  className={`mt-4 p-5 rounded-xl border text-sm ${
-                    analyzeMut.data.severity === "high"
-                      ? "bg-red-50 border-red-200 text-red-800"
-                      : analyzeMut.data.severity === "medium"
-                      ? "bg-amber-50 border-amber-200 text-amber-800"
-                      : "bg-emerald-50 border-emerald-200 text-emerald-800"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 font-semibold mb-1">
-                    {analyzeMut.data.severity !== "low" ? (
-                      <AlertTriangle className="w-4 h-4" />
-                    ) : (
-                      <CheckCircle className="w-4 h-4" />
-                    )}
-                    Severity: {analyzeMut.data.severity} — Risk score: {analyzeMut.data.riskScore}
-                  </div>
-                  <p className="text-xs leading-relaxed">{analyzeMut.data.summary}</p>
-                  {Array.isArray(analyzeMut.data.flags) && analyzeMut.data.flags.length > 0 && (
-                    <ul className="mt-2 space-y-0.5">
-                      {(analyzeMut.data.flags as string[]).map((f, i) => (
-                        <li key={i} className="text-xs">• {f}</li>
-                      ))}
-                    </ul>
+                <div className="mt-4 space-y-3">
+                  {/* Summary callout — Gemini-generated analysis, prominently shown */}
+                  {analyzeMut.data.summary && (
+                    <div className="border-l-4 border-blue-500 bg-slate-50 px-4 py-3 rounded-r-lg">
+                      <p className="text-sm text-slate-800 leading-relaxed">{analyzeMut.data.summary}</p>
+                    </div>
                   )}
+
+                  {/* Severity + flags */}
+                  <div
+                    className={`p-5 rounded-xl border text-sm ${
+                      analyzeMut.data.severity === "high"
+                        ? "bg-red-50 border-red-200 text-red-800"
+                        : analyzeMut.data.severity === "medium"
+                        ? "bg-amber-50 border-amber-200 text-amber-800"
+                        : "bg-emerald-50 border-emerald-200 text-emerald-800"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 font-semibold mb-1">
+                      {analyzeMut.data.severity !== "low" ? (
+                        <AlertTriangle className="w-4 h-4" />
+                      ) : (
+                        <CheckCircle className="w-4 h-4" />
+                      )}
+                      Severity: {analyzeMut.data.severity} — Risk score: {analyzeMut.data.riskScore}
+                    </div>
+                    {Array.isArray(analyzeMut.data.flags) && analyzeMut.data.flags.length > 0 && (
+                      <ul className="mt-2 space-y-0.5">
+                        {(analyzeMut.data.flags as string[]).map((f, i) => (
+                          <li key={i} className="text-xs">• {f}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  {/* News context */}
+                  <ReferenceNewsButton subject="supply chain risk anomaly" kind="route" />
                 </div>
               )}
             </section>
@@ -681,9 +659,7 @@ export default function RiskCenter() {
                 )}
               </div>
             </section>
-          </div>
-        </div>
-      )}
+      </div>
 
       {/* ---- Recent event feed (always visible at bottom) ---- */}
       {recentEvents.length > 0 && (

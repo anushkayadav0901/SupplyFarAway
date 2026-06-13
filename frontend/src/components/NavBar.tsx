@@ -5,9 +5,7 @@ import {
   Navigation,
   ShieldAlert,
   Truck,
-  Boxes,
   FileText,
-  Newspaper,
   Menu,
   X,
 } from "lucide-react";
@@ -30,7 +28,6 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Fleet", path: "/fleet", icon: <Truck size={15} /> },
   { label: "Compliance", path: "/compliance", icon: <ShieldCheck size={15} /> },
   { label: "Docs", path: "/docs", icon: <FileText size={15} /> },
-  { label: "News", path: "/news", icon: <Newspaper size={15} /> },
 ];
 
 function NavBar() {
@@ -83,19 +80,6 @@ function NavBar() {
             >
               <GitHubGlyph />
             </a>
-            <button
-              onClick={() => navigate("/inventory")}
-              className={`text-sm font-medium px-4 sm:px-5 py-2 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 ${
-                active("/inventory")
-                  ? "bg-gray-900 text-white border-gray-900"
-                  : "border-gray-300 text-gray-900 hover:bg-gray-50"
-              }`}
-            >
-              <span className="inline-flex items-center gap-1.5">
-                <Boxes size={15} />
-                Inventory
-              </span>
-            </button>
             <button
               onClick={() => setMobileOpen(true)}
               aria-label="Open navigation menu"
@@ -158,7 +142,6 @@ function MobileNav({
 }) {
   const items = [
     ...NAV_ITEMS,
-    { label: "Inventory", path: "/inventory", icon: <Boxes size={16} /> },
     { label: "Profile", path: "/profile", icon: <ShieldCheck size={16} /> },
   ];
 

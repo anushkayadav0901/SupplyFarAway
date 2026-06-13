@@ -17,7 +17,7 @@ function Dashboard() {
   }, [navigate, isError]);
 
   return (
-    <div className="relative">
+    <div className="relative space-y-16">
       <Hero navigate={navigate} />
 
       <section className="relative pb-24">
@@ -31,7 +31,7 @@ function Dashboard() {
 
 function Hero({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
   return (
-    <section className="flex flex-col items-center px-4 pt-20 sm:pt-28 pb-20 max-w-6xl mx-auto">
+    <section className="flex flex-col items-center px-4 pt-20 sm:pt-28 pb-8 max-w-6xl mx-auto">
       {/* NEW chip */}
       <div className="flex items-center gap-2 pl-2.5 pr-4 py-1.5 rounded-full border border-gray-300">
         <p className="px-2 py-0.5 rounded-full border border-emerald-600 bg-emerald-100 text-[10px] font-semibold text-emerald-700">
@@ -90,7 +90,7 @@ function PreviewMock({ onPick }: { onPick: (p: string) => void }) {
           className="text-left border border-gray-200 rounded-2xl p-5 hover:border-gray-400 transition-colors group"
         >
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Plan</p>
-          <p className="mt-2 text-lg font-medium text-gray-900">Mumbai → Rotterdam</p>
+          <h3 className="mt-2 text-lg font-medium text-gray-900">Mumbai → Rotterdam</h3>
           <div className="mt-4 space-y-2 text-xs text-gray-600">
             <Row label="Cost" value="$5,612" />
             <Row label="Time" value="2 – 3 days" />
@@ -106,7 +106,7 @@ function PreviewMock({ onPick }: { onPick: (p: string) => void }) {
           className="text-left border border-gray-200 rounded-2xl p-5 hover:border-gray-400 transition-colors group"
         >
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Verify</p>
-          <p className="mt-2 text-lg font-medium text-gray-900">Trust score 92</p>
+          <h3 className="mt-2 text-lg font-medium text-gray-900">Trust score 92</h3>
           <div className="mt-4 space-y-2 text-xs text-gray-600">
             <Row label="Camera" value="48 / 48" check />
             <Row label="Weight" value="1.4 t / 1.4 t" check />
@@ -122,7 +122,7 @@ function PreviewMock({ onPick }: { onPick: (p: string) => void }) {
           className="text-left border border-gray-200 rounded-2xl p-5 hover:border-gray-400 transition-colors group"
         >
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Screen</p>
-          <p className="mt-2 text-lg font-medium text-gray-900">Compliance: ready</p>
+          <h3 className="mt-2 text-lg font-medium text-gray-900">Compliance: ready</h3>
           <div className="mt-4 space-y-2 text-xs text-gray-600">
             <Row label="HS code" value="8517.62" />
             <Row label="Dual-use" value="No" />

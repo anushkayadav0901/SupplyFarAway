@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Camera, Scale, Tag, Diff, PlayCircle, CheckCircle2, Circle } from "lucide-react";
+import { Camera, Scale, Tag, Diff, CheckCircle2, Circle } from "lucide-react";
 import PageLead from "../../components/PageLead";
-import DraftPicker from "../../components/DraftPicker";
 import TrustGauge from "../../components/TrustGauge";
 import NewsContextCard from "../../components/NewsContextCard";
-import { trpc } from "../../lib/trpc";
 
 import BoxCountTab from "./BoxCountTab";
 import WeightCheckTab from "./WeightCheckTab";
@@ -38,21 +36,16 @@ function computeTrustScore(status: SubsystemStatus): number {
 
 export default function PhysicalInspection() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [selectedDraftId, setSelectedDraftId] = useState<string>(
-    searchParams.get("draftId") ?? ""
-  );
   const [activeTab, setActiveTab] = useState<SubsystemTab>(
     (searchParams.get("tab") as SubsystemTab) ?? "camera"
   );
   const [subsystemStatus, setSubsystemStatus] =
     useState<SubsystemStatus>(INITIAL_STATUS);
-  const [runAllRequested, setRunAllRequested] = useState(false);
 
   useEffect(() => {
     const params: Record<string, string> = { tab: activeTab };
-    if (selectedDraftId) params.draftId = selectedDraftId;
     setSearchParams(params, { replace: true });
-  }, [activeTab, selectedDraftId, setSearchParams]);
+  }, [activeTab, setSearchParams]);
 
   const handleResult = useCallback(
     (key: keyof SubsystemStatus) => (passed: boolean) => {
@@ -69,7 +62,7 @@ export default function PhysicalInspection() {
     Icon: React.ComponentType<{ className?: string }>;
     statusKey: keyof SubsystemStatus;
   }[] = [
-    { id: "camera", label: "Camera Count", Icon: Camera, statusKey: "camera" },
+    { id: "camera", label: "Camera", Icon: Camera, statusKey: "camera" },
     { id: "weight", label: "Weight Check", Icon: Scale, statusKey: "weight" },
     { id: "rfid", label: "RFID Tagging", Icon: Tag, statusKey: "rfid" },
     { id: "diff", label: "Tamper Diff", Icon: Diff, statusKey: "diff" },
@@ -82,56 +75,22 @@ export default function PhysicalInspection() {
     return <CheckCircle2 className="w-3 h-3 text-red-400" />;
   }
 
-  const handleRunAll = () => {
-    setRunAllRequested((v) => !v);
-  };
-
   const completedCount = Object.values(subsystemStatus).filter(
     (v) => v !== null
   ).length;
-
-  // Pull shipment context for the selected draft so NewsContextCard can
-  // surface "AI saw this in the news" warnings tied to this exact shipment.
-  const draftQuery = trpc.inventory.getDraftById.useQuery(
-    { id: selectedDraftId },
-    { enabled: Boolean(selectedDraftId), retry: false }
-  );
-  const shipment =
-    (draftQuery.data?.draft as unknown as {
-      formData?: { ShipmentDetails?: Record<string, string> };
-    } | undefined)?.formData?.ShipmentDetails ?? {};
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12">
       <PageLead
         title="Verify a shipment"
         sub="Run camera count, scale weight, RFID match, and damage diff against the manifest. Trust score updates after each check."
-        right={
-          <>
-            <DraftPicker value={selectedDraftId} onSelect={setSelectedDraftId} />
-            <button
-              type="button"
-              onClick={handleRunAll}
-              className="inline-flex items-center gap-2 px-5 py-3 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            >
-              <PlayCircle className="w-4 h-4" />
-              Run All Checks
-            </button>
-          </>
-        }
       />
 
-      {/* News-grounded AI intelligence — only when a draft is selected,
-          so it can speak to that specific shipment. */}
-      {selectedDraftId && (
-        <NewsContextCard
-          surface="inspect"
-          origin={shipment["Origin Country"]}
-          destination={shipment["Destination Country"]}
-          hsCode={shipment["HS Code"]}
-          productDescription={shipment["Product Description"]}
-        />
-      )}
+      <NewsContextCard
+        surface="inspect"
+        origin=""
+        destination=""
+      />
 
       {/* Two-column layout: tabs + trust panel */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -165,26 +124,25 @@ export default function PhysicalInspection() {
           <div className="pt-6">
             {activeTab === "camera" && (
               <BoxCountTab
-                draftId={selectedDraftId}
+                draftId=""
                 onResult={handleResult("camera")}
-                runAllRequested={runAllRequested}
               />
             )}
             {activeTab === "weight" && (
               <WeightCheckTab
-                draftId={selectedDraftId}
+                draftId=""
                 onResult={handleResult("weight")}
               />
             )}
             {activeTab === "rfid" && (
               <RfidVerificationTab
-                draftId={selectedDraftId}
+                draftId=""
                 onResult={handleResult("rfid")}
               />
             )}
             {activeTab === "diff" && (
               <ShipmentDiffTab
-                draftId={selectedDraftId}
+                draftId=""
                 onResult={handleResult("diff")}
               />
             )}
@@ -208,8 +166,7 @@ export default function PhysicalInspection() {
               }
             />
             <p className="text-sm text-slate-500 text-center leading-relaxed">
-              Score updates as each subsystem completes. Run checks in each
-              tab or press "Run All Checks" above.
+              Score updates as each subsystem completes. Run checks in each tab.
             </p>
           </section>
 

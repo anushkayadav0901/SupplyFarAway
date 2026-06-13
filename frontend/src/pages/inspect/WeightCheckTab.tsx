@@ -11,6 +11,8 @@ import { Scale, RefreshCcw, Activity } from "lucide-react";
 import CountUp from "../../components/CountUp";
 import CardSkeleton from "../../components/skeletons/CardSkeleton";
 import { trpc } from "../../lib/trpc";
+import AIThinking from "../../components/AIThinking";
+import ReferenceNewsButton from "../../components/ReferenceNewsButton";
 
 // ─── constants ────────────────────────────────────────────────────────────────
 const IDLE_TICK_MS = 500;
@@ -396,7 +398,18 @@ export default function WeightCheckTab({ draftId, onResult }: WeightCheckTabProp
           </form>
         </div>
 
+        {submitMutation.isPending && (
+          <AIThinking
+            steps={[
+              "Reading sensor stream…",
+              "Cross-checking declared vs measured…",
+              "Calculating deviation pct…",
+            ]}
+          />
+        )}
+
         {latestResult && (
+          <>
             <div
               className={`rounded-2xl border-2 p-6 flex flex-col sm:flex-row items-start sm:items-center gap-6 ${
                 latestResult.flagged
@@ -426,6 +439,11 @@ export default function WeightCheckTab({ draftId, onResult }: WeightCheckTabProp
                 </p>
               </div>
             </div>
+            <ReferenceNewsButton
+              subject="cargo weight verification"
+              kind="product"
+            />
+          </>
         )}
 
         {!latestResult && !isNaN(declaredFloat) && !isNaN(measuredFloat) && (

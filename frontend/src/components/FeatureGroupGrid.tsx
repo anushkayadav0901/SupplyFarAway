@@ -6,7 +6,6 @@ import {
   Navigation,
   Truck,
   ShieldCheck,
-  Boxes,
   ChevronRight,
 } from "lucide-react";
 
@@ -74,12 +73,6 @@ const GROUPS: FeatureGroup[] = [
         desc: "HS-Code extraction and form screening.",
         Icon: ShieldCheck,
       },
-      {
-        path: "/inventory",
-        title: "Shipment Inventory",
-        desc: "Manifest lists and export actions.",
-        Icon: Boxes,
-      },
     ],
   },
 ];
@@ -89,7 +82,7 @@ const FeatureGroupGrid: React.FC = () => {
 
   return (
     <section
-      className="relative max-w-6xl mx-auto px-6 mt-16 space-y-12"
+      className="relative max-w-6xl mx-auto px-6 space-y-12"
       aria-label="Feature groups"
     >
       {GROUPS.map((group) => (
@@ -103,7 +96,7 @@ const FeatureGroupGrid: React.FC = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {group.items.map((item) => {
               const { Icon } = item;
               return (

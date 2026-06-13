@@ -183,16 +183,42 @@ Rules:
 - Use geocodable city names: "City, Country"
 - Ports: "Port Name, City, Country"
 - Airports: "Airport Name, City, Country"
+- Each route MUST include 3-5 named real intermediate stops (cities, ports, or airports), not just origin and destination
+- Each route's routeDirections is an array of legs, one leg per pair of consecutive stops
+- Each leg must include: from, to, mode (sea/air/land), hub (optional — the port or airport name), narrative (1-sentence reason this stop exists: hub, fuel, customs, transhipment, geography), durationHours, costUsd, distanceKm
 
 Calculate:
 - Distance: Land(road), Air(great-circle), Sea(maritime)
-- Cost: DHL rates, volumetric weight=(l*w*h)/5000, multiply by quantity
-- Time: Land(60km/h +6h), Air(48-72h), Sea(192-1080h)
+- Cost: DHL rates, volumetric weight=(l*w*h)/5000, multiply by quantity; split across legs
+- Time: Land(60km/h +6h), Air(48-72h), Sea(192-1080h); split across legs
 - Carbon: Air(70-100), Sea(20-40), Land(40-60)
 - Tag best 3: "popular"
 
-JSON format:
-[{"routeDirections":[{"id":"leg1","waypoints":["${from}","Airport"],"state":"land","distance":50}],"totalDistance":50,"totalCost":200,"totalTime":24,"totalTimeDaysRange":"1 day","totalCarbonScore":45,"tag":"popular"}]`;
+Example route leg schema:
+{
+  "id": "leg1",
+  "from": "Mumbai, India",
+  "to": "Dubai, UAE",
+  "waypoints": ["Mumbai, India", "Dubai, UAE"],
+  "state": "air",
+  "hub": "Dubai International Airport",
+  "narrative": "Dubai acts as the primary Middle East transhipment hub, cutting 8 hours off direct routing.",
+  "durationHours": 3,
+  "costUsd": 420,
+  "distanceKm": 1925,
+  "distance": 1925
+}
+
+JSON format (array of 7 routes):
+[{
+  "routeDirections": [<leg objects as above>],
+  "totalDistance": 12000,
+  "totalCost": 2800,
+  "totalTime": 72,
+  "totalTimeDaysRange": "3-4 days",
+  "totalCarbonScore": 85,
+  "tag": "popular"
+}]`;
 
       const timeoutMs = 60000;
       let rawResponse: string;
@@ -244,26 +270,52 @@ JSON format:
 
         const legs = route.routeDirections as Array<{
           id: string;
+          from?: string;
+          to?: string;
           waypoints: string[];
           state: string;
-          distance: number;
+          hub?: string;
+          narrative?: string;
+          durationHours?: number;
+          costUsd?: number;
+          distanceKm?: number;
+          distance?: number;
         }>;
-        const totalDistance = legs.reduce((sum, leg) => sum + (leg.distance || 0), 0);
+
+        // Normalise distance field: AI may use distanceKm or distance
+        const normalizedLegs = legs.map((leg, i) => {
+          const dist = leg.distanceKm ?? leg.distance ?? 0;
+          // Ensure waypoints array exists; fall back to from/to if missing
+          const waypoints =
+            Array.isArray(leg.waypoints) && leg.waypoints.length >= 2
+              ? leg.waypoints
+              : [leg.from ?? "", leg.to ?? ""].filter(Boolean);
+          return {
+            id: leg.id ?? `leg${i + 1}`,
+            from: leg.from ?? waypoints[0] ?? "",
+            to: leg.to ?? waypoints[waypoints.length - 1] ?? "",
+            waypoints,
+            state: leg.state,
+            hub: leg.hub,
+            narrative: leg.narrative,
+            durationHours: leg.durationHours != null ? Math.round(leg.durationHours * 100) / 100 : undefined,
+            costUsd: leg.costUsd != null ? Math.round(leg.costUsd * 100) / 100 : undefined,
+            distanceKm: Math.round(dist * 100) / 100,
+            distance: Math.round(dist * 100) / 100,
+          };
+        });
+
+        const totalDistance = normalizedLegs.reduce((sum, leg) => sum + (leg.distanceKm || 0), 0);
 
         return {
-          routeDirections: legs.map((leg) => ({
-            id: leg.id,
-            waypoints: leg.waypoints,
-            state: leg.state,
-            distance: Math.round(leg.distance * 100) / 100,
-          })),
+          routeDirections: normalizedLegs,
           totalDistance: Math.round(totalDistance * 100) / 100,
           totalCost: Math.round((route.totalCost as number) * 100) / 100,
           totalTime: Math.round((route.totalTime as number) * 100) / 100,
           totalTimeDaysRange: route.totalTimeDaysRange as string,
           totalCarbonScore: Math.round((route.totalCarbonScore as number) * 100) / 100,
           tag: route.tag as string | null,
-          distanceByLeg: legs.map((leg) => Math.round(leg.distance * 100) / 100),
+          distanceByLeg: normalizedLegs.map((leg) => leg.distanceKm),
           ...(draftId ? { draftId } : {}),
         };
       });

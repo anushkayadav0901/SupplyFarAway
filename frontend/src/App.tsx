@@ -10,9 +10,7 @@ import RiskCenter from "./pages/risk/RiskCenter";
 import RoutePlanning from "./pages/routes/RoutePlanning";
 import Fleet from "./pages/fleet/Fleet";
 import Compliance from "./pages/compliance/Compliance";
-import InventoryManagement from "./pages/inventory/InventoryManagement";
 import Profile from "./pages/profile/Profile";
-import News from "./pages/news/News";
 import DocumentationPage from "./pages/documentation/DocumentationPage";
 
 // ─────────────────────────────────────────────────────────────
@@ -83,9 +81,7 @@ function AppRoutes() {
         <Route path="/routes" element={<RoutePlanning />} />
         <Route path="/fleet" element={<Fleet />} />
         <Route path="/compliance" element={<Compliance />} />
-        <Route path="/inventory" element={<InventoryManagement />} />
         <Route path="/profile" element={<Profile />} />
-        <Route path="/news" element={<News />} />
         <Route path="/docs" element={<DocumentationPage />} />
       </Route>
     </Routes>

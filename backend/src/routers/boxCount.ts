@@ -189,6 +189,193 @@ export const boxCountRouter = router({
     }),
 
   /**
+   * Mutation: detectObjects
+   * "What do you see?" — returns a deduped list of distinct objects in the frame
+   * so the user can pick which ones to deep-inspect.
+   */
+  detectObjects: protectedProcedure
+    .input(
+      z.object({
+        imageBase64: z.string().min(10).max(MAX_IMAGE_BASE64_CHARS, {
+          message: "Image exceeds 10 MB limit",
+        }),
+        mimeType: z.string().min(1).max(MAX_MIME_LEN).default("image/jpeg"),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      requireUserId(ctx);
+
+      const prompt = `You are a logistics inspector. List the distinct physical objects you can see in this frame so the operator can pick which ones to inspect. Use simple lowercase nouns (e.g. "phone", "mug", "notebook", "box", "envelope"). Deduplicate by category — one entry per object type, even if multiple are present. Exclude people and background fixtures (walls, floor, ceiling, table). Return at most 8 entries.
+
+Respond ONLY with strict JSON: {"objects": ["phone", "mug", ...]}`;
+
+      let rawText: string;
+      try {
+        const response = await genai().models.generateContent({
+          model: FLASH_MODEL,
+          contents: [
+            { role: "user", parts: [
+              { text: prompt },
+              { inlineData: { data: input.imageBase64, mimeType: input.mimeType } },
+            ]},
+          ],
+        });
+        rawText = response.text ?? "";
+      } catch (err) {
+        throw new TRPCError({
+          code: "BAD_GATEWAY",
+          message: `Gemini detect failed: ${String((err as Error)?.message ?? "unknown").slice(0, ERR_SNIPPET_LEN)}`,
+        });
+      }
+
+      try {
+        const jsonStart = rawText.indexOf("{");
+        const jsonEnd = rawText.lastIndexOf("}") + 1;
+        if (jsonStart === -1 || jsonEnd === 0) {
+          throw new Error("No JSON object in Gemini response");
+        }
+        const parsed = JSON.parse(rawText.slice(jsonStart, jsonEnd).trim()) as {
+          objects?: unknown;
+        };
+        const raw = Array.isArray(parsed.objects) ? parsed.objects : [];
+        const cleaned = Array.from(
+          new Set(
+            raw
+              .map((o) => String(o ?? "").trim().toLowerCase())
+              .filter((o) => o.length > 0 && o.length <= 40 && o !== "person" && o !== "people"),
+          ),
+        ).slice(0, 8);
+        return { objects: cleaned };
+      } catch {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Failed to parse Gemini detect output. Raw: ${rawText.slice(0, ERR_SNIPPET_LEN)}`,
+        });
+      }
+    }),
+
+  /**
+   * Mutation: analyzeSelected
+   * The user has picked the objects they care about — now do the deep-inspect.
+   * Returns per-object findings (observations, flags, severity) and an overall verdict.
+   */
+  analyzeSelected: protectedProcedure
+    .input(
+      z.object({
+        imageBase64: z.string().min(10).max(MAX_IMAGE_BASE64_CHARS, {
+          message: "Image exceeds 10 MB limit",
+        }),
+        mimeType: z.string().min(1).max(MAX_MIME_LEN).default("image/jpeg"),
+        selectedObjects: z.array(z.string().min(1).max(40)).min(1).max(8),
+        question: z.string().max(500).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      requireUserId(ctx);
+
+      const focus = input.selectedObjects.map((o) => `"${o}"`).join(", ");
+      const userAsk = input.question?.trim()
+        ? `The operator asks: "${input.question.trim()}".`
+        : `Inspect each selected object for damage, tampering, missing labels, suspicious markings, or anything an inspector would flag.`;
+
+      const prompt = `You are a logistics inspector running a single-frame inspection. The operator has selected ${input.selectedObjects.length} object(s) to inspect: ${focus}.
+
+${userAsk}
+
+For each selected object, write a one-sentence observation in an inspector's voice. List any flags (short keywords like "scratched", "missing label", "seal broken"). Pick a severity: "ok" (nothing notable), "low" (minor cosmetic), "medium" (worth a second look), "high" (definite anomaly).
+
+Respond ONLY with strict JSON:
+{
+  "findings": [
+    {
+      "object": "<one of the selected object names, lowercased>",
+      "observations": "<one short sentence>",
+      "flags": ["<short keyword>", "..."],
+      "severity": "ok" | "low" | "medium" | "high"
+    }
+  ],
+  "overallVerdict": "clean" | "flagged"
+}
+
+overallVerdict is "clean" only if every finding is severity "ok" or "low" with zero flags; otherwise "flagged".`;
+
+      let rawText: string;
+      try {
+        const response = await genai().models.generateContent({
+          model: FLASH_MODEL,
+          contents: [
+            { role: "user", parts: [
+              { text: prompt },
+              { inlineData: { data: input.imageBase64, mimeType: input.mimeType } },
+            ]},
+          ],
+        });
+        rawText = response.text ?? "";
+      } catch (err) {
+        throw new TRPCError({
+          code: "BAD_GATEWAY",
+          message: `Gemini analyze failed: ${String((err as Error)?.message ?? "unknown").slice(0, ERR_SNIPPET_LEN)}`,
+        });
+      }
+
+      type RawFinding = {
+        object?: unknown;
+        observations?: unknown;
+        flags?: unknown;
+        severity?: unknown;
+      };
+
+      try {
+        const jsonStart = rawText.indexOf("{");
+        const jsonEnd = rawText.lastIndexOf("}") + 1;
+        if (jsonStart === -1 || jsonEnd === 0) {
+          throw new Error("No JSON object in Gemini response");
+        }
+        const parsed = JSON.parse(rawText.slice(jsonStart, jsonEnd).trim()) as {
+          findings?: unknown;
+          overallVerdict?: unknown;
+        };
+
+        const validSeverities = ["ok", "low", "medium", "high"] as const;
+        type Severity = (typeof validSeverities)[number];
+
+        const findingsRaw = Array.isArray(parsed.findings) ? parsed.findings : [];
+        const findings = (findingsRaw as RawFinding[]).slice(0, 8).map((f) => {
+          const severityRaw = String(f.severity ?? "ok").toLowerCase();
+          const severity: Severity = (validSeverities as ReadonlyArray<string>).includes(severityRaw)
+            ? (severityRaw as Severity)
+            : "ok";
+          const flagsRaw = Array.isArray(f.flags) ? f.flags : [];
+          const flags = flagsRaw
+            .map((x) => String(x ?? "").trim())
+            .filter((x) => x.length > 0 && x.length <= 60)
+            .slice(0, 6);
+          return {
+            object: String(f.object ?? "").trim().toLowerCase().slice(0, 40),
+            observations: String(f.observations ?? "").slice(0, 240),
+            flags,
+            severity,
+          };
+        }).filter((f) => f.object.length > 0);
+
+        const verdictRaw = String(parsed.overallVerdict ?? "").toLowerCase();
+        const overallVerdict: "clean" | "flagged" =
+          verdictRaw === "clean" || verdictRaw === "flagged"
+            ? verdictRaw
+            : findings.some((f) => f.severity === "medium" || f.severity === "high" || f.flags.length > 0)
+              ? "flagged"
+              : "clean";
+
+        return { findings, overallVerdict };
+      } catch {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Failed to parse Gemini analyze output. Raw: ${rawText.slice(0, ERR_SNIPPET_LEN)}`,
+        });
+      }
+    }),
+
+  /**
    * Mutation: liveCommentary
    */
   liveCommentary: protectedProcedure

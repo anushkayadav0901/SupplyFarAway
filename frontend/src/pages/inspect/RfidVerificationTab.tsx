@@ -1,8 +1,46 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Radio, RefreshCcw } from "lucide-react";
+import { Database, Radio, RefreshCcw } from "lucide-react";
 import CountUp from "../../components/CountUp";
 import CardSkeleton from "../../components/skeletons/CardSkeleton";
+import AIThinking from "../../components/AIThinking";
+import ReferenceNewsButton from "../../components/ReferenceNewsButton";
 import { trpc } from "../../lib/trpc";
+
+// ─── demo data ────────────────────────────────────────────────────────────────
+const DEMO_MANIFEST = [
+  "E20034120131F5000019B1A0",
+  "E20034120131F5000019B1A1",
+  "E20034120131F5000019B1A2",
+  "E20034120131F5000019B1A3",
+  "E20034120131F5000019B1A4",
+  "E20034120131F5000019B1A5",
+  "E20034120131F5000019B1A6",
+  "E20034120131F5000019B1A7",
+  "E20034120131F5000019B1A8",
+  "E20034120131F5000019B1A9",
+  "E20034120131F5000019B1AA",
+  "E20034120131F5000019B1AB",
+].join("\n");
+
+const DEMO_SCANNED = [
+  "E20034120131F5000019B1A0",
+  "E20034120131F5000019B1A1",
+  "E20034120131F5000019B1A2",
+  "E20034120131F5000019B1A3",
+  "E20034120131F5000019B1A4",
+  "E20034120131F5000019B1A5",
+  "E20034120131F5000019B1A6",
+  "E20034120131F5000019B1A7",
+  "E20034120131F5000019B1A8",
+  "E20034120131F5000019B1A9",
+  "E20034120131F5000019B1FF",
+].join("\n");
+
+const AI_THINKING_STEPS = [
+  "Reading antenna stream…",
+  "Matching tags against manifest…",
+  "Identifying missing & extra units…",
+];
 
 // ─── constants ────────────────────────────────────────────────────────────────
 const STREAM_TAG_DELAY_BASE_MS = 220;
@@ -410,30 +448,48 @@ export default function RfidVerificationTab({ draftId, onResult }: RfidVerificat
               <p className="text-sm text-red-600" role="alert">{verifyError}</p>
             )}
 
-            <div className="flex justify-end gap-2">
-              {streaming && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    timersRef.current.forEach((t) => clearTimeout(t));
-                    timersRef.current = [];
-                    setStreaming(false);
-                  }}
-                  className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 font-medium rounded-xl border border-slate-200 hover:border-slate-300"
-                >
-                  Cancel
-                </button>
-              )}
+            <div className="flex items-center justify-between gap-2 flex-wrap">
               <button
-                type="submit"
+                type="button"
                 disabled={submitting}
-                className="px-6 py-2 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-400 text-white text-sm font-semibold rounded-xl flex items-center gap-2"
+                onClick={() => {
+                  setManifestInput(DEMO_MANIFEST);
+                  setScannedInput(DEMO_SCANNED);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 disabled:opacity-40"
               >
-                {streaming ? "Scanning…" : "Scan & Verify"}
+                <Database className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
+                Demo Data
               </button>
+              <div className="flex items-center gap-2">
+                {streaming && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      timersRef.current.forEach((t) => clearTimeout(t));
+                      timersRef.current = [];
+                      setStreaming(false);
+                    }}
+                    className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 font-medium rounded-xl border border-slate-200 hover:border-slate-300"
+                  >
+                    Cancel
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-6 py-2 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-400 text-white text-sm font-semibold rounded-xl flex items-center gap-2"
+                >
+                  {streaming ? "Scanning…" : "Scan & Verify"}
+                </button>
+              </div>
             </div>
           </form>
         </div>
+
+        {verifyMutation.isPending && (
+          <AIThinking steps={AI_THINKING_STEPS} />
+        )}
 
         {result && (
             <div
@@ -464,6 +520,10 @@ export default function RfidVerificationTab({ draftId, onResult }: RfidVerificat
                 <ChipRail title={`Extra Tags (${result.extra.length})`} tags={result.extra} variant="extra" />
               )}
             </div>
+        )}
+
+        {result && (
+          <ReferenceNewsButton subject="RFID asset tracking logistics" kind="product" />
         )}
 
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-7">

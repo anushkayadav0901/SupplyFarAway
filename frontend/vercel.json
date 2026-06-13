@@ -9,7 +9,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!yolo|api).*)",
       "destination": "/index.html"
     }
   ]

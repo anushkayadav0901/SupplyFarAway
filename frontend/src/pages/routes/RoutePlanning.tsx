@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import React, { useState, useMemo } from "react";
 import {
   MapPin,
   Navigation,
@@ -15,20 +14,38 @@ import {
   Sun,
   Cloud,
   CloudRain,
+  Plane,
+  Ship,
+  Truck,
 } from "lucide-react";
 import MapView from "../inventory/MapView";
 import PageLead from "../../components/PageLead";
-import DraftPicker from "../../components/DraftPicker";
 import CardSkeleton from "../../components/skeletons/CardSkeleton";
 import NewsContextCard from "../../components/NewsContextCard";
+import AIThinking from "../../components/AIThinking";
+import ReferenceNewsButton from "../../components/ReferenceNewsButton";
 import { trpc } from "../../lib/trpc";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
+interface RouteLeg {
+  id: string;
+  from?: string;
+  to?: string;
+  waypoints: string[];
+  state: string;
+  hub?: string;
+  narrative?: string;
+  durationHours?: number;
+  costUsd?: number;
+  distanceKm?: number;
+  distance?: number;
+}
+
 interface GeneratedRoute {
-  routeDirections: Array<{ id: string; waypoints: string[]; state: string; distance?: number }>;
+  routeDirections: RouteLeg[];
   distanceByLeg: number[];
   totalDistance: number;
   totalCost: number;
@@ -73,6 +90,20 @@ function modeLabel(state: string): string {
   if (state === "air") return "Air";
   if (state === "sea") return "Sea";
   return "Land";
+}
+
+function ModeIcon({ state, className = "" }: { state: string; className?: string }) {
+  if (state === "air") return <Plane className={className} />;
+  if (state === "sea") return <Ship className={className} />;
+  return <Truck className={className} />;
+}
+
+function legFrom(leg: RouteLeg): string {
+  return leg.from ?? leg.waypoints[0] ?? "";
+}
+
+function legTo(leg: RouteLeg): string {
+  return leg.to ?? leg.waypoints[leg.waypoints.length - 1] ?? "";
 }
 
 // ---------------------------------------------------------------------------
@@ -140,6 +171,94 @@ function WeatherTile({
 }
 
 // ---------------------------------------------------------------------------
+// LegTimeline — vertical storytelling breakdown of route legs
+// ---------------------------------------------------------------------------
+
+function LegTimeline({ legs, distanceByLeg }: { legs: RouteLeg[]; distanceByLeg: number[] }) {
+  return (
+    <div className="relative">
+      {legs.map((leg, i) => {
+        const from = legFrom(leg);
+        const to = legTo(leg);
+        const dist = leg.distanceKm ?? distanceByLeg[i];
+        const isLast = i === legs.length - 1;
+
+        return (
+          <div key={leg.id} className="relative flex gap-4">
+            {/* Connector column */}
+            <div className="flex flex-col items-center">
+              {/* Stop dot */}
+              <div className="w-2.5 h-2.5 rounded-full bg-slate-300 border-2 border-white ring-1 ring-slate-300 shrink-0 mt-1" />
+              {/* Vertical line to next leg */}
+              {!isLast && (
+                <div className="w-px flex-1 bg-slate-200 my-1" />
+              )}
+            </div>
+
+            {/* Leg content */}
+            <div className={`flex-1 pb-5 ${isLast ? "pb-0" : ""}`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  {/* Mode + city pair */}
+                  <div className="flex items-center gap-2 mb-1">
+                    <span
+                      className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${modeColor(leg.state)}`}
+                    >
+                      <ModeIcon state={leg.state} className="w-3 h-3" />
+                      {modeLabel(leg.state)}
+                    </span>
+                    <span className="text-sm font-semibold text-slate-800 truncate">
+                      {from} &rarr; {to}
+                    </span>
+                  </div>
+
+                  {/* Hub name */}
+                  {leg.hub && (
+                    <p className="text-xs font-medium text-slate-500 mb-0.5">{leg.hub}</p>
+                  )}
+
+                  {/* Narrative */}
+                  {leg.narrative && (
+                    <p className="text-xs italic text-slate-500 leading-relaxed">
+                      {leg.narrative}
+                    </p>
+                  )}
+                </div>
+
+                {/* Right side: duration + cost */}
+                <div className="text-right shrink-0 space-y-0.5">
+                  {leg.durationHours != null && (
+                    <p className="text-xs font-semibold text-slate-700">
+                      {leg.durationHours < 24
+                        ? `${leg.durationHours}h`
+                        : `${Math.round(leg.durationHours / 24)}d`}
+                    </p>
+                  )}
+                  {leg.costUsd != null && (
+                    <p className="text-xs text-slate-400">${leg.costUsd.toFixed(0)}</p>
+                  )}
+                  {dist != null && (
+                    <p className="text-xs text-slate-300">{dist.toFixed(0)} km</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Final destination dot */}
+      <div className="flex gap-4">
+        <div className="flex flex-col items-center">
+          <div className="w-2.5 h-2.5 rounded-full bg-blue-500 border-2 border-white ring-1 ring-blue-400 shrink-0 mt-1" />
+        </div>
+        <p className="text-xs font-semibold text-slate-500 mt-0.5">Destination</p>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // LiveTrackingRow — per-shipment toggle
 // ---------------------------------------------------------------------------
 
@@ -148,6 +267,12 @@ interface SavedRoute {
   formData: { from: string; to: string; weight: number };
   timestamp: string | Date;
 }
+
+const TRACKING_STEPS = [
+  "Reading latest position ping…",
+  "Calculating remaining distance…",
+  "Estimating arrival window…",
+];
 
 function LiveTrackingRow({ route }: { route: SavedRoute }) {
   const [tracking, setTracking] = useState(false);
@@ -161,35 +286,46 @@ function LiveTrackingRow({ route }: { route: SavedRoute }) {
   const ping = latestPingQuery.data as PingResult | undefined;
 
   return (
-    <div className="flex items-center justify-between py-3 px-1 border-b border-slate-100 last:border-0">
-      <div className="min-w-0">
-        <p className="text-sm font-semibold text-slate-800 truncate">
-          {route.formData.from} → {route.formData.to}
-        </p>
-        <p className="text-xs text-slate-400 mt-0.5">
-          {route.formData.weight} kg &middot; {new Date(route.timestamp).toLocaleDateString()}
-        </p>
-        {tracking && ping && (
-          <p className="text-xs text-blue-600 mt-0.5 font-medium">
-            {ping.distanceKm.toFixed(1)} km remaining &middot; ETA {fmtEta(ping.etaMinutes)}
+    <div className="flex flex-col py-3 px-1 border-b border-slate-100 last:border-0 gap-2">
+      <div className="flex items-center justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-slate-800 truncate">
+            {route.formData.from} &rarr; {route.formData.to}
           </p>
-        )}
-        {tracking && !ping && !latestPingQuery.isLoading && (
-          <p className="text-xs text-slate-400 mt-0.5">No ping data yet</p>
-        )}
+          <p className="text-xs text-slate-400 mt-0.5">
+            {route.formData.weight} kg &middot; {new Date(route.timestamp).toLocaleDateString()}
+          </p>
+          {tracking && ping && (
+            <p className="text-xs text-blue-600 mt-0.5 font-medium">
+              {ping.distanceKm.toFixed(1)} km remaining &middot; ETA {fmtEta(ping.etaMinutes)}
+            </p>
+          )}
+          {tracking && !ping && !latestPingQuery.isLoading && (
+            <p className="text-xs text-slate-400 mt-0.5">No ping data yet</p>
+          )}
+        </div>
+        <button
+          onClick={() => setTracking((t) => !t)}
+          title={tracking ? "Stop tracking" : "Start tracking"}
+          className={`ml-3 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border ${
+            tracking
+              ? "bg-gray-900 text-white border-gray-900 hover:bg-gray-800"
+              : "bg-white text-slate-600 border-slate-300 hover:border-blue-400 hover:text-blue-600"
+          }`}
+        >
+          {tracking ? <Square className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+          {tracking ? "Live" : "Track"}
+        </button>
       </div>
-      <button
-        onClick={() => setTracking((t) => !t)}
-        title={tracking ? "Stop tracking" : "Start tracking"}
-        className={`ml-3 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border ${
-          tracking
-            ? "bg-gray-900 text-white border-gray-900 hover:bg-gray-800"
-            : "bg-white text-slate-600 border-slate-300 hover:border-blue-400 hover:text-blue-600"
-        }`}
-      >
-        {tracking ? <Square className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-        {tracking ? "Live" : "Track"}
-      </button>
+
+      {/* AIThinking strip — subtle single-step, only while tracking is active */}
+      {tracking && latestPingQuery.isFetching && (
+        <AIThinking
+          steps={TRACKING_STEPS}
+          intervalMs={2000}
+          className="py-2 px-3 text-xs"
+        />
+      )}
     </div>
   );
 }
@@ -198,10 +334,13 @@ function LiveTrackingRow({ route }: { route: SavedRoute }) {
 // Main Component
 // ---------------------------------------------------------------------------
 
-export default function RoutePlanning() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [draftId, setDraftId] = useState<string>(searchParams.get("draftId") ?? "");
+const GENERATE_THINKING_STEPS = [
+  "Searching multi-modal trade corridors…",
+  "Weighing cost vs time vs carbon…",
+  "Drafting 7 route storylines…",
+];
 
+export default function RoutePlanning() {
   // Form state
   const [from, setFrom] = useState("Mumbai, India");
   const [to, setTo] = useState("Rotterdam, Netherlands");
@@ -213,13 +352,6 @@ export default function RoutePlanning() {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   const utils = trpc.useUtils();
-
-  // Sync draftId to URL
-  useEffect(() => {
-    const params: Record<string, string> = {};
-    if (draftId) params.draftId = draftId;
-    setSearchParams(params, { replace: true });
-  }, [draftId, setSearchParams]);
 
   const [routeError, setRouteError] = useState<string>("");
 
@@ -268,7 +400,6 @@ export default function RoutePlanning() {
         length: 50,
         width: 50,
       },
-      ...(draftId ? { draftId } : {}),
     });
   };
 
@@ -290,7 +421,6 @@ export default function RoutePlanning() {
       <PageLead
         title="Plan a global shipping route"
         sub="From and to. Gemini returns 7 options with cost, time, carbon, and a live map. Toggle live tracking on any saved route."
-        right={<DraftPicker value={draftId} onSelect={setDraftId} />}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -355,9 +485,10 @@ export default function RoutePlanning() {
             </form>
           </div>
 
-          {/* Loading skeleton */}
+          {/* AIThinking — visible while generating routes */}
           {generateMutation.isPending && (
             <div className="space-y-3">
+              <AIThinking steps={GENERATE_THINKING_STEPS} intervalMs={2000} />
               <CardSkeleton height={88} />
               <CardSkeleton height={88} />
               <CardSkeleton height={88} />
@@ -478,30 +609,29 @@ export default function RoutePlanning() {
             </h2>
             <MapView inlineRoutes={mapInlineRoutes} />
 
-            {/* Selected route detail — result panel exception */}
+            {/* Selected route detail — leg timeline + summary */}
             {selectedRoute && (
-              <div className="mt-5 p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
-                  Route legs
-                </p>
-                <div className="space-y-1.5">
-                  {selectedRoute.routeDirections.map((leg, i) => (
-                    <div key={leg.id} className="flex items-center gap-2 text-xs text-slate-600">
-                      <span className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded ${modeColor(leg.state)}`}>
-                        {modeLabel(leg.state)}
-                      </span>
-                      <span className="truncate">
-                        {leg.waypoints[0]} → {leg.waypoints[leg.waypoints.length - 1]}
-                      </span>
-                      {selectedRoute.distanceByLeg[i] !== undefined && (
-                        <span className="ml-auto shrink-0 text-slate-400">
-                          {selectedRoute.distanceByLeg[i].toFixed(0)} km
-                        </span>
-                      )}
-                    </div>
-                  ))}
+              <div className="mt-5 p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
+                {/* ReferenceNewsButton — above the timeline */}
+                <div className="mb-4">
+                  <ReferenceNewsButton
+                    subject={`${from.trim()} to ${to.trim()} shipping route`}
+                    kind="route"
+                  />
                 </div>
-                <div className="mt-4 pt-3 border-t border-slate-200 grid grid-cols-3 gap-2 text-center text-xs">
+
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">
+                  Route story
+                </p>
+
+                {/* Vertical leg timeline */}
+                <LegTimeline
+                  legs={selectedRoute.routeDirections}
+                  distanceByLeg={selectedRoute.distanceByLeg}
+                />
+
+                {/* Summary totals */}
+                <div className="mt-5 pt-4 border-t border-slate-200 grid grid-cols-3 gap-2 text-center text-xs">
                   <div>
                     <p className="text-slate-400">Total Distance</p>
                     <p className="font-bold text-slate-700">{selectedRoute.totalDistance?.toFixed(0)} km</p>
