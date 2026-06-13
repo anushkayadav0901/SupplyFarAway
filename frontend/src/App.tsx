@@ -11,7 +11,6 @@ import RoutePlanning from "./pages/routes/RoutePlanning";
 import Fleet from "./pages/fleet/Fleet";
 import Compliance from "./pages/compliance/Compliance";
 import Profile from "./pages/profile/Profile";
-import DocumentationPage from "./pages/documentation/DocumentationPage";
 
 // ─────────────────────────────────────────────────────────────
 // ErrorBoundary — catches render-phase errors anywhere in the
@@ -82,7 +81,6 @@ function AppRoutes() {
         <Route path="/fleet" element={<Fleet />} />
         <Route path="/compliance" element={<Compliance />} />
         <Route path="/profile" element={<Profile />} />
-        <Route path="/docs" element={<DocumentationPage />} />
       </Route>
     </Routes>
   );

@@ -5,7 +5,6 @@ import {
   Navigation,
   ShieldAlert,
   Truck,
-  FileText,
   Menu,
   X,
 } from "lucide-react";
@@ -27,7 +26,6 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Risk", path: "/risk", icon: <ShieldAlert size={15} /> },
   { label: "Fleet", path: "/fleet", icon: <Truck size={15} /> },
   { label: "Compliance", path: "/compliance", icon: <ShieldCheck size={15} /> },
-  { label: "Docs", path: "/docs", icon: <FileText size={15} /> },
 ];
 
 function NavBar() {
@@ -43,7 +41,7 @@ function NavBar() {
   return (
     <>
       <header className="relative z-20 px-4 pt-6">
-        <nav className="mx-auto max-w-6xl bg-white border border-slate-200 rounded-full shadow-sm flex items-center justify-between pl-5 pr-3 py-2.5">
+        <nav className="relative mx-auto max-w-6xl bg-white border border-slate-200 rounded-full shadow-sm flex items-center pl-5 pr-3 py-2.5">
           <button
             onClick={() => navigate("/dashboard")}
             className="flex items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
@@ -57,7 +55,7 @@ function NavBar() {
             </span>
           </button>
 
-          <div className="hidden lg:flex items-center gap-0.5">
+          <div className="absolute left-1/2 -translate-x-1/2 hidden lg:flex items-center gap-0.5">
             {NAV_ITEMS.map((item) => (
               <NavLink
                 key={item.path}
@@ -70,7 +68,7 @@ function NavBar() {
             ))}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-2">
             <a
               href="https://github.com/anushkayadav0901/SupplyFarAway"
               target="_blank"
