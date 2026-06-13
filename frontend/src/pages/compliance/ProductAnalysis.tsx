@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { ContentCopy, Send } from "@mui/icons-material";
-import { Tooltip } from "@mui/material";
+import { Copy, Send } from "lucide-react";
 import { motion } from "framer-motion";
 import { FaTrash, FaImage } from "react-icons/fa";
 import Toast from "./../../components/Toast";
@@ -464,16 +463,15 @@ const ProductAnalysis: React.FC = () => {
                                 {analysisResult.data["HS Code"]}
                               </span>
                             </div>
-                            <Tooltip title="Copy HS Code" placement="top">
-                              <button
-                                onClick={() =>
-                                  handleCopy(analysisResult.data!["HS Code"])
-                                }
-                                className="ml-2 p-2 text-gray-500 hover:text-teal-600 transition rounded-lg hover:bg-teal-50"
-                              >
-                                <ContentCopy fontSize="small" />
-                              </button>
-                            </Tooltip>
+                            <button
+                              title="Copy HS Code"
+                              onClick={() =>
+                                handleCopy(analysisResult.data!["HS Code"])
+                              }
+                              className="ml-2 p-2 text-gray-500 hover:text-teal-600 transition rounded-lg hover:bg-teal-50"
+                            >
+                              <Copy size={16} />
+                            </button>
                           </div>
                           <div className="flex items-center justify-between p-4 bg-white rounded-xl">
                             <div className="flex-1">
@@ -484,18 +482,17 @@ const ProductAnalysis: React.FC = () => {
                                 {analysisResult.data["Product Description"]}
                               </span>
                             </div>
-                            <Tooltip title="Copy Description" placement="top">
-                              <button
-                                onClick={() =>
-                                  handleCopy(
-                                    analysisResult.data!["Product Description"]
-                                  )
-                                }
-                                className="ml-2 p-2 text-gray-500 hover:text-teal-600 transition rounded-lg hover:bg-teal-50"
-                              >
-                                <ContentCopy fontSize="small" />
-                              </button>
-                            </Tooltip>
+                            <button
+                              title="Copy Description"
+                              onClick={() =>
+                                handleCopy(
+                                  analysisResult.data!["Product Description"]
+                                )
+                              }
+                              className="ml-2 p-2 text-gray-500 hover:text-teal-600 transition rounded-lg hover:bg-teal-50"
+                            >
+                              <Copy size={16} />
+                            </button>
                           </div>
                           <div className="grid grid-cols-2 gap-4">
                             <div className="p-4 bg-white rounded-xl">
@@ -629,7 +626,7 @@ const ProductAnalysis: React.FC = () => {
                           className="group relative px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-lg transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                         >
                           <span className="relative flex items-center justify-center space-x-3">
-                            <Send className="w-5 h-5" />
+                            <Send size={20} />
                             <span>Send to Compliance Check</span>
                           </span>
                         </button>

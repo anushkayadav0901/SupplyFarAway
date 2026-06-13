@@ -23,7 +23,7 @@ import {
   FaShieldAlt,
   FaListAlt,
 } from "react-icons/fa";
-import CloseIcon from "@mui/icons-material/Close";
+import { X } from "lucide-react";
 import { useInView } from "react-intersection-observer";
 import { useNavigate } from "react-router-dom";
 import FeatureCarousel from "./FeatureCarousel";
@@ -401,7 +401,7 @@ function MovexDashboard() {
                     aria-label="Close navigation menu"
                     className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors duration-150 border border-gray-200 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                   >
-                    <CloseIcon sx={{ fontSize: 20 }} className="text-gray-900" />
+                    <X size={20} className="text-gray-900" />
                   </motion.button>
                 </div>
                 <div className="space-y-3">

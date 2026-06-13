@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { CheckCircle, Warning } from "@mui/icons-material";
+import { CheckCircle2, AlertTriangle } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -167,9 +167,9 @@ const ComplianceResponse: React.FC<ComplianceResponseProps> = ({ response }) => 
             >
               <span className="mr-2">
                 {complianceStatus === "Ready for Shipment" ? (
-                  <CheckCircle className="text-green-500" fontSize="large" />
+                  <CheckCircle2 className="text-emerald-500" size={32} />
                 ) : (
-                  <Warning className="text-red-500" fontSize="large" />
+                  <AlertTriangle className="text-red-500" size={32} />
                 )}
               </span>
               Compliance Check Results

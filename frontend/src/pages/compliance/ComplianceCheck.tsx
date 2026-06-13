@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Tooltip } from "@mui/material";
-import { InfoOutlined } from "@mui/icons-material";
+import { Info } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import ComplianceResponse from "./ComplianceResponse";
@@ -565,12 +564,9 @@ const ComplianceForm: React.FC = () => {
               <div className="ml-6 mt-2 space-y-2">
                 {(fieldData.sub_items ?? []).map((subItem) => (
                   <div key={subItem.field} className="flex items-center">
-                    <Tooltip title={subItem.why_checked} placement="top">
-                      <InfoOutlined
-                        className="text-secondary-500 mr-2 cursor-pointer"
-                        fontSize="small"
-                      />
-                    </Tooltip>
+                    <span title={subItem.why_checked}>
+                      <Info size={16} className="text-blue-500 mr-2 cursor-default" />
+                    </span>
                     <input
                       type="checkbox"
                       checked={doc.subItems[subItem.field]}
@@ -667,12 +663,9 @@ const ComplianceForm: React.FC = () => {
           }) => (
             <div key={fieldData.field} className="flex flex-col">
               <div className="flex items-center mb-2">
-                <Tooltip title={fieldData.why_checked} placement="top">
-                  <InfoOutlined
-                    className="text-secondary-500 mr-2 cursor-pointer"
-                    fontSize="small"
-                  />
-                </Tooltip>
+                <span title={fieldData.why_checked}>
+                  <Info size={16} className="text-blue-500 mr-2 cursor-default" />
+                </span>
                 <label
                   htmlFor={`field-${activeTab}-${fieldData.field}`}
                   className="text-sm font-medium text-tertiary-500"

@@ -10,7 +10,6 @@ import {
   Plane,
   MoreHorizontal,
 } from "lucide-react";
-import { Warning } from "@mui/icons-material";
 import Header from "../../components/Header";
 import {
   Document,
@@ -185,7 +184,7 @@ const ComplianceResponse: React.FC<{ response: ComplianceData | undefined; }> = 
                   style={{ width: "2rem", height: "2rem" }}
                 />
               ) : (
-                <Warning
+                <AlertTriangle
                   className="text-red-600"
                   style={{ width: "2rem", height: "2rem" }}
                 />

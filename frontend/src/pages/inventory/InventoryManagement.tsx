@@ -1,33 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import MapView from "./MapView";
 import {
-  Tabs,
-  Tab,
-  Button,
-  Typography,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  FormControlLabel,
-  Checkbox,
-  IconButton,
-  Box,
-  Card,
-  CardContent,
-  Chip,
-  Backdrop,
-} from "@mui/material";
-import {
-  Add,
-  Delete,
-  LocalShipping,
-  CheckCircle,
-  Warning,
-  Schedule,
-} from "@mui/icons-material";
+  Plus,
+  Trash2,
+  Truck,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Toast from "../../components/Toast";
 import { countryOptions } from "../../constants/constants";
@@ -88,15 +69,57 @@ interface ToastProps {
 }
 
 // ---------------------------------------------------------------------------
+// Small reusable primitives
+// ---------------------------------------------------------------------------
+
+interface ModalProps {
+  open: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+  maxWidth?: "sm" | "md";
+}
+
+const Modal: React.FC<ModalProps> = ({ open, onClose, children, maxWidth = "sm" }) => {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const el = dialogRef.current;
+    if (!el) return;
+    if (open) {
+      if (!el.open) el.showModal();
+    } else {
+      if (el.open) el.close();
+    }
+  }, [open]);
+
+  useEffect(() => {
+    const el = dialogRef.current;
+    if (!el) return;
+    const handleClose = () => onClose();
+    el.addEventListener("close", handleClose);
+    return () => el.removeEventListener("close", handleClose);
+  }, [onClose]);
+
+  const widthClass = maxWidth === "md" ? "max-w-2xl" : "max-w-lg";
+
+  return (
+    <dialog
+      ref={dialogRef}
+      onClick={(e) => { if (e.target === dialogRef.current) onClose(); }}
+      className={`w-full ${widthClass} mx-auto rounded-2xl bg-white shadow-sm border border-slate-200 p-0 backdrop:bg-black/50 open:flex open:flex-col`}
+    >
+      {children}
+    </dialog>
+  );
+};
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 const InventoryManagement: React.FC = () => {
   const prefersReducedMotion = useReducedMotion();
   const [activeTab, setActiveTab] = useState<string>("all");
-  // Reactive viewport width so the responsive tab labels actually update on
-  // resize/rotation. Reading window.innerWidth straight in JSX is a one-shot
-  // snapshot at mount and never re-evaluates.
   const [viewportWidth, setViewportWidth] = useState<number>(
     typeof window !== "undefined" ? window.innerWidth : 1024,
   );
@@ -193,10 +216,6 @@ const InventoryManagement: React.FC = () => {
 
   const invalidateDrafts = () => {
     utils.inventory.getDrafts.invalidate();
-  };
-
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: string) => {
-    setActiveTab(newValue);
   };
 
   const getFilteredDrafts = (): Draft[] => {
@@ -405,30 +424,62 @@ const InventoryManagement: React.FC = () => {
     routeOpt: string | undefined
   ): React.ReactElement => {
     if (compliance === "compliant" && routeOpt === "done") {
-      return <LocalShipping sx={{ color: "#10b981", fontSize: 20 }} />;
+      return <Truck size={20} className="text-emerald-500" />;
     } else if (compliance === "compliant") {
-      return <CheckCircle sx={{ color: "#059669", fontSize: 20 }} />;
+      return <CheckCircle2 size={20} className="text-emerald-600" />;
     } else if (compliance === "nonCompliant") {
-      return <Warning sx={{ color: "#dc2626", fontSize: 20 }} />;
+      return <AlertTriangle size={20} className="text-red-600" />;
     } else {
-      return <Schedule sx={{ color: "#f59e0b", fontSize: 20 }} />;
+      return <Clock size={20} className="text-amber-500" />;
     }
   };
 
-  const getStatusColor = (
+  const getStatusChipClass = (
     compliance: string | undefined,
     routeOpt: string | undefined
   ): string => {
     if (compliance === "compliant" && routeOpt === "done") {
-      return "#10b981";
+      return "bg-emerald-500 text-white";
     } else if (compliance === "compliant") {
-      return "#059669";
+      return "bg-emerald-600 text-white";
     } else if (compliance === "nonCompliant") {
-      return "#dc2626";
+      return "bg-red-600 text-white";
     } else {
-      return "#f59e0b";
+      return "bg-amber-500 text-white";
     }
   };
+
+  const getStatusLabel = (
+    compliance: string | undefined,
+    routeOpt: string | undefined
+  ): string => {
+    if (compliance === "compliant" && routeOpt === "done") return "Ready for Shipment";
+    if (compliance === "compliant") return "Compliant";
+    if (compliance === "nonCompliant") return "Non-compliant";
+    return "Pending Review";
+  };
+
+  const tabs: { value: string; label: (wide: boolean) => string }[] = [
+    { value: "all", label: () => `All (${tabCounts.all})` },
+    {
+      value: "yet-to-be-checked",
+      label: (wide) =>
+        wide
+          ? `Yet to be Checked (${tabCounts["yet-to-be-checked"]})`
+          : `Pending (${tabCounts["yet-to-be-checked"]})`,
+    },
+    { value: "non-compliant", label: () => `Non-compliant (${tabCounts["non-compliant"]})` },
+    { value: "compliant", label: () => `Compliant (${tabCounts.compliant})` },
+    {
+      value: "ready-for-shipment",
+      label: (wide) =>
+        wide
+          ? `Ready for Shipment (${tabCounts["ready-for-shipment"]})`
+          : `Ready (${tabCounts["ready-for-shipment"]})`,
+    },
+  ];
+
+  const isWide = viewportWidth >= 600;
 
   return (
     <div className="min-h-screen bg-neutral-100 p-2 sm:p-4 md:p-6">
@@ -448,121 +499,44 @@ const InventoryManagement: React.FC = () => {
         </div>
 
         {/* Tabs */}
-        <Card
-          sx={{
-            borderRadius: 2,
-            boxShadow: "0 1px 4px rgba(0, 0, 0, 0.08)",
-            background: "#ffffff",
-            mb: 4,
-            overflowX: "auto",
-          }}
-        >
-          <Box
-            sx={{
-              borderBottom: 1,
-              borderColor: "divider",
-              overflowX: "auto",
-            }}
-          >
-            <Tabs
-              value={activeTab}
-              onChange={handleTabChange}
-              variant="scrollable"
-              scrollButtons="auto"
-              allowScrollButtonsMobile
-              sx={{
-                "& .MuiTabs-flexContainer": {
-                  justifyContent: { xs: "flex-start", sm: "center" },
-                },
-                "& .MuiTab-root": {
-                  fontWeight: 600,
-                  fontSize: { xs: "0.75rem", sm: "0.85rem", md: "0.95rem" },
-                  textTransform: "none",
-                  minHeight: { xs: 40, sm: 48 },
-                  minWidth: { xs: 90, sm: 120 },
-                  padding: { xs: "8px 12px", sm: "12px 16px" },
-                  color: "#64748b",
-                  "&.Mui-selected": {
-                    color: "#0f172a",
-                    background: "#f1f5f9",
-                  },
-                },
-                "& .MuiTabs-indicator": {
-                  height: 3,
-                  borderRadius: 2,
-                  backgroundColor: "#2563eb",
-                },
-                "& .MuiTabs-scrollButtons": {
-                  width: { xs: 30, sm: 40 },
-                  color: "#3b82f6",
-                  "&.Mui-disabled": { opacity: 0.3 },
-                },
-              }}
-            >
-              <Tab label={`All (${tabCounts.all})`} value="all" />
-              <Tab
-                label={
-                  viewportWidth < 600
-                    ? `Pending (${tabCounts["yet-to-be-checked"]})`
-                    : `Yet to be Checked (${tabCounts["yet-to-be-checked"]})`
-                }
-                value="yet-to-be-checked"
-              />
-              <Tab
-                label={`Non-compliant (${tabCounts["non-compliant"]})`}
-                value="non-compliant"
-              />
-              <Tab
-                label={`Compliant (${tabCounts.compliant})`}
-                value="compliant"
-              />
-              <Tab
-                label={
-                  viewportWidth < 600
-                    ? `Ready (${tabCounts["ready-for-shipment"]})`
-                    : `Ready for Shipment (${tabCounts["ready-for-shipment"]})`
-                }
-                value="ready-for-shipment"
-              />
-            </Tabs>
-          </Box>
-        </Card>
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm mb-6 overflow-x-auto">
+          <div className="flex border-b border-slate-200 min-w-max">
+            {tabs.map((tab) => (
+              <button
+                key={tab.value}
+                onClick={() => setActiveTab(tab.value)}
+                className={`px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors duration-150 border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset ${
+                  activeTab === tab.value
+                    ? "border-blue-600 text-slate-900 bg-slate-50"
+                    : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                {tab.label(isWide)}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="space-y-4 sm:space-y-6" style={{ minHeight: 400 }}>
           {loading ? (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-6 animate-pulse">
+                <div key={i} className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 animate-pulse">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-5 h-5 bg-gray-200 rounded-full" />
-                    <div className="h-5 bg-gray-200 rounded w-24" />
-                    <div className="h-5 bg-gray-200 rounded-full w-20 ml-2" />
+                    <div className="w-5 h-5 bg-slate-200 rounded-full" />
+                    <div className="h-5 bg-slate-200 rounded w-24" />
+                    <div className="h-5 bg-slate-200 rounded-full w-20 ml-2" />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="h-4 bg-gray-100 rounded w-full" />
-                    <div className="h-4 bg-gray-100 rounded w-full" />
+                    <div className="h-4 bg-slate-100 rounded w-full" />
+                    <div className="h-4 bg-slate-100 rounded w-full" />
                   </div>
                 </div>
               ))}
             </div>
           ) : getFilteredDrafts().length === 0 ? (
-            <Card
-              sx={{
-                borderRadius: 3,
-                p: { xs: 4, sm: 6 },
-                textAlign: "center",
-                background: "#ffffff",
-                boxShadow: "0 1px 4px rgba(0, 0, 0, 0.08)",
-              }}
-            >
-              <Typography
-                variant="h6"
-                sx={{
-                  color: "#64748b",
-                  mb: 1,
-                  fontSize: { xs: "1.1rem", sm: "1.25rem" },
-                }}
-              >
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm px-6 py-10 sm:py-14 text-center">
+              <p className="text-slate-500 font-semibold text-lg sm:text-xl mb-1">
                 {activeTab === "non-compliant"
                   ? "No non-compliant drafts"
                   : activeTab === "compliant"
@@ -570,10 +544,8 @@ const InventoryManagement: React.FC = () => {
                   : activeTab === "ready-for-shipment"
                   ? "Nothing ready for shipment yet"
                   : "No drafts available"}
-              </Typography>
-              <Typography
-                sx={{ color: "#94a3b8", fontSize: { xs: "0.9rem", sm: "1rem" }, mb: 3 }}
-              >
+              </p>
+              <p className="text-slate-400 text-sm sm:text-base mb-6">
                 {activeTab === "yet-to-be-checked"
                   ? "Create your first draft to get started!"
                   : activeTab === "non-compliant"
@@ -583,27 +555,16 @@ const InventoryManagement: React.FC = () => {
                   : activeTab === "ready-for-shipment"
                   ? "Compliant drafts with an optimized route will appear here."
                   : "No drafts match this category."}
-              </Typography>
+              </p>
               {activeTab !== "yet-to-be-checked" && (
-                <Button
-                  variant="outlined"
+                <button
                   onClick={() => setActiveTab("yet-to-be-checked")}
-                  sx={{
-                    borderColor: "#2563eb",
-                    color: "#2563eb",
-                    borderRadius: 2,
-                    textTransform: "none",
-                    fontWeight: 600,
-                    px: 3,
-                    py: 1,
-                    "&:hover": { borderColor: "#1d4ed8", color: "#1d4ed8", backgroundColor: "rgba(37,99,235,0.06)" },
-                    "&:focus-visible": { outline: "2px solid #2563eb", outlineOffset: 2 },
-                  }}
+                  className="px-5 py-2 border-2 border-blue-600 text-blue-600 font-semibold rounded-xl text-sm hover:border-blue-700 hover:text-blue-700 hover:bg-blue-50 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                 >
                   View pending drafts
-                </Button>
+                </button>
               )}
-            </Card>
+            </div>
           ) : (
             <AnimatePresence initial={false}>
             {getFilteredDrafts().map((draft, index) => (
@@ -614,20 +575,8 @@ const InventoryManagement: React.FC = () => {
                 exit={prefersReducedMotion ? {} : { opacity: 0 }}
                 transition={{ duration: 0.15, delay: prefersReducedMotion ? 0 : Math.min(index * 0.05, 0.2) }}
               >
-                <Card
-                  sx={{
-                    borderRadius: 3,
-                    background: "#ffffff",
-                    boxShadow: "0 1px 4px rgba(0, 0, 0, 0.08)",
-                    border: "1px solid #e2e8f0",
-                    transition: "transform 150ms ease-out, box-shadow 150ms ease-out",
-                    "&:hover": {
-                      transform: "translateY(-2px)",
-                      boxShadow: "0 4px 16px rgba(0, 0, 0, 0.12)",
-                    },
-                  }}
-                >
-                  <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:-translate-y-0.5 hover:shadow transition-all duration-150">
+                  <div className="p-4 sm:p-6">
                     <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
                       <div className="flex-1 space-y-3">
                         <div className="flex items-center gap-2 sm:gap-3">
@@ -635,178 +584,65 @@ const InventoryManagement: React.FC = () => {
                             draft.statuses?.compliance,
                             draft.statuses?.routeOptimization
                           )}
-                          <Typography
-                            variant="h6"
-                            sx={{
-                              fontWeight: 700,
-                              color: "#1e293b",
-                              fontSize: { xs: "1rem", sm: "1.1rem" },
-                            }}
-                          >
+                          <span className="font-bold text-slate-900 text-base sm:text-lg">
                             Draft {index + 1}
-                          </Typography>
-                          <Chip
-                            label={
-                              draft.statuses?.compliance === "compliant" &&
-                              draft.statuses?.routeOptimization === "done"
-                                ? "Ready for Shipment"
-                                : draft.statuses?.compliance === "compliant"
-                                ? "Compliant"
-                                : draft.statuses?.compliance === "nonCompliant"
-                                ? "Non-compliant"
-                                : "Pending Review"
-                            }
-                            size="small"
-                            sx={{
-                              backgroundColor: getStatusColor(
-                                draft.statuses?.compliance,
-                                draft.statuses?.routeOptimization
-                              ),
-                              color: "white",
-                              fontWeight: 600,
-                              fontSize: { xs: "0.65rem", sm: "0.75rem" },
-                            }}
-                          />
+                          </span>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs sm:text-sm font-semibold ${getStatusChipClass(draft.statuses?.compliance, draft.statuses?.routeOptimization)}`}>
+                            {getStatusLabel(draft.statuses?.compliance, draft.statuses?.routeOptimization)}
+                          </span>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                          <Box>
-                            <Typography
-                              variant="body2"
-                              sx={{
-                                color: "#64748b",
-                                fontWeight: 600,
-                                fontSize: { xs: "0.85rem", sm: "0.9rem" },
-                              }}
-                            >
-                              HS Code
-                            </Typography>
-                            <Typography
-                              variant="body2"
-                              sx={{
-                                color: "#1e293b",
-                                fontWeight: 500,
-                                fontSize: { xs: "0.85rem", sm: "0.9rem" },
-                              }}
-                            >
-                              {draft.formData?.ShipmentDetails?.["HS Code"] ||
-                                "N/A"}
-                            </Typography>
-                          </Box>
-
-                          <Box>
-                            <Typography
-                              variant="body2"
-                              sx={{
-                                color: "#64748b",
-                                fontWeight: 600,
-                                fontSize: { xs: "0.85rem", sm: "0.9rem" },
-                              }}
-                            >
-                              Created
-                            </Typography>
-                            <Typography
-                              variant="body2"
-                              sx={{
-                                color: "#1e293b",
-                                fontWeight: 500,
-                                fontSize: { xs: "0.85rem", sm: "0.9rem" },
-                              }}
-                            >
+                          <div>
+                            <p className="text-slate-500 font-semibold text-xs sm:text-sm">HS Code</p>
+                            <p className="text-slate-900 font-medium text-xs sm:text-sm">
+                              {draft.formData?.ShipmentDetails?.["HS Code"] || "N/A"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500 font-semibold text-xs sm:text-sm">Created</p>
+                            <p className="text-slate-900 font-medium text-xs sm:text-sm">
                               {new Date(draft.timestamp).toLocaleDateString()}
-                            </Typography>
-                          </Box>
+                            </p>
+                          </div>
                         </div>
 
-                        <Box>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              color: "#64748b",
-                              fontWeight: 600,
-                              fontSize: { xs: "0.85rem", sm: "0.9rem" },
-                            }}
-                          >
-                            Product Description
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              color: "#1e293b",
-                              fontWeight: 500,
-                              mt: 0.5,
-                              fontSize: { xs: "0.85rem", sm: "0.9rem" },
-                            }}
-                          >
-                            {draft.formData?.ShipmentDetails?.[
-                              "Product Description"
-                            ] || "N/A"}
-                          </Typography>
-                        </Box>
+                        <div>
+                          <p className="text-slate-500 font-semibold text-xs sm:text-sm">Product Description</p>
+                          <p className="text-slate-900 font-medium text-xs sm:text-sm mt-0.5">
+                            {draft.formData?.ShipmentDetails?.["Product Description"] || "N/A"}
+                          </p>
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
                         {!(draft.statuses?.compliance === "compliant" &&
                           draft.statuses?.routeOptimization === "done") && (
-                          <Button
-                            variant="contained"
+                          <button
                             onClick={() => handleActionClick(draft)}
-                            sx={{
-                              backgroundColor: "#2563eb",
-                              borderRadius: 2,
-                              textTransform: "none",
-                              fontWeight: 600,
-                              px: { xs: 2, sm: 3 },
-                              py: 1,
-                              fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                              boxShadow: "0 2px 8px rgba(37, 99, 235, 0.3)",
-                              transition: "background-color 150ms ease-out, box-shadow 150ms ease-out",
-                              "&:hover": {
-                                backgroundColor: "#1d4ed8",
-                                boxShadow: "0 4px 12px rgba(37, 99, 235, 0.4)",
-                              },
-                              "&:focus-visible": { outline: "2px solid #2563eb", outlineOffset: 2 },
-                            }}
+                            className="px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs sm:text-sm shadow-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
                           >
                             {draft.statuses?.compliance === "compliant" &&
                             draft.statuses?.routeOptimization === "notDone"
                               ? "Optimize Route"
                               : "Check Compliance"}
-                          </Button>
+                          </button>
                         )}
 
                         {draft.statuses?.compliance === "compliant" &&
                           draft.statuses?.routeOptimization === "done" && (
-                            <Button
-                              variant="contained"
+                            <button
                               onClick={() => {
                                 setExportDraft(draft);
                                 setOpenExportDialog(true);
                               }}
-                              sx={{
-                                backgroundColor: "#059669",
-                                borderRadius: 2,
-                                textTransform: "none",
-                                fontWeight: 600,
-                                px: { xs: 2, sm: 3 },
-                                py: 1,
-                                fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                                boxShadow: "0 2px 8px rgba(5, 150, 105, 0.3)",
-                                transition: "background-color 150ms ease-out, box-shadow 150ms ease-out",
-                                "&:hover": {
-                                  backgroundColor: "#047857",
-                                  boxShadow: "0 4px 12px rgba(5, 150, 105, 0.4)",
-                                },
-                                "&:focus-visible": { outline: "2px solid #059669", outlineOffset: 2 },
-                              }}
+                              className="px-3 sm:px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs sm:text-sm shadow-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
                             >
                               Export Report
-                            </Button>
+                            </button>
                           )}
 
-                        <Button
-                          variant="outlined"
-                          size="small"
+                        <button
                           onClick={() =>
                             setExpandedDraftId(
                               expandedDraftId === draft._id ? null : draft._id
@@ -814,49 +650,21 @@ const InventoryManagement: React.FC = () => {
                           }
                           aria-expanded={expandedDraftId === draft._id}
                           aria-controls={`map-peek-${draft._id}`}
-                          sx={{
-                            borderColor: "#2563eb",
-                            color: "#2563eb",
-                            borderRadius: 2,
-                            textTransform: "none",
-                            fontWeight: 600,
-                            px: { xs: 1.5, sm: 2 },
-                            py: 0.75,
-                            fontSize: { xs: "0.7rem", sm: "0.8rem" },
-                            transition: "border-color 150ms ease-out, color 150ms ease-out, background-color 150ms ease-out",
-                            "&:hover": {
-                              borderColor: "#1d4ed8",
-                              color: "#1d4ed8",
-                              backgroundColor: "rgba(37,99,235,0.06)",
-                            },
-                            "&:focus-visible": { outline: "2px solid #2563eb", outlineOffset: 2 },
-                          }}
+                          className="px-2.5 sm:px-3 py-1.5 border-2 border-blue-600 text-blue-600 font-semibold rounded-xl text-xs sm:text-sm hover:border-blue-700 hover:text-blue-700 hover:bg-blue-50 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                         >
                           {expandedDraftId === draft._id ? "Hide map" : "Show map"}
-                        </Button>
+                        </button>
 
-                        <IconButton
+                        <button
                           onClick={() => handleDeleteDraft(draft._id)}
                           aria-label={`Delete draft ${index + 1}`}
-                          sx={{
-                            color: "#ef4444",
-                            backgroundColor: "rgba(239, 68, 68, 0.1)",
-                            borderRadius: 2,
-                            transition: "background-color 150ms ease-out",
-                            "&:hover": {
-                              backgroundColor: "rgba(239, 68, 68, 0.2)",
-                            },
-                            "&:focus-visible": {
-                              outline: "2px solid #ef4444",
-                              outlineOffset: 2,
-                            },
-                          }}
+                          className="p-2 text-red-500 bg-red-50 hover:bg-red-100 rounded-xl transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
                         >
-                          <Delete />
-                        </IconButton>
+                          <Trash2 size={18} />
+                        </button>
                       </div>
                     </div>
-                  </CardContent>
+                  </div>
 
                   {/* Map peek panel */}
                   <div
@@ -882,7 +690,7 @@ const InventoryManagement: React.FC = () => {
                       )}
                     </div>
                   </div>
-                </Card>
+                </div>
               </motion.div>
             ))}
             </AnimatePresence>
@@ -890,92 +698,63 @@ const InventoryManagement: React.FC = () => {
         </div>
 
         {activeTab === "yet-to-be-checked" && (
-          <Button
-            variant="contained"
+          <button
             onClick={handleDialogOpen}
             aria-label="Create new draft"
-            sx={{
-              position: "fixed",
-              bottom: { xs: 16, sm: 24 },
-              left: { xs: 16, sm: 24 },
-              borderRadius: "50%",
-              width: { xs: 48, sm: 64 },
-              height: { xs: 48, sm: 64 },
-              minWidth: 0,
-              backgroundColor: "#2563eb",
-              boxShadow: "0 4px 16px rgba(37, 99, 235, 0.35)",
-              transition: "transform 150ms ease-out, box-shadow 150ms ease-out, background-color 150ms ease-out",
-              "&:hover": {
-                backgroundColor: "#1d4ed8",
-                transform: "scale(1.04)",
-                boxShadow: "0 6px 20px rgba(37, 99, 235, 0.45)",
-              },
-              "&:focus-visible": {
-                outline: "2px solid #2563eb",
-                outlineOffset: 2,
-              },
-            }}
+            className="fixed bottom-4 sm:bottom-6 left-4 sm:left-6 w-12 sm:w-16 h-12 sm:h-16 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow transition-all duration-150 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
           >
-            <Add sx={{ fontSize: { xs: 24, sm: 28 } }} />
-          </Button>
+            <Plus size={24} className="sm:w-7 sm:h-7" />
+          </button>
         )}
 
         {/* Export Report Dialog */}
-        <Dialog
-          open={openExportDialog}
-          onClose={() => setOpenExportDialog(false)}
-          maxWidth="sm"
-          fullWidth
-          PaperProps={{
-            sx: { borderRadius: 3, p: 2 }
-          }}
-        >
-          <DialogTitle sx={{ fontWeight: 700, textAlign: "center" }}>
-            Shipment Manifest Report
-          </DialogTitle>
-          <DialogContent>
+        <Modal open={openExportDialog} onClose={() => setOpenExportDialog(false)} maxWidth="sm">
+          <div className="px-6 pt-6 pb-2 text-center">
+            <h2 className="text-xl font-bold text-slate-900">Shipment Manifest Report</h2>
+          </div>
+          <div className="px-6 py-4 flex flex-col gap-4 text-sm text-slate-700">
             {exportDraft && (() => {
               const sd = exportDraft.formData?.ShipmentDetails;
               return (
-                <div style={{ display: "flex", flexDirection: "column", gap: "16px", fontSize: "14px", color: "#334155" }}>
-                  <div style={{ padding: "12px", backgroundColor: "#f8fafc", borderRadius: "12px", border: "1px solid #e2e8f0", fontFamily: "monospace", fontSize: "12px" }}>
+                <>
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 font-mono text-xs">
                     <p><strong>Draft ID:</strong> {exportDraft._id}</p>
                     <p><strong>Created:</strong> {new Date(exportDraft.timestamp).toLocaleString()}</p>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p style={{ fontSize: "11px", color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" }}>Origin</p>
-                      <p style={{ fontWeight: 600, color: "#1e293b" }}>{sd?.["Origin Country"] || "N/A"}</p>
+                      <p className="text-xs text-slate-400 font-semibold uppercase">Origin</p>
+                      <p className="font-semibold text-slate-900">{sd?.["Origin Country"] || "N/A"}</p>
                     </div>
                     <div>
-                      <p style={{ fontSize: "11px", color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" }}>Destination</p>
-                      <p style={{ fontWeight: 600, color: "#1e293b" }}>{sd?.["Destination Country"] || "N/A"}</p>
+                      <p className="text-xs text-slate-400 font-semibold uppercase">Destination</p>
+                      <p className="font-semibold text-slate-900">{sd?.["Destination Country"] || "N/A"}</p>
                     </div>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p style={{ fontSize: "11px", color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" }}>Weight</p>
-                      <p style={{ fontWeight: 600, color: "#1e293b" }}>{sd?.["Gross Weight"] != null ? `${sd["Gross Weight"]} kg` : "N/A"}</p>
+                      <p className="text-xs text-slate-400 font-semibold uppercase">Weight</p>
+                      <p className="font-semibold text-slate-900">{sd?.["Gross Weight"] != null ? `${sd["Gross Weight"]} kg` : "N/A"}</p>
                     </div>
                     <div>
-                      <p style={{ fontSize: "11px", color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" }}>HS Code</p>
-                      <p style={{ fontWeight: 600, color: "#1e293b" }}>{sd?.["HS Code"] || "N/A"}</p>
+                      <p className="text-xs text-slate-400 font-semibold uppercase">HS Code</p>
+                      <p className="font-semibold text-slate-900">{sd?.["HS Code"] || "N/A"}</p>
                     </div>
                   </div>
                   <div>
-                    <p style={{ fontSize: "11px", color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" }}>Cargo Description</p>
-                    <p style={{ color: "#1e293b" }}>{sd?.["Product Description"] || "N/A"}</p>
+                    <p className="text-xs text-slate-400 font-semibold uppercase">Cargo Description</p>
+                    <p className="text-slate-900">{sd?.["Product Description"] || "N/A"}</p>
                   </div>
-                  <div style={{ padding: "12px", borderRadius: "12px", border: "1px solid #a7f3d0", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", fontWeight: 600, backgroundColor: "#ecfdf5", color: "#065f46" }}>
+                  <div className="p-3 rounded-xl border border-emerald-200 flex justify-between items-center text-xs font-semibold bg-emerald-50 text-emerald-800">
                     <span>Regulatory Review:</span>
-                    <span style={{ textTransform: "uppercase" }}>Approved &amp; Compliant</span>
+                    <span className="uppercase">Approved &amp; Compliant</span>
                   </div>
-                </div>
+                </>
               );
             })()}
-          </DialogContent>
-          <DialogActions sx={{ justifyContent: "center", gap: 2, pb: 2 }}>
-            <Button
+          </div>
+          <div className="px-6 pb-6 flex justify-center gap-3 flex-wrap">
+            <button
               onClick={() => {
                 if (!exportDraft) return;
                 const sd = exportDraft.formData?.ShipmentDetails;
@@ -998,308 +777,238 @@ const InventoryManagement: React.FC = () => {
                 downloadAnchor.click();
                 downloadAnchor.remove();
               }}
-              variant="contained"
-              sx={{ textTransform: "none", fontWeight: 600 }}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
             >
               Download JSON
-            </Button>
-            <Button
+            </button>
+            <button
               onClick={() => window.print()}
-              variant="outlined"
-              sx={{ textTransform: "none", fontWeight: 600 }}
+              className="px-4 py-2 border-2 border-blue-600 text-blue-600 font-semibold rounded-xl text-sm hover:bg-blue-50 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
             >
               Print Manifest
-            </Button>
-            <Button
+            </button>
+            <button
               onClick={() => setOpenExportDialog(false)}
-              variant="text"
-              sx={{ textTransform: "none", fontWeight: 600, color: "#64748b" }}
+              className="px-4 py-2 text-slate-500 font-semibold rounded-xl text-sm hover:bg-slate-100 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
             >
               Close
-            </Button>
-          </DialogActions>
-        </Dialog>
+            </button>
+          </div>
+        </Modal>
 
         {/* Delete Dialog */}
-        <Dialog
-          open={openDeleteDialog}
-          onClose={handleDeleteCancel}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle
-            sx={{
-              backgroundColor: "#ef4444",
-              color: "white",
-              fontWeight: 700,
-              textAlign: "center",
-              fontSize: "1.25rem",
-              py: 2,
-            }}
-          >
-            Warning: Deleting Draft
-          </DialogTitle>
-          <DialogContent sx={{ p: 4, mt: 2 }}>
-            <Typography variant="body1" sx={{ mb: 2 }}>
+        <Modal open={openDeleteDialog} onClose={handleDeleteCancel} maxWidth="sm">
+          <div className="px-6 pt-6 pb-4 bg-red-500 rounded-t-2xl text-center">
+            <h2 className="text-xl font-bold text-white">Warning: Deleting Draft</h2>
+          </div>
+          <div className="px-6 py-6">
+            <p className="text-slate-700 mb-3">
               This choice may negatively affect your sustainability rating and
               disrupt overall analysis records.
-            </Typography>
-            <Typography variant="body2" sx={{ mb: 1, fontWeight: 600 }}>
+            </p>
+            <p className="text-slate-700 font-semibold text-sm mb-2">
               Please enter your email to proceed:
-            </Typography>
-            <TextField
-              fullWidth
-              label="Email"
+            </p>
+            <input
+              type="email"
               value={deleteEmail}
               onChange={(e) => {
                 setDeleteEmail(e.target.value);
                 setDeleteEmailError("");
               }}
-              error={!!deleteEmailError}
-              helperText={deleteEmailError}
-              sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
+              placeholder="Email"
+              className={`w-full px-4 py-2.5 border rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-colors duration-150 ${
+                deleteEmailError
+                  ? "border-red-500 focus:ring-red-500"
+                  : "border-slate-300 focus:ring-blue-500"
+              }`}
             />
-          </DialogContent>
-          <DialogActions
-            sx={{ p: 4, justifyContent: "space-between", gap: 2 }}
-          >
-            <Button
+            {deleteEmailError && (
+              <p className="text-red-600 text-xs mt-1">{deleteEmailError}</p>
+            )}
+          </div>
+          <div className="px-6 pb-6 flex justify-between gap-3">
+            <button
               onClick={handleDeleteCancel}
-              variant="outlined"
-              sx={{
-                borderColor: "#64748b",
-                color: "#64748b",
-                borderRadius: 2,
-                px: 4,
-                py: 1,
-                textTransform: "none",
-                fontWeight: 600,
-              }}
+              className="px-6 py-2 border-2 border-slate-400 text-slate-600 font-semibold rounded-xl text-sm hover:bg-slate-50 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
             >
               Cancel
-            </Button>
-            <Button
+            </button>
+            <button
               onClick={handleDeleteConfirm}
-              variant="contained"
-              color="error"
-              sx={{
-                borderRadius: 2,
-                px: 4,
-                py: 1,
-                textTransform: "none",
-                fontWeight: 600,
-              }}
+              className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2"
             >
               Delete
-            </Button>
-          </DialogActions>
-        </Dialog>
+            </button>
+          </div>
+        </Modal>
 
         {/* Create Draft Dialog */}
-        <Dialog
-          open={openDialog}
-          onClose={handleDialogClose}
-          maxWidth="md"
-          fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: 3,
-              background: "#ffffff",
-              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.12)",
-              m: { xs: 1, sm: 2 },
-              width: { xs: "90%", sm: "80%", md: "70%" },
-            },
-          }}
-          BackdropProps={{
-            sx: {
-              backgroundColor: "rgba(0, 0, 0, 0.5)",
-            },
-          }}
-        >
-          <DialogTitle
-            sx={{
-              backgroundColor: "#2563eb",
-              color: "white",
-              fontWeight: 700,
-              textAlign: "center",
-              fontSize: { xs: "1.25rem", sm: "1.5rem" },
-              py: { xs: 2, sm: 3 },
-            }}
-          >
-            Create New Draft
-          </DialogTitle>
-          <DialogContent sx={{ p: { xs: 3, sm: 4 }, mt: 2 }}>
-            <div className="w-full flex flex-col gap-4 items-center justify-center">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleCreateDraft();
-                }}
-                className="w-full bg-white rounded-xl p-4 sm:p-6"
-              >
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 w-full">
-                  <div className="w-full">
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Origin Country</label>
-                    <select
-                      name="originCountry"
-                      value={newDraft.originCountry}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150 appearance-none"
-                    >
-                      <option value="" disabled>
-                        Select Origin Country
-                      </option>
-                      {countryOptions.map(
-                        (option: { value: string; label: string }) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        )
-                      )}
-                    </select>
-                    <Typography color="error" variant="caption" sx={{ minHeight: "1.2em", display: "block" }}>
-                      {formErrors.originCountry || " "}
-                    </Typography>
-                  </div>
-
-
-                  <div className="w-full">
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Destination Country</label>
-                    <select
-                      name="destinationCountry"
-                      value={newDraft.destinationCountry}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150 appearance-none"
-                    >
-                      <option value="" disabled>
-                        Select Destination
-                      </option>
-                      {countryOptions.map(
-                        (option: { value: string; label: string }) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        )
-                      )}
-                    </select>
-                    <Typography color="error" variant="caption" sx={{ minHeight: "1.2em", display: "block" }}>
-                      {formErrors.destinationCountry || " "}
-                    </Typography>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 w-full mt-2">
-                  <div className="w-full">
-                    <label htmlFor="hsCode" className="block text-sm font-medium text-gray-700 mb-1.5">
-                      HS Code
-                    </label>
-                    <input
-                      type="text"
-                      id="hsCode"
-                      name="hsCode"
-                      value={newDraft.hsCode}
-                      onChange={handleInputChange}
-                      required
-                      placeholder="e.g. 8471.30"
-                      className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
-                    />
-                    <Typography color="error" variant="caption" sx={{ minHeight: "1.2em", display: "block" }}>
-                      {formErrors.hsCode || " "}
-                    </Typography>
-                  </div>
-
-                  <div className="w-full">
-                    <label htmlFor="weight" className="block text-sm font-medium text-gray-700 mb-1.5">
-                      Weight (kg)
-                    </label>
-                    <input
-                      type="number"
-                      id="weight"
-                      name="weight"
-                      value={newDraft.weight}
-                      onChange={handleInputChange}
-                      required
-                      min="0"
-                      step="0.1"
-                      placeholder="e.g. 500"
-                      className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
-                    />
-                    <Typography color="error" variant="caption" sx={{ minHeight: "1.2em", display: "block" }}>
-                      {formErrors.weight || " "}
-                    </Typography>
-                  </div>
-                </div>
-
-                <div className="w-full mt-4">
-                  <label htmlFor="productDescription" className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Product Description
-                  </label>
-                  <textarea
-                    id="productDescription"
-                    name="productDescription"
-                    value={newDraft.productDescription}
+        <Modal open={openDialog} onClose={handleDialogClose} maxWidth="md">
+          <div className="px-6 pt-5 pb-4 bg-blue-600 rounded-t-2xl text-center">
+            <h2 className="text-xl sm:text-2xl font-bold text-white">Create New Draft</h2>
+          </div>
+          <div className="px-4 sm:px-6 py-6 overflow-y-auto">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleCreateDraft();
+              }}
+              className="w-full bg-white rounded-xl"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 w-full">
+                <div className="w-full">
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Origin Country</label>
+                  <select
+                    name="originCountry"
+                    value={newDraft.originCountry}
                     onChange={handleInputChange}
                     required
-                    placeholder="Describe the product (e.g. Electronic components for assembly)"
-                    rows={3}
-                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
-                  />
-                  <Typography color="error" variant="caption" sx={{ minHeight: "1.2em", display: "block" }}>
-                    {formErrors.productDescription || " "}
-                  </Typography>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-4 mt-4">
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        name="perishable"
-                        checked={newDraft.perishable}
-                        onChange={handleInputChange}
-                        sx={{
-                          color: "#3b82f6",
-                          "&.Mui-checked": { color: "#3b82f6" },
-                        }}
-                      />
-                    }
-                    label="Perishable"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        name="hazardous"
-                        checked={newDraft.hazardous}
-                        onChange={handleInputChange}
-                        sx={{
-                          color: "#3b82f6",
-                          "&.Mui-checked": { color: "#3b82f6" },
-                        }}
-                      />
-                    }
-                    label="Hazardous"
-                  />
-                </div>
-
-                <div className="mt-6 sm:mt-8 flex justify-center">
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="relative px-6 sm:px-8 py-3 sm:py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold rounded-xl shadow-sm transition-colors duration-150 active:scale-[0.98] disabled:cursor-not-allowed min-w-[200px] focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                    className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150 appearance-none"
                   >
-                    <span className="flex items-center justify-center gap-3">
-                      {submitting ? "Creating..." : "Create Draft"}
-                      {submitting && (
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      )}
-                    </span>
-                  </button>
+                    <option value="" disabled>
+                      Select Origin Country
+                    </option>
+                    {countryOptions.map(
+                      (option: { value: string; label: string }) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      )
+                    )}
+                  </select>
+                  <p className="text-red-600 text-xs mt-1 min-h-[1.2em]">
+                    {formErrors.originCountry || ""}
+                  </p>
                 </div>
-              </form>
-            </div>
-          </DialogContent>
-        </Dialog>
+
+                <div className="w-full">
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Destination Country</label>
+                  <select
+                    name="destinationCountry"
+                    value={newDraft.destinationCountry}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150 appearance-none"
+                  >
+                    <option value="" disabled>
+                      Select Destination
+                    </option>
+                    {countryOptions.map(
+                      (option: { value: string; label: string }) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      )
+                    )}
+                  </select>
+                  <p className="text-red-600 text-xs mt-1 min-h-[1.2em]">
+                    {formErrors.destinationCountry || ""}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 w-full mt-2">
+                <div className="w-full">
+                  <label htmlFor="hsCode" className="block text-sm font-medium text-slate-700 mb-1.5">
+                    HS Code
+                  </label>
+                  <input
+                    type="text"
+                    id="hsCode"
+                    name="hsCode"
+                    value={newDraft.hsCode}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="e.g. 8471.30"
+                    className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
+                  />
+                  <p className="text-red-600 text-xs mt-1 min-h-[1.2em]">
+                    {formErrors.hsCode || ""}
+                  </p>
+                </div>
+
+                <div className="w-full">
+                  <label htmlFor="weight" className="block text-sm font-medium text-slate-700 mb-1.5">
+                    Weight (kg)
+                  </label>
+                  <input
+                    type="number"
+                    id="weight"
+                    name="weight"
+                    value={newDraft.weight}
+                    onChange={handleInputChange}
+                    required
+                    min="0"
+                    step="0.1"
+                    placeholder="e.g. 500"
+                    className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
+                  />
+                  <p className="text-red-600 text-xs mt-1 min-h-[1.2em]">
+                    {formErrors.weight || ""}
+                  </p>
+                </div>
+              </div>
+
+              <div className="w-full mt-4">
+                <label htmlFor="productDescription" className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Product Description
+                </label>
+                <textarea
+                  id="productDescription"
+                  name="productDescription"
+                  value={newDraft.productDescription}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="Describe the product (e.g. Electronic components for assembly)"
+                  rows={3}
+                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
+                />
+                <p className="text-red-600 text-xs mt-1 min-h-[1.2em]">
+                  {formErrors.productDescription || ""}
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4 mt-4">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    name="perishable"
+                    checked={newDraft.perishable}
+                    onChange={handleInputChange}
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 accent-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-slate-700 font-medium">Perishable</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    name="hazardous"
+                    checked={newDraft.hazardous}
+                    onChange={handleInputChange}
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 accent-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-slate-700 font-medium">Hazardous</span>
+                </label>
+              </div>
+
+              <div className="mt-6 sm:mt-8 flex justify-center">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="relative px-6 sm:px-8 py-3 sm:py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold rounded-xl shadow-sm transition-colors duration-150 active:scale-[0.98] disabled:cursor-not-allowed min-w-[200px] focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                >
+                  <span className="flex items-center justify-center gap-3">
+                    {submitting ? "Creating..." : "Create Draft"}
+                    {submitting && (
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    )}
+                  </span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </Modal>
       </div>
 
       <Toast type={toastProps.type} message={toastProps.message} />

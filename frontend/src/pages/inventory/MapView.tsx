@@ -1,5 +1,6 @@
+/// <reference types="@types/google.maps" />
 import React, { useEffect, useRef, useState } from "react";
-import { Loader } from "@googlemaps/js-api-loader";
+import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
 import { trpc } from "../../lib/trpc";
 import type { MapData, RouteDirection } from "@server/routers/logistics";
 
@@ -51,18 +52,24 @@ function MapView({ draftId, inlineRoutes }: MapViewProps): React.ReactElement {
       setError(null);
 
       try {
-        const loader = new Loader({
-          apiKey: MAPS,
-          version: "weekly",
+        setOptions({
+          key: MAPS,
+          v: "weekly",
           libraries: ["geometry"],
         });
 
-        const google = await loader.load();
+        const [{ Map: GMap, InfoWindow, Polyline }, { encoding }, { Marker }, { LatLngBounds }] =
+          await Promise.all([
+            importLibrary("maps"),
+            importLibrary("geometry"),
+            importLibrary("marker") as Promise<{ Marker: typeof google.maps.Marker }>,
+            importLibrary("core"),
+          ]);
 
-        const map = new google.maps.Map(mapRef.current!, {
+        const map = new GMap(mapRef.current!, {
           center: { lat: 0, lng: 0 },
           zoom: 2,
-          mapTypeId: google.maps.MapTypeId.ROADMAP,
+          mapTypeId: "roadmap",
         });
         mapInstance.current = map;
 
@@ -113,17 +120,15 @@ function MapView({ draftId, inlineRoutes }: MapViewProps): React.ReactElement {
         }
 
         const { routes: processedRoutes, originalRoute } = mapData;
-        const bounds = new google.maps.LatLngBounds();
+        const bounds = new LatLngBounds();
 
         Object.entries(processedRoutes).forEach(([id, route]) => {
           const routeDirection = originalRoute.find((dir) => dir.id === id);
           if (!routeDirection) return;
 
           if (route.state === "land" && "encodedPolyline" in route) {
-            const path = google.maps.geometry.encoding.decodePath(
-              route.encodedPolyline
-            );
-            const polyline = new google.maps.Polyline({
+            const path = encoding.decodePath(route.encodedPolyline);
+            const polyline = new Polyline({
               path,
               geodesic: true,
               strokeColor: "#FF0000",
@@ -135,21 +140,21 @@ function MapView({ draftId, inlineRoutes }: MapViewProps): React.ReactElement {
             const startLatLng = path[0];
             const endLatLng = path[path.length - 1];
 
-            const startMarker = new google.maps.Marker({
+            const startMarker = new Marker({
               position: startLatLng,
               map,
               title: routeDirection.waypoints[0],
             });
-            const endMarker = new google.maps.Marker({
+            const endMarker = new Marker({
               position: endLatLng,
               map,
               title: routeDirection.waypoints[routeDirection.waypoints.length - 1],
             });
 
-            const startInfoWindow = new google.maps.InfoWindow({
+            const startInfoWindow = new InfoWindow({
               content: `<div>${routeDirection.waypoints[0]}</div>`,
             });
-            const endInfoWindow = new google.maps.InfoWindow({
+            const endInfoWindow = new InfoWindow({
               content: `<div>${routeDirection.waypoints[routeDirection.waypoints.length - 1]}</div>`,
             });
 
@@ -160,7 +165,7 @@ function MapView({ draftId, inlineRoutes }: MapViewProps): React.ReactElement {
               endInfoWindow.open(map, endMarker)
             );
 
-            path.forEach((latLng) => bounds.extend(latLng));
+            path.forEach((latLng: google.maps.LatLng) => bounds.extend(latLng));
           } else if (
             (route.state === "air" || route.state === "sea") &&
             "coordinates" in route
@@ -170,7 +175,7 @@ function MapView({ draftId, inlineRoutes }: MapViewProps): React.ReactElement {
               lng: coord.lng,
             }));
             const color = route.state === "air" ? "#00FF00" : "#0000FF";
-            const polyline = new google.maps.Polyline({
+            const polyline = new Polyline({
               path,
               geodesic: true,
               strokeColor: color,
@@ -182,21 +187,21 @@ function MapView({ draftId, inlineRoutes }: MapViewProps): React.ReactElement {
             const startLatLng = path[0];
             const endLatLng = path[path.length - 1];
 
-            const startMarker = new google.maps.Marker({
+            const startMarker = new Marker({
               position: startLatLng,
               map,
               title: routeDirection.waypoints[0],
             });
-            const endMarker = new google.maps.Marker({
+            const endMarker = new Marker({
               position: endLatLng,
               map,
               title: routeDirection.waypoints[routeDirection.waypoints.length - 1],
             });
 
-            const startInfoWindow = new google.maps.InfoWindow({
+            const startInfoWindow = new InfoWindow({
               content: `<div>${routeDirection.waypoints[0]}</div>`,
             });
-            const endInfoWindow = new google.maps.InfoWindow({
+            const endInfoWindow = new InfoWindow({
               content: `<div>${routeDirection.waypoints[routeDirection.waypoints.length - 1]}</div>`,
             });
 
@@ -207,7 +212,7 @@ function MapView({ draftId, inlineRoutes }: MapViewProps): React.ReactElement {
               endInfoWindow.open(map, endMarker)
             );
 
-            path.forEach((latLng) => bounds.extend(latLng));
+            path.forEach((latLng: { lat: number; lng: number }) => bounds.extend(latLng));
           }
         });
 
@@ -238,8 +243,9 @@ function MapView({ draftId, inlineRoutes }: MapViewProps): React.ReactElement {
     return () => {
       isMounted = false;
       if (mapInstance.current) {
-        if (typeof google !== "undefined" && google.maps?.event) {
-          google.maps.event.clearInstanceListeners(mapInstance.current);
+        // Cleanup: clear listeners if the maps API is loaded
+        if (typeof window !== "undefined" && (window as Window & { google?: { maps?: { event?: { clearInstanceListeners: (inst: object) => void } } } }).google?.maps?.event) {
+          (window as Window & { google?: { maps?: { event?: { clearInstanceListeners: (inst: object) => void } } } }).google!.maps!.event!.clearInstanceListeners(mapInstance.current!);
         }
         mapInstance.current = null;
       }

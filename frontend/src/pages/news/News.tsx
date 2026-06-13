@@ -7,27 +7,10 @@ import {
   FaChevronDown,
   FaChevronUp,
 } from "react-icons/fa";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import Header from "../../components/Header";
 import Toast from "./../../components/Toast";
 import { trpc } from "../../lib/trpc";
-
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Box,
-  IconButton,
-  Collapse,
-  Button,
-  Card,
-  CardContent,
-  Typography,
-} from "@mui/material";
-import { KeyboardArrowDown, KeyboardArrowUp } from "@mui/icons-material";
 
 interface Article {
   title: string;
@@ -72,47 +55,40 @@ const NewsRow: React.FC<RowProps> = ({
 
   return (
     <>
-      <TableRow className="hover:bg-gray-50 transition-colors duration-150">
-        <TableCell>
-          <IconButton
+      <tr className="hover:bg-slate-50 transition-colors duration-150 border-b border-slate-100">
+        <td className="px-3 py-2 w-10">
+          <button
             aria-label={
               open ? "Collapse article details" : "Expand article details"
             }
-            size="small"
             onClick={() => onRowToggle(article)}
+            className="p-1 rounded text-slate-500 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors duration-150"
           >
-            {open ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
-          </IconButton>
-        </TableCell>
-        <TableCell>{article.title}</TableCell>
-        <TableCell>{article.source || "Unknown source"}</TableCell>
-        <TableCell>{new Date(article.date).toLocaleDateString()}</TableCell>
-        <TableCell>
+            {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+        </td>
+        <td className="px-3 py-2 text-sm text-slate-800">{article.title}</td>
+        <td className="px-3 py-2 text-sm text-slate-600">{article.source || "Unknown source"}</td>
+        <td className="px-3 py-2 text-sm text-slate-600 whitespace-nowrap">{new Date(article.date).toLocaleDateString()}</td>
+        <td className="px-3 py-2 text-sm">
           <a
             href={article.link}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-500 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 rounded"
+            className="text-blue-600 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 rounded"
             aria-label={`Read full article: ${article.title}`}
           >
             Read More
           </a>
-        </TableCell>
-      </TableRow>
-      <TableRow>
-        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={5}>
-          <Collapse in={open} timeout="auto" unmountOnExit>
-            <Box
-              sx={{
-                margin: 2,
-                backgroundColor: "#f9fafb",
-                borderRadius: "8px",
-                padding: "16px",
-              }}
-            >
+        </td>
+      </tr>
+      {open && (
+        <tr className="border-b border-slate-100">
+          <td colSpan={5} className="px-3 py-0">
+            <div className="mx-2 my-3 bg-slate-50 border border-slate-200 rounded-lg p-4">
               {isRowLoading ? (
                 <div
-                  className="flex justify-center items-center"
+                  className="flex justify-center items-center py-4"
                   aria-busy="true"
                   aria-live="polite"
                 >
@@ -120,24 +96,24 @@ const NewsRow: React.FC<RowProps> = ({
                 </div>
               ) : (
                 <>
-                  <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                  <h3 className="text-sm font-semibold text-slate-800 mb-2">
                     Summary
                   </h3>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-slate-600 mb-4">
                     {summaryData.summary || "No summary available"}
                   </p>
-                  <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                  <h3 className="text-sm font-semibold text-slate-800 mb-2">
                     Suggestions
                   </h3>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-slate-600">
                     {summaryData.suggestions || "No suggestions available"}
                   </p>
                 </>
               )}
-            </Box>
-          </Collapse>
-        </TableCell>
-      </TableRow>
+            </div>
+          </td>
+        </tr>
+      )}
     </>
   );
 };
@@ -291,10 +267,6 @@ const News: React.FC = () => {
     visible: { opacity: 1, y: 0, transition: { duration: prefersReducedMotion ? 0 : 0.2, ease: "easeOut" } },
   };
 
-  // Row is hoisted to a stable reference (see NewsRow below) so React doesn't
-  // unmount/remount every row each render of News, which was wiping the
-  // Collapse animation state and refiring queries.
-
   const handleClearSearch = (): void => {
     setSearchQuery("");
     setTempSearchQuery("");
@@ -310,39 +282,27 @@ const News: React.FC = () => {
         animate="visible"
         className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
       >
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-8">
-          <h2 className="text-xl font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6 mb-8">
+          <h2 className="text-xl font-semibold text-slate-800 mb-2 flex items-center gap-2">
             <FaNewspaper /> News
           </h2>
-          <p className="text-sm text-gray-600 mb-4">
+          <p className="text-sm text-slate-600 mb-4">
             Showing news for {getDateDisplayText()}
           </p>
 
           <div className="mb-6">
-            <Button
-              variant="outlined"
+            <button
               onClick={() => setIsSearchOpen(!isSearchOpen)}
-              sx={{
-                borderRadius: "8px",
-                textTransform: "none",
-                minWidth: { xs: "100%", sm: "200px" },
-                fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                color: "rgb(37 99 235)",
-                borderColor: "rgb(147 197 253)",
-                "&:hover": { backgroundColor: "rgb(239 246 255)", borderColor: "rgb(147 197 253)" },
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors duration-150 w-full sm:w-auto"
             >
               <FaSearch />
               Manual Search
               {isSearchOpen ? <FaChevronUp /> : <FaChevronDown />}
-            </Button>
-            <Collapse in={isSearchOpen} timeout="auto" unmountOnExit>
+            </button>
+            {isSearchOpen && (
               <div className="flex flex-col sm:flex-row gap-4 mt-4">
                 <div className="relative w-full max-w-md flex-1">
-                  <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
+                  <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10" />
                   <input
                     type="text"
                     id="search"
@@ -352,113 +312,70 @@ const News: React.FC = () => {
                     }
                     onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                     placeholder=" "
-                    className="peer w-full pl-12 pr-4 py-4 bg-white border-2 border-gray-200 rounded-xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150 hover:border-gray-300"
+                    className="peer w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-200 rounded-xl text-slate-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150 hover:border-slate-300"
                   />
                   <label
                     htmlFor="search"
-                    className="absolute left-12 -top-2.5 bg-white px-2 py-0.5 rounded-lg text-sm font-medium text-gray-600 transition-colors duration-150 peer-placeholder-shown:top-4 peer-placeholder-shown:left-12 peer-placeholder-shown:bg-transparent peer-placeholder-shown:text-gray-500 peer-focus:-top-2.5 peer-focus:left-12 peer-focus:bg-white peer-focus:text-blue-600 z-10"
+                    className="absolute left-12 -top-2.5 bg-white px-2 py-0.5 rounded-lg text-sm font-medium text-slate-600 transition-colors duration-150 peer-placeholder-shown:top-4 peer-placeholder-shown:left-12 peer-placeholder-shown:bg-transparent peer-placeholder-shown:text-slate-500 peer-focus:-top-2.5 peer-focus:left-12 peer-focus:bg-white peer-focus:text-blue-600 z-10"
                   >
                     Search News (e.g., "China-US tariff conflict")
                   </label>
                 </div>
-                <Button
-                  variant={
-                    searchMode === "summarized" ? "contained" : "outlined"
-                  }
+                <button
                   onClick={handleSearchModeToggle}
-                  sx={{
-                    borderRadius: "8px",
-                    textTransform: "none",
-                    height: "50px",
-                    minWidth: { xs: "100px", sm: "120px" },
-                    fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                  }}
+                  className={`h-[50px] px-4 rounded-lg text-sm font-medium border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 min-w-[100px] sm:min-w-[120px] ${
+                    searchMode === "summarized"
+                      ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+                      : "text-blue-600 border-blue-200 hover:bg-blue-50"
+                  }`}
                 >
                   {searchMode === "direct"
                     ? "Direct Search"
                     : "Summarized Search"}
-                </Button>
-                <Button
-                  variant="contained"
-                  color="primary"
+                </button>
+                <button
                   onClick={handleSearch}
-                  startIcon={<FaSearch />}
-                  sx={{
-                    height: "50px",
-                    borderRadius: "12px",
-                    minWidth: { xs: "100px", sm: "120px" },
-                    fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                  }}
+                  className="h-[50px] px-4 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 min-w-[100px] sm:min-w-[120px] justify-center"
                 >
+                  <FaSearch />
                   Search
-                </Button>
+                </button>
               </div>
-            </Collapse>
+            )}
           </div>
 
           <div className="flex flex-wrap gap-3 sm:gap-4 mb-4 sm:mb-6 justify-center max-w-3xl w-full">
             {getDateTabs().map((tab) => (
-              <Button
+              <button
                 key={tab.key}
-                variant={activeDate === tab.key ? "contained" : "outlined"}
                 onClick={() => handleDateClick(tab.key)}
-                sx={{
-                  borderRadius: "8px",
-                  textTransform: "none",
-                  boxShadow:
-                    activeDate === tab.key
-                      ? "0 2px 4px rgba(0,0,0,0.08)"
-                      : "none",
-                  minWidth: { xs: "100px", sm: "120px" },
-                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  ...(activeDate === tab.key
-                    ? {
-                        backgroundColor: "rgb(37 99 235)",
-                        color: "#fff",
-                        "&:hover": { backgroundColor: "rgb(29 78 216)" },
-                      }
-                    : {
-                        color: "rgb(37 99 235)",
-                        borderColor: "rgb(147 197 253)",
-                        "&:hover": { backgroundColor: "rgb(239 246 255)", borderColor: "rgb(147 197 253)" },
-                      }),
-                }}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs sm:text-sm font-medium border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 min-w-[100px] sm:min-w-[120px] justify-center ${
+                  activeDate === tab.key
+                    ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+                    : "text-blue-600 border-blue-200 hover:bg-blue-50"
+                }`}
               >
                 {tab.icon}
                 {tab.label}
-              </Button>
+              </button>
             ))}
           </div>
 
-          <TableContainer
-            component={Paper}
-            sx={{ boxShadow: "none", border: "1px solid rgba(0, 0, 0, 0.1)", overflowX: "auto" }}
-          >
-            <Table aria-label="news table">
-              <TableHead>
-                <TableRow sx={{ backgroundColor: "#f1f5f9" }}>
-                  <TableCell />
-                  <TableCell sx={{ fontWeight: "bold", color: "#1f2937" }}>
-                    Title
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: "bold", color: "#1f2937" }}>
-                    Source
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: "bold", color: "#1f2937" }}>
-                    Date
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: "bold", color: "#1f2937" }}>
-                    Link
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
+          <div className="border border-slate-200 rounded-lg overflow-x-auto">
+            <table className="w-full text-left" aria-label="news table">
+              <thead>
+                <tr className="bg-slate-100 border-b border-slate-200">
+                  <th className="px-3 py-3 w-10" />
+                  <th className="px-3 py-3 text-sm font-semibold text-slate-800">Title</th>
+                  <th className="px-3 py-3 text-sm font-semibold text-slate-800">Source</th>
+                  <th className="px-3 py-3 text-sm font-semibold text-slate-800">Date</th>
+                  <th className="px-3 py-3 text-sm font-semibold text-slate-800">Link</th>
+                </tr>
+              </thead>
+              <tbody>
                 {newsIsError ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8">
+                  <tr>
+                    <td colSpan={5} className="text-center py-8">
                       <div className="flex flex-col items-center gap-3">
                         <p className="text-red-600 font-medium">Failed to load news articles.</p>
                         <button
@@ -468,65 +385,42 @@ const News: React.FC = () => {
                           Retry
                         </button>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 ) : loading || tableLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell><div className="w-6 h-6 rounded bg-gray-200 animate-pulse" /></TableCell>
-                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse w-3/4" /></TableCell>
-                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse w-1/2" /></TableCell>
-                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse w-20" /></TableCell>
-                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse w-16" /></TableCell>
-                    </TableRow>
+                    <tr key={i} className="border-b border-slate-100">
+                      <td className="px-3 py-2"><div className="w-6 h-6 rounded bg-slate-200 animate-pulse" /></td>
+                      <td className="px-3 py-2"><div className="h-4 bg-slate-200 rounded animate-pulse w-3/4" /></td>
+                      <td className="px-3 py-2"><div className="h-4 bg-slate-200 rounded animate-pulse w-1/2" /></td>
+                      <td className="px-3 py-2"><div className="h-4 bg-slate-200 rounded animate-pulse w-20" /></td>
+                      <td className="px-3 py-2"><div className="h-4 bg-slate-200 rounded animate-pulse w-16" /></td>
+                    </tr>
                   ))
                 ) : news.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center">
-                      <Card
-                        sx={{
-                          maxWidth: "500px",
-                          margin: "16px auto",
-                          boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                        }}
-                      >
-                        <CardContent>
-                          <Typography
-                            variant="h6"
-                            color="textSecondary"
-                            align="center"
-                          >
-                            No News Articles Found
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            color="textSecondary"
-                            align="center"
-                            sx={{ mt: 1, mb: 2 }}
-                          >
-                            No news articles found for {getDateDisplayText()}.
-                            Try adjusting your search query or date.
-                          </Typography>
-                          {searchQuery && (
-                            <div className="flex justify-center">
-                              <Button
-                                variant="outlined"
-                                size="small"
-                                onClick={handleClearSearch}
-                                sx={{
-                                  borderRadius: "8px",
-                                  textTransform: "none",
-                                  fontSize: "0.8rem",
-                                }}
-                              >
-                                Clear Search
-                              </Button>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </TableCell>
-                  </TableRow>
+                  <tr>
+                    <td colSpan={5} className="text-center py-8">
+                      <div className="max-w-md mx-auto border border-slate-200 rounded-lg p-6">
+                        <h3 className="text-base font-semibold text-slate-500 text-center mb-1">
+                          No News Articles Found
+                        </h3>
+                        <p className="text-sm text-slate-500 text-center mb-4">
+                          No news articles found for {getDateDisplayText()}.
+                          Try adjusting your search query or date.
+                        </p>
+                        {searchQuery && (
+                          <div className="flex justify-center">
+                            <button
+                              onClick={handleClearSearch}
+                              className="px-3 py-1.5 text-sm font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors duration-150"
+                            >
+                              Clear Search
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
                 ) : (
                   news.map((article) => (
                     <NewsRow
@@ -539,9 +433,9 @@ const News: React.FC = () => {
                     />
                   ))
                 )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+              </tbody>
+            </table>
+          </div>
         </div>
       </motion.div>
       <Toast type={toastProps.type} message={toastProps.message} />
