@@ -15,7 +15,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Kisaan Saathi - YOLO Detection Service")
+app = FastAPI(title="SupplyFarAway - YOLO Detection Service")
 
 # CORS
 app.add_middleware(
