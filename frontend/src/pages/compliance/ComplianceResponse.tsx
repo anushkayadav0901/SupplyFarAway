@@ -115,7 +115,8 @@ const ComplianceResponse: React.FC<ComplianceResponseProps> = ({ response }) => 
     { name: "Intended Use", score: scores.IntendedUseDetails || 0 },
   ];
 
-  const isReady = complianceStatus === "Ready for Shipment";
+  const isReady =
+    complianceStatus.toLowerCase().trim() === "ready for shipment";
 
   return (
     <ErrorBoundary>

@@ -14,6 +14,8 @@ interface Article {
 interface SummaryData {
   summary: string;
   suggestions: string;
+  bullets?: string[];
+  suggestionBullets?: string[];
 }
 
 interface DateTab {
@@ -28,6 +30,28 @@ interface RowProps {
   rowSummaries: Record<string, SummaryData>;
   rowLoading: Record<string, boolean>;
   onRowToggle: (article: Article) => void;
+}
+
+// Convert a prose string to bullet array as a fallback when the backend
+// returns plain text instead of structured bullets.
+function proseToBullets(text: string): string[] {
+  return text
+    .split(/\n|(?<=\.)\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 5);
+}
+
+function getBullets(data: SummaryData, field: "summary" | "suggestions"): string[] {
+  if (field === "summary") {
+    if (data.bullets && data.bullets.length > 0) return data.bullets.slice(0, 5);
+    if (data.summary) return proseToBullets(data.summary);
+    return ["No summary available"];
+  }
+  if (data.suggestionBullets && data.suggestionBullets.length > 0)
+    return data.suggestionBullets.slice(0, 5);
+  if (data.suggestions) return proseToBullets(data.suggestions);
+  return ["No suggestions available"];
 }
 
 // Hoisted outside the News component so React doesn't unmount/remount each
@@ -90,15 +114,19 @@ const NewsRow: React.FC<RowProps> = ({
                   <h3 className="text-sm font-semibold text-slate-800 mb-2">
                     Summary
                   </h3>
-                  <p className="text-sm text-slate-600 mb-4">
-                    {summaryData.summary || "No summary available"}
-                  </p>
+                  <ul className="list-disc pl-5 space-y-1 text-sm text-slate-700 mb-4 font-[Plus_Jakarta_Sans,sans-serif]">
+                    {getBullets(summaryData, "summary").map((bullet, i) => (
+                      <li key={i}>{bullet}</li>
+                    ))}
+                  </ul>
                   <h3 className="text-sm font-semibold text-slate-800 mb-2">
                     Suggestions
                   </h3>
-                  <p className="text-sm text-slate-600">
-                    {summaryData.suggestions || "No suggestions available"}
-                  </p>
+                  <ul className="list-disc pl-5 space-y-1 text-sm text-slate-700 font-[Plus_Jakarta_Sans,sans-serif]">
+                    {getBullets(summaryData, "suggestions").map((bullet, i) => (
+                      <li key={i}>{bullet}</li>
+                    ))}
+                  </ul>
                 </>
               )}
             </div>
@@ -222,6 +250,8 @@ const News: React.FC = () => {
           [article.link]: {
             summary: result.summary,
             suggestions: result.suggestions,
+            bullets: (result as { bullets?: string[] }).bullets,
+            suggestionBullets: (result as { suggestionBullets?: string[] }).suggestionBullets,
           },
         }));
       } catch (error) {

@@ -1,4 +1,4 @@
-import { genai, PRO_MODEL } from "../lib/genai.js";
+import { genai, FLASH_MODEL } from "../lib/genai.js";
 import { TRPCError } from "@trpc/server";
 import axios from "axios";
 import { z } from "zod";
@@ -7,6 +7,15 @@ import { assertObjectId, requireUserId } from "../lib/auth.js";
 import { DraftModel } from "../models/Draft.js";
 import { NewsHistoryModel } from "../models/NewsHistory.js";
 import { protectedProcedure, publicProcedure, router } from "../trpc.js";
+
+// ---------------------------------------------------------------------------
+// In-process summary cache — avoids re-calling Gemini for the same article
+// within a server process lifetime. Key = article URL (stable identifier).
+// ---------------------------------------------------------------------------
+const summaryCache = new Map<
+  string,
+  { bullets: string[]; suggestions: string[] }
+>();
 
 // ---------------------------------------------------------------------------
 // Local input schemas
@@ -313,7 +322,7 @@ Return only the keywords.
 `;
           try {
             const response = await genai().models.generateContent({
-              model: PRO_MODEL,
+              model: FLASH_MODEL,
               contents: prompt,
             });
             finalQuery = response.text ?? "";
@@ -437,25 +446,76 @@ Return only the keywords.
     .mutation(async ({ input }) => {
       const { content, url } = input;
 
-      const prompt = `
-      Summarize the following news article in 5-6 sentences, providing a general overview of its content:
-      ${content}
+      // Return cached result immediately if we've seen this URL before
+      const cached = summaryCache.get(url);
+      if (cached) {
+        return {
+          message: "Article summarized successfully (cached)",
+          summary: cached.bullets.join("\n"),
+          suggestions: cached.suggestions.join("\n"),
+          bullets: cached.bullets,
+          suggestionBullets: cached.suggestions,
+          url,
+        };
+      }
 
-      Then, provide actionable suggestions in a third-person paragraph for logistics providers to mitigate the impact of this event on their shipments.
-      **Carefully analyze the article's content for direct or indirect mentions of shipping interruptions, regional disruptions, or supply chain impacts.**
+      const prompt = `You are a logistics-intelligence assistant. Analyze the news article below and respond with ONLY a JSON object — no markdown fences, no explanation.
 
-      If the article explicitly details or strongly implies an impact on shipments in a specific region (e.g., road closures, port delays, political instability affecting trade, severe weather in a shipping lane, health-related travel restrictions), then provide specific, concise suggestions. Each suggestion should be 2-3 lines max and include the affected region.
+Article:
+"""
+${content}
+"""
 
-      If the article does NOT genuinely indicate any direct or indirect impact on shipping, supply chains, or trade in any identifiable region, state: "Logistics providers should note that based on current information, this event is not expected to impact shipments in any region. You may proceed with your logistics operations as planned."
-    `;
+Return this exact JSON shape:
+{
+  "summary": ["bullet 1", "bullet 2", "bullet 3"],
+  "suggestions": ["bullet 1", "bullet 2", "bullet 3"]
+}
 
-      let text: string;
+Rules:
+- "summary": 3 to 5 bullet points, each a single concise sentence covering the key facts.
+- "suggestions": 3 to 5 bullet points for logistics providers. Each bullet names the affected region (if any) and one concrete action. If the article has NO supply-chain impact, use exactly one bullet: "No shipping impact expected — proceed with operations as planned."
+- Every bullet must be ≤ 20 words.
+- Do NOT use markdown, asterisks, or numbering inside the strings.`;
+
+      let bullets: string[] = [];
+      let suggestionBullets: string[] = [];
+
       try {
         const response = await genai().models.generateContent({
-          model: PRO_MODEL,
+          model: FLASH_MODEL,
           contents: prompt,
         });
-        text = response.text ?? "";
+        const raw = (response.text ?? "").trim();
+
+        // Strip any accidental markdown fences before parsing
+        const jsonText = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
+
+        let parsed: { summary?: unknown; suggestions?: unknown };
+        try {
+          parsed = JSON.parse(jsonText) as { summary?: unknown; suggestions?: unknown };
+        } catch {
+          // Gemini returned prose — fall back gracefully
+          parsed = {};
+        }
+
+        const toStringArray = (v: unknown): string[] => {
+          if (Array.isArray(v)) return (v as unknown[]).map(String).filter(Boolean);
+          if (typeof v === "string") {
+            // Try to split prose on newlines / sentences as best-effort
+            return v
+              .split(/\n|(?<=\.)\s+/)
+              .map((s) => s.trim())
+              .filter(Boolean);
+          }
+          return [];
+        };
+
+        bullets = toStringArray(parsed.summary).slice(0, 5);
+        suggestionBullets = toStringArray(parsed.suggestions).slice(0, 5);
+
+        if (bullets.length === 0) bullets = ["Summary not available"];
+        if (suggestionBullets.length === 0) suggestionBullets = ["No suggestions available"];
       } catch (err) {
         throw new TRPCError({
           code: "BAD_GATEWAY",
@@ -463,21 +523,17 @@ Return only the keywords.
         });
       }
 
-      // Robust split: accept any whitespace gap of >=1 blank line. Some Gemini
-      // responses come back with a single newline, others with multiple. Keep
-      // every paragraph after the first as the "suggestions" block so we
-      // don't drop content beyond the second paragraph.
-      const paragraphs = text
-        .split(/\n\s*\n+/)
-        .map((p) => p.trim())
-        .filter(Boolean);
-      const summary = paragraphs[0] ?? "";
-      const suggestions = paragraphs.slice(1).join("\n\n");
+      // Cache for the lifetime of this server process
+      summaryCache.set(url, { bullets, suggestions: suggestionBullets });
 
       return {
         message: "Article summarized successfully",
-        summary: summary || "Summary not available",
-        suggestions: suggestions || "No suggestions available",
+        // Legacy prose fields — join bullets so existing callers still work
+        summary: bullets.join("\n"),
+        suggestions: suggestionBullets.join("\n"),
+        // Structured bullet arrays for the updated frontend
+        bullets,
+        suggestionBullets,
         url,
       };
     }),

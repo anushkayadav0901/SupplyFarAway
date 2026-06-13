@@ -133,8 +133,17 @@ export default function Compliance() {
       } else {
         toast.warning("Compliance check flagged — review the results below.");
       }
-      if (draftId) {
-        utils.inventory.getDraftById.invalidate({ id: draftId }).catch(() => null);
+      // After a draftless submission the backend creates a new draft and
+      // returns its id as recordId — sync it so the UI can link to it.
+      const returnedId = data.recordId ? String(data.recordId) : "";
+      if (!draftId && returnedId) {
+        setDraftId(returnedId);
+      }
+      const idToInvalidate = draftId || returnedId;
+      if (idToInvalidate) {
+        utils.inventory.getDraftById
+          .invalidate({ id: idToInvalidate })
+          .catch(() => null);
       }
     },
     onError: (err) => {
@@ -160,12 +169,11 @@ export default function Compliance() {
   // --- Form tab handlers ---
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!draftId) {
-      toast.error("Select a draft before running a check.");
-      return;
-    }
+    // draftId is optional on the backend — if none is selected, the backend
+    // creates an ephemeral draft so a judge can type fields and get results
+    // without picking from inventory first.
     checkMutation.mutate({
-      draftId,
+      ...(draftId ? { draftId } : {}),
       ShipmentDetails: {
         "Origin Country": originCountry,
         "Destination Country": destinationCountry,
