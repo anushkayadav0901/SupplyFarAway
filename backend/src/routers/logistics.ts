@@ -52,6 +52,32 @@ const RouteDataSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
+// Map data shapes — shared by processRoutes (writer) and getMapData (reader)
+// so the frontend's MapView can consume both with a single type.
+// ---------------------------------------------------------------------------
+
+export interface LatLng {
+  lat: number;
+  lng: number;
+}
+
+export interface RouteDirection {
+  id: string;
+  waypoints: string[];
+  state: "land" | "sea" | "air";
+}
+
+export type ProcessedRoute =
+  | { state: "land"; encodedPolyline: string }
+  | { state: "sea" | "air"; coordinates: LatLng[] }
+  | { state: "land" | "sea" | "air"; error: string };
+
+export interface MapData {
+  routes: Record<string, ProcessedRoute>;
+  originalRoute: RouteDirection[];
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -328,7 +354,7 @@ JSON format:
       - If a waypoint cannot be corrected, use a default major city in the same region.
     `;
 
-      let cleanedRoutesData: Array<{ id: string; waypoints: string[]; state: string }> = routesData;
+      let cleanedRoutesData: RouteDirection[] = routesData;
 
       try {
         const aiResult = await genai().models.generateContent({ model: PRO_MODEL, contents: prompt });
@@ -339,11 +365,7 @@ JSON format:
           throw new Error("No valid JSON array found in Gemini response");
         }
 
-        const parsed = JSON.parse(jsonMatch[0]) as Array<{
-          id: string;
-          waypoints: string[];
-          state: string;
-        }>;
+        const parsed = JSON.parse(jsonMatch[0]) as RouteDirection[];
 
         if (!Array.isArray(parsed) || parsed.length !== routesData.length) {
           throw new Error("Invalid cleaned routes data structure");
@@ -372,7 +394,7 @@ JSON format:
       }
 
       // Geocode / polyline each leg
-      const responseData: Record<string, unknown> = {};
+      const responseData: Record<string, ProcessedRoute> = {};
       for (const route of cleanedRoutesData) {
         try {
           if (!route.id || !route.waypoints || !route.state) {
@@ -380,21 +402,21 @@ JSON format:
           }
           if (route.state === "land") {
             const encodedPolyline = await getDirections(route.waypoints);
-            responseData[route.id] = { encodedPolyline, state: route.state };
+            responseData[route.id] = { state: "land", encodedPolyline };
           } else if (route.state === "sea" || route.state === "air") {
             const coordinates = await Promise.all(route.waypoints.map(geocodeAddress));
-            responseData[route.id] = { coordinates, state: route.state };
+            responseData[route.id] = { state: route.state, coordinates };
           }
         } catch (routeError) {
           console.error(`Error processing route ${route.id}:`, routeError);
           responseData[route.id] = {
-            error: `Failed to process route: ${(routeError as Error).message}`,
             state: route.state,
+            error: `Failed to process route: ${(routeError as Error).message}`,
           };
         }
       }
 
-      const mapData = { routes: responseData, originalRoute: cleanedRoutesData };
+      const mapData: MapData = { routes: responseData, originalRoute: cleanedRoutesData };
 
       let draft;
       if (draftId) {
@@ -419,7 +441,7 @@ JSON format:
             compliance: "Not applicable",
             routeOptimization: "Not applicable",
           },
-          mapData: { routes: responseData, originalRoute: cleanedRoutesData },
+          mapData,
           timestamp: new Date(),
           expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
         });
@@ -427,7 +449,7 @@ JSON format:
       }
 
       return {
-        ...responseData,
+        ...mapData,
         draftId: (draft._id as mongoose.Types.ObjectId).toString(),
       };
     }),
@@ -438,7 +460,7 @@ JSON format:
   // -------------------------------------------------------------------------
   getMapData: protectedProcedure
     .input(z.object({ draftId: z.string().min(1) }))
-    .query(async ({ input, ctx }) => {
+    .query(async ({ input, ctx }): Promise<MapData> => {
       const userId = requireUserId(ctx);
 
       if (!mongoose.Types.ObjectId.isValid(input.draftId)) {
@@ -446,11 +468,13 @@ JSON format:
       }
 
       // Scope by userId to prevent cross-user data leakage (IDOR).
+      // Draft.mapData is `Schema.Types.Mixed` so we narrow at the procedure
+      // boundary; downstream callers get the typed MapData shape.
       const draft = await DraftModel.findOne({ _id: input.draftId, userId });
       if (!draft) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Draft not found" });
       }
-      const mapData = (draft as unknown as Record<string, unknown>).mapData;
+      const mapData = (draft as unknown as { mapData?: MapData }).mapData;
       if (!mapData) {
         throw new TRPCError({ code: "NOT_FOUND", message: "No map data found for this draft" });
       }

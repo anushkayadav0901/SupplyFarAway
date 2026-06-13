@@ -1,23 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { trpc } from "../../lib/trpc";
+import type { MapData, RouteDirection } from "@server/routers/logistics";
 
 const MAPS = import.meta.env.VITE_GOOGLE_API_KEY as string;
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-interface LatLng {
-  lat: number;
-  lng: number;
-}
-
-interface RouteDirection {
-  id: string;
-  waypoints: string[];
-  state: string;
-}
 
 interface MapViewProps {
   /** Existing usage — fetches route data from a persisted draft. */
@@ -80,8 +66,7 @@ function MapView({ draftId, inlineRoutes }: MapViewProps): React.ReactElement {
         });
         mapInstance.current = map;
 
-        let processedRoutes: Record<string, unknown>;
-        let originalRoute: RouteDirection[];
+        let mapData: MapData;
 
         if (hasInline) {
           // ── Inline preview path ──────────────────────────────────────────
@@ -89,51 +74,33 @@ function MapView({ draftId, inlineRoutes }: MapViewProps): React.ReactElement {
           const postResponse = await processRoutesMutation.mutateAsync({
             routes: inlineRoutes!,
           });
-          processedRoutes = postResponse as unknown as Record<string, unknown>;
-          originalRoute = inlineRoutes!;
+          mapData = { routes: postResponse.routes, originalRoute: postResponse.originalRoute };
         } else {
           // ── Draft path (existing behavior) ───────────────────────────────
-          let mapData: {
-            routes: Record<string, unknown>;
-            originalRoute: RouteDirection[];
-          };
-
           try {
-            // Try to get existing map data
-            const response = await utils.logistics.getMapData.fetch({
-              draftId: draftId!,
-            });
-            mapData = response as any;
+            mapData = await utils.logistics.getMapData.fetch({ draftId: draftId! });
           } catch {
             // If not found, fetch draft and generate map data
             const draftResponse = await utils.inventory.getDraftById.fetch({
               id: draftId!,
             });
-            const draft = (draftResponse as any)?.draft;
-            if (!draft || !draft.routeData?.routeDirections) {
+            const draft = (draftResponse as { draft?: { routeData?: { routeDirections?: RouteDirection[] } } })?.draft;
+            if (!draft?.routeData?.routeDirections) {
               throw new Error("Draft or route data not found");
             }
 
-            const routesData: RouteDirection[] =
-              draft.routeData.routeDirections.map((direction: any) => ({
-                id: direction.id,
-                waypoints: direction.waypoints,
-                state: direction.state,
-              }));
+            const routesData: RouteDirection[] = draft.routeData.routeDirections.map((d) => ({
+              id: d.id,
+              waypoints: d.waypoints,
+              state: d.state,
+            }));
 
             const postResponse = await processRoutesMutation.mutateAsync({
-              routes: routesData.map((r) => ({
-                id: r.id,
-                waypoints: r.waypoints,
-                state: r.state as "land" | "sea" | "air",
-              })),
+              routes: routesData,
               draftId: draftId!,
             });
 
-            mapData = {
-              routes: postResponse as unknown as Record<string, unknown>,
-              originalRoute: routesData,
-            };
+            mapData = { routes: postResponse.routes, originalRoute: postResponse.originalRoute };
 
             // Persist the freshly-generated mapData onto the draft. Ownership is
             // enforced server-side via requireUserId + scoped findOne, so we do
@@ -143,22 +110,16 @@ function MapView({ draftId, inlineRoutes }: MapViewProps): React.ReactElement {
               updateData: { mapData },
             });
           }
-
-          processedRoutes = mapData.routes;
-          originalRoute = mapData.originalRoute;
         }
 
+        const { routes: processedRoutes, originalRoute } = mapData;
         const bounds = new google.maps.LatLngBounds();
 
-        Object.entries(processedRoutes).forEach(([id, routeRaw]) => {
-          if (id === "draftId") return;
-          const route = routeRaw as any;
-          const routeDirection = (originalRoute as RouteDirection[]).find(
-            (dir) => dir.id === id
-          );
+        Object.entries(processedRoutes).forEach(([id, route]) => {
+          const routeDirection = originalRoute.find((dir) => dir.id === id);
           if (!routeDirection) return;
 
-          if (route.state === "land" && route.encodedPolyline) {
+          if (route.state === "land" && "encodedPolyline" in route) {
             const path = google.maps.geometry.encoding.decodePath(
               route.encodedPolyline
             );
@@ -202,9 +163,9 @@ function MapView({ draftId, inlineRoutes }: MapViewProps): React.ReactElement {
             path.forEach((latLng) => bounds.extend(latLng));
           } else if (
             (route.state === "air" || route.state === "sea") &&
-            route.coordinates
+            "coordinates" in route
           ) {
-            const path: LatLng[] = route.coordinates.map((coord: LatLng) => ({
+            const path = route.coordinates.map((coord) => ({
               lat: coord.lat,
               lng: coord.lng,
             }));
