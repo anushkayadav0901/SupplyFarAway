@@ -44,16 +44,18 @@ const PORT = Number(process.env.PORT) || 5000;
 
 const isProduction = process.env.NODE_ENV === "production";
 
-// In production the FRONTEND_URL must be explicitly configured so CORS is not
-// left open to any origin.
-const FRONTEND_URL = isProduction
-  ? (process.env.FRONTEND_URL ??
-      (() => {
+// FRONTEND_URL is honored whenever set (lets dev sessions point at a deployed
+// frontend through a tunnel). In production it must be set explicitly so CORS
+// isn't left open to any origin.
+const FRONTEND_URL =
+  process.env.FRONTEND_URL ??
+  (isProduction
+    ? (() => {
         throw new Error(
           "[index] FRONTEND_URL must be set in production environment",
         );
-      })())
-  : "http://localhost:5173";
+      })()
+    : "http://localhost:5173");
 
 // ---------------------------------------------------------------------------
 // Middleware
