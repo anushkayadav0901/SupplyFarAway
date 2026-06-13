@@ -11,7 +11,7 @@
 // External
 import express from "express";
 import mongoose from "mongoose";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { genai, PRO_MODEL } from "../lib/genai.js";
 
 // Internal
 import { upload, storage, visionClient, MAX_FILE_SIZE_BYTES, ALLOWED_MIME_TYPES } from "../config/multer.js";
@@ -41,8 +41,6 @@ interface AuthenticatedRequest extends Request {
 /** Signed URL validity: 7 days expressed in milliseconds. */
 const SIGNED_URL_EXPIRY_7D_MS = 7 * 24 * 60 * 60 * 1_000;
 
-/** Gemini model to use for compliance analysis. */
-const GEMINI_MODEL = "gemini-2.5-pro";
 
 const legacyComplianceRouter = express.Router();
 
@@ -198,18 +196,13 @@ ${JSON.stringify(visionResponse, null, 2)}
 `;
 
       // --- Generate response with Gemini AI ---
-      const googleApiKey = process.env.GOOGLE_API_KEY;
-      if (!googleApiKey) {
-        res.status(500).json({ error: "AI service not configured" });
-        return;
-      }
-
       let geminiResponse: Record<string, unknown>;
       try {
-        const genAI = new GoogleGenerativeAI(googleApiKey);
-        const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
-        const geminiResult = await model.generateContent(prompt);
-        const rawResponse = geminiResult.response.text();
+        const response = await genai().models.generateContent({
+          model: PRO_MODEL,
+          contents: prompt,
+        });
+        const rawResponse = response.text ?? "";
         const jsonStart = rawResponse.indexOf("{");
         const jsonEnd = rawResponse.lastIndexOf("}") + 1;
         if (jsonStart === -1 || jsonEnd <= jsonStart) {

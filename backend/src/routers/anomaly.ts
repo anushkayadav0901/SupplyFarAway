@@ -1,8 +1,8 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
 import { z } from "zod";
 
+import { genai, FLASH_MODEL } from "../lib/genai.js";
 import { requireUserId } from "../lib/auth.js";
 import { AnomalyReportModel } from "../models/AnomalyReport.js";
 import { AuditEventModel } from "../models/AuditEvent.js";
@@ -140,18 +140,12 @@ Rules for severity:
 - "low": riskScore < 40 or minor discrepancies only
 `;
 
-      if (!process.env.GOOGLE_API_KEY) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "GOOGLE_API_KEY is not configured",
-        });
-      }
-      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
       let geminiResult;
       try {
-        geminiResult = await model.generateContent(prompt);
+        geminiResult = await genai().models.generateContent({
+          model: FLASH_MODEL,
+          contents: prompt,
+        });
       } catch (err) {
         throw new TRPCError({
           code: "BAD_GATEWAY",
@@ -159,7 +153,7 @@ Rules for severity:
         });
       }
 
-      const rawText = geminiResult.response.text();
+      const rawText = geminiResult.text ?? "";
 
       let parsed: {
         flags: string[];

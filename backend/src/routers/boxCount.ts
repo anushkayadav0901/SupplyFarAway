@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { genai, FLASH_MODEL } from "../lib/genai.js";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
 import { z } from "zod";
@@ -83,31 +83,21 @@ export const boxCountRouter = router({
     .mutation(async ({ ctx, input }) => {
       const userId = requireUserId(ctx);
 
-      if (!process.env.GOOGLE_API_KEY) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "GOOGLE_API_KEY is not configured",
-        });
-      }
-
-      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
       const prompt =
         'Count the number of distinct boxes/packages visible in this image. Respond ONLY with a JSON object {"count": number, "confidence": number (0-1), "notes": string}';
 
       let rawText: string;
       try {
-        const result = await model.generateContent([
-          prompt,
-          {
-            inlineData: {
-              data: input.imageBase64,
-              mimeType: input.mimeType,
-            },
-          },
-        ]);
-        rawText = result.response.text();
+        const response = await genai().models.generateContent({
+          model: FLASH_MODEL,
+          contents: [
+            { role: "user", parts: [
+              { text: prompt },
+              { inlineData: { data: input.imageBase64, mimeType: input.mimeType } },
+            ]},
+          ],
+        });
+        rawText = response.text ?? "";
       } catch (err) {
         throw new TRPCError({
           code: "BAD_GATEWAY",
@@ -213,15 +203,6 @@ export const boxCountRouter = router({
     .mutation(async ({ ctx, input }) => {
       requireUserId(ctx);
 
-      if (!process.env.GOOGLE_API_KEY) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "GOOGLE_API_KEY is not configured",
-        });
-      }
-      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
       const yoloSummary = input.yoloClassCounts
         ? Object.entries(input.yoloClassCounts)
             .map(([k, v]) => `${v} ${k}`)
@@ -242,11 +223,16 @@ Respond ONLY with strict JSON:
 
       let rawText: string;
       try {
-        const result = await model.generateContent([
-          prompt,
-          { inlineData: { data: input.imageBase64, mimeType: input.mimeType } },
-        ]);
-        rawText = result.response.text();
+        const response = await genai().models.generateContent({
+          model: FLASH_MODEL,
+          contents: [
+            { role: "user", parts: [
+              { text: prompt },
+              { inlineData: { data: input.imageBase64, mimeType: input.mimeType } },
+            ]},
+          ],
+        });
+        rawText = response.text ?? "";
       } catch (err) {
         throw new TRPCError({
           code: "BAD_GATEWAY",

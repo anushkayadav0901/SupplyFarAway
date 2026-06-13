@@ -1,15 +1,13 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
 import { z } from "zod";
 
+import { genai, PRO_MODEL } from "../lib/genai.js";
 import { assertObjectId, requireUserId } from "../lib/auth.js";
 import ComplianceRecordModel from "../models/ComplianceRecord.js";
 import DraftModel from "../models/Draft.js";
 import ProductAnalysisModel from "../models/ProductAnalysis.js";
 import { protectedProcedure, router } from "../trpc.js";
-
-const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 
 // ---------------------------------------------------------------------------
 // Inline input schemas
@@ -128,19 +126,13 @@ You are a compliance checker AI for international trade shipments, designed to a
 }
 `;
 
-      if (!GOOGLE_API_KEY) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "GOOGLE_API_KEY is not configured",
-        });
-      }
-      const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
-
       let rawResponse: string;
       try {
-        const result = await model.generateContent(prompt);
-        rawResponse = result.response.text();
+        const response = await genai().models.generateContent({
+          model: PRO_MODEL,
+          contents: prompt,
+        });
+        rawResponse = response.text ?? "";
       } catch (err) {
         throw new TRPCError({
           code: "BAD_GATEWAY",

@@ -12,7 +12,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
 import axios from "axios";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { genai, FLASH_MODEL, PRO_MODEL } from "../lib/genai.js";
 
 import { requireUserId } from "../lib/auth.js";
 import { countryOptions } from "../lib/routeConstants.js";
@@ -60,13 +60,11 @@ const RouteDataSchema = z.object({
  * using Gemini AI — mirrors the logic in chooseRoute.js.
  */
 async function normalizeCountry(
-  placeName: string,
-  genAI: GoogleGenerativeAI
+  placeName: string
 ): Promise<{ countryName: string; countryCode: string; confidence: number } | null> {
   if (!placeName) return null;
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const prompt = `
 You are a precise and structured AI.
 
@@ -88,8 +86,11 @@ Instructions:
 STRICTLY RETURN ONLY JSON with no explanations, headings, or extra text.
 `;
 
-    const result = await model.generateContent(prompt);
-    let responseText = result.response.text().trim();
+    const response = await genai().models.generateContent({
+      model: FLASH_MODEL,
+      contents: prompt,
+    });
+    let responseText = (response.text ?? "").trim();
 
     // Remove markdown code block wrappers if present
     if (responseText.startsWith("```")) {
@@ -146,15 +147,8 @@ export const logisticsRouter = router({
       })
     )
     .mutation(async ({ input }) => {
-      if (!process.env.GOOGLE_API_KEY) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "GOOGLE_API_KEY is not configured" });
-      }
-
       const { from, to, description, draftId } = input;
       const pkg = input.package;
-
-      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
       const prompt = `Generate 7 shipping routes from ${from} to ${to}. Package: ${pkg.quantity} units, ${pkg.weight}kg, ${pkg.length}x${pkg.width}x${pkg.height}cm, "${description}".
 
@@ -175,25 +169,18 @@ JSON format:
 [{"routeDirections":[{"id":"leg1","waypoints":["${from}","Airport"],"state":"land","distance":50}],"totalDistance":50,"totalCost":200,"totalTime":24,"totalTimeDaysRange":"1 day","totalCarbonScore":45,"tag":"popular"}]`;
 
       const timeoutMs = 60000;
-      let result;
+      let rawResponse: string;
       try {
-        result = await Promise.race([
-          model.generateContent(prompt),
+        const aiResult = await Promise.race([
+          genai().models.generateContent({ model: FLASH_MODEL, contents: prompt }),
           new Promise<never>((_, reject) =>
             setTimeout(() => reject(new Error(`AI timeout after ${timeoutMs}ms`)), timeoutMs)
           ),
         ]);
+        rawResponse = aiResult.text ?? "";
       } catch (aiErr) {
         console.error("[ROUTE-OPT] AI error:", (aiErr as Error)?.message);
         throw new TRPCError({ code: "BAD_GATEWAY", message: "AI service error" });
-      }
-
-      let rawResponse: string;
-      try {
-        rawResponse = result.response.text();
-      } catch (readErr) {
-        console.error("[ROUTE-OPT] Read error:", (readErr as Error)?.message);
-        throw new TRPCError({ code: "BAD_GATEWAY", message: "Failed to read AI response" });
       }
 
       const jsonStart = rawResponse.indexOf("[");
@@ -263,19 +250,16 @@ JSON format:
   // Quick AI liveness check.
   // -------------------------------------------------------------------------
   aiHealth: publicProcedure.query(async () => {
-    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY ?? "");
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
     const start = Date.now();
     try {
       const result = await Promise.race([
-        model.generateContent("Return: OK"),
+        genai().models.generateContent({ model: FLASH_MODEL, contents: "Return: OK" }),
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error("Timeout")), 5000)
         ),
       ]);
-      const response = await result.response.text();
-      return { ok: true, elapsedMs: Date.now() - start, sample: response.slice(0, 50) };
+      const text = result.text ?? "";
+      return { ok: true, elapsedMs: Date.now() - start, sample: text.slice(0, 50) };
     } catch (err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
@@ -304,13 +288,6 @@ JSON format:
     .mutation(async ({ input, ctx }) => {
       const userId = requireUserId(ctx);
       const { routes: routesData, draftId } = input;
-
-      if (!process.env.GOOGLE_API_KEY) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "GOOGLE_API_KEY is not configured" });
-      }
-
-      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
 
       const prompt = `
       You are a geocoding validation AI tasked with correcting and standardizing waypoints in shipping routes to ensure they are geocodable by Google Maps API and formatted for display. For each waypoint in the provided routes, return a specific, geocodable place name in the format expected by Google Maps (e.g., cities as "City, Country", ports and airports with their official names and locations like "Jawaharlal Nehru Port, Mumbai, Maharashtra, India"). Handle the following cases:
@@ -354,8 +331,8 @@ JSON format:
       let cleanedRoutesData: Array<{ id: string; waypoints: string[]; state: string }> = routesData;
 
       try {
-        const result = await model.generateContent(prompt);
-        const rawResponse = result.response.text();
+        const aiResult = await genai().models.generateContent({ model: PRO_MODEL, contents: prompt });
+        const rawResponse = aiResult.text ?? "";
 
         const jsonMatch = rawResponse.match(/\[[\s\S]*\]/);
         if (!jsonMatch) {
@@ -700,11 +677,6 @@ JSON format:
       }
 
       // Step 2: Gemini AI suggestions & environmental impact
-      if (!process.env.GOOGLE_API_KEY) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "GOOGLE_API_KEY is not configured" });
-      }
-      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
       const legLines = perLegEmissions
         .map((e, i) => `        - Leg ${i + 1} emissions: ${e} kg CO2e`)
@@ -746,8 +718,8 @@ ${legLines}
 
       let rawResponse: string;
       try {
-        const result = await model.generateContent(prompt);
-        rawResponse = result.response.text();
+        const aiResult = await genai().models.generateContent({ model: FLASH_MODEL, contents: prompt });
+        rawResponse = aiResult.text ?? "";
       } catch (geminiErr) {
         throw new TRPCError({
           code: "BAD_GATEWAY",
@@ -933,16 +905,11 @@ ${legLines}
         });
       }
 
-      if (!process.env.GOOGLE_API_KEY) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "GOOGLE_API_KEY is not configured" });
-      }
-      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-
       let originResult, destinationResult;
       try {
         [originResult, destinationResult] = await Promise.all([
-          normalizeCountry(formData.from, genAI),
-          normalizeCountry(formData.to, genAI),
+          normalizeCountry(formData.from),
+          normalizeCountry(formData.to),
         ]);
       } catch (normalizeError) {
         throw new TRPCError({

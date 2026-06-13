@@ -1,8 +1,8 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { TRPCError } from "@trpc/server";
 import mongoose from "mongoose";
 import { z } from "zod";
 
+import { genai, FLASH_MODEL } from "../lib/genai.js";
 import { requireUserId } from "../lib/auth.js";
 import { AnomalyReportModel } from "../models/AnomalyReport.js";
 import { AuditEventModel } from "../models/AuditEvent.js";
@@ -84,37 +84,22 @@ export const shipmentDiffRouter = router({
     .mutation(async ({ ctx, input }) => {
       const userId = requireUserId(ctx);
 
-      if (!process.env.GOOGLE_API_KEY) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "GOOGLE_API_KEY is not configured",
-        });
-      }
-
-      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
       const prompt =
         'Compare these two shipment images (before loading vs after delivery). Respond ONLY with JSON: {"missingItems": string[], "damageDescription": string, "tamperingProbability": number (0-1), "riskScore": number (0-100), "summary": string}';
 
       let rawText: string;
       try {
-        const result = await model.generateContent([
-          { text: prompt },
-          {
-            inlineData: {
-              data: input.beforeImageBase64,
-              mimeType: input.mimeType,
-            },
-          },
-          {
-            inlineData: {
-              data: input.afterImageBase64,
-              mimeType: input.mimeType,
-            },
-          },
-        ]);
-        rawText = result.response.text();
+        const response = await genai().models.generateContent({
+          model: FLASH_MODEL,
+          contents: [
+            { role: "user", parts: [
+              { text: prompt },
+              { inlineData: { data: input.beforeImageBase64, mimeType: input.mimeType } },
+              { inlineData: { data: input.afterImageBase64, mimeType: input.mimeType } },
+            ]},
+          ],
+        });
+        rawText = response.text ?? "";
       } catch (err) {
         throw new TRPCError({
           code: "BAD_GATEWAY",

@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { genai, PRO_MODEL } from "../lib/genai.js";
 import { TRPCError } from "@trpc/server";
 import axios from "axios";
 import { z } from "zod";
@@ -300,14 +300,6 @@ export const inventoryRouter = router({
 
       if (search) {
         if (searchMode === "summarized") {
-          if (!process.env.GOOGLE_API_KEY) {
-            throw new TRPCError({
-              code: "INTERNAL_SERVER_ERROR",
-              message: "GOOGLE_API_KEY is not configured",
-            });
-          }
-          const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-          const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
           const prompt = `
 Summarize the following user query into 1 to 2 high-impact keywords or proper nouns for news search.
 Focus on specific people, places, events, organizations, or major topics.
@@ -320,8 +312,11 @@ Query: "${search}"
 Return only the keywords.
 `;
           try {
-            const result = await model.generateContent(prompt);
-            finalQuery = result.response.text();
+            const response = await genai().models.generateContent({
+              model: PRO_MODEL,
+              contents: prompt,
+            });
+            finalQuery = response.text ?? "";
           } catch (err) {
             throw new TRPCError({
               code: "BAD_GATEWAY",
@@ -442,15 +437,6 @@ Return only the keywords.
     .mutation(async ({ input }) => {
       const { content, url } = input;
 
-      if (!process.env.GOOGLE_API_KEY) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "GOOGLE_API_KEY is not configured",
-        });
-      }
-      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
-
       const prompt = `
       Summarize the following news article in 5-6 sentences, providing a general overview of its content:
       ${content}
@@ -465,8 +451,11 @@ Return only the keywords.
 
       let text: string;
       try {
-        const result = await model.generateContent(prompt);
-        text = result.response.text();
+        const response = await genai().models.generateContent({
+          model: PRO_MODEL,
+          contents: prompt,
+        });
+        text = response.text ?? "";
       } catch (err) {
         throw new TRPCError({
           code: "BAD_GATEWAY",

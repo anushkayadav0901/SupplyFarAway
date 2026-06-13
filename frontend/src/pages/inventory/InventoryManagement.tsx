@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import MapView from "./MapView";
 import {
   Tabs,
   Tab,
@@ -127,6 +128,7 @@ const InventoryManagement: React.FC = () => {
   const [openExportDialog, setOpenExportDialog] = useState<boolean>(false);
   const [exportDraft, setExportDraft] = useState<Draft | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [expandedDraftId, setExpandedDraftId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   // Fetch all tabs in parallel and combine
@@ -802,6 +804,37 @@ const InventoryManagement: React.FC = () => {
                             </Button>
                           )}
 
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() =>
+                            setExpandedDraftId(
+                              expandedDraftId === draft._id ? null : draft._id
+                            )
+                          }
+                          aria-expanded={expandedDraftId === draft._id}
+                          aria-controls={`map-peek-${draft._id}`}
+                          sx={{
+                            borderColor: "#2563eb",
+                            color: "#2563eb",
+                            borderRadius: 2,
+                            textTransform: "none",
+                            fontWeight: 600,
+                            px: { xs: 1.5, sm: 2 },
+                            py: 0.75,
+                            fontSize: { xs: "0.7rem", sm: "0.8rem" },
+                            transition: "border-color 150ms ease-out, color 150ms ease-out, background-color 150ms ease-out",
+                            "&:hover": {
+                              borderColor: "#1d4ed8",
+                              color: "#1d4ed8",
+                              backgroundColor: "rgba(37,99,235,0.06)",
+                            },
+                            "&:focus-visible": { outline: "2px solid #2563eb", outlineOffset: 2 },
+                          }}
+                        >
+                          {expandedDraftId === draft._id ? "Hide map" : "Show map"}
+                        </Button>
+
                         <IconButton
                           onClick={() => handleDeleteDraft(draft._id)}
                           aria-label={`Delete draft ${index + 1}`}
@@ -824,6 +857,31 @@ const InventoryManagement: React.FC = () => {
                       </div>
                     </div>
                   </CardContent>
+
+                  {/* Map peek panel */}
+                  <div
+                    id={`map-peek-${draft._id}`}
+                    style={{
+                      maxHeight: expandedDraftId === draft._id ? "24rem" : "0",
+                      overflow: "hidden",
+                      transition: "max-height 300ms ease-in-out",
+                    }}
+                  >
+                    <div
+                      style={{
+                        margin: "0 16px 16px",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: "12px",
+                        height: "24rem",
+                        backgroundColor: "#ffffff",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {expandedDraftId === draft._id && (
+                        <MapView draftId={String(draft._id)} />
+                      )}
+                    </div>
+                  </div>
                 </Card>
               </motion.div>
             ))}

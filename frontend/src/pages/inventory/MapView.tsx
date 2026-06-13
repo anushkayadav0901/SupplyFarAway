@@ -20,14 +20,21 @@ interface RouteDirection {
 }
 
 interface MapViewProps {
-  draftId: string | undefined;
+  /** Existing usage — fetches route data from a persisted draft. */
+  draftId?: string;
+  /**
+   * Inline preview usage — pass route directions directly.
+   * When provided, MapView calls trpc.logistics.processRoutes without persisting
+   * to a draft (pre-save preview). Takes precedence over draftId.
+   */
+  inlineRoutes?: { id: string; waypoints: string[]; state: "land" | "sea" | "air" }[];
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-function MapView({ draftId }: MapViewProps): React.ReactElement {
+function MapView({ draftId, inlineRoutes }: MapViewProps): React.ReactElement {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +44,10 @@ function MapView({ draftId }: MapViewProps): React.ReactElement {
   const utils = trpc.useUtils();
   const processRoutesMutation = trpc.logistics.processRoutes.useMutation();
   const updateDraftMutation = trpc.inventory.updateDraft.useMutation();
+
+  // Determine whether there is any data source to render
+  const hasInline = inlineRoutes && inlineRoutes.length > 0;
+  const hasDraft = Boolean(draftId);
 
   useEffect(() => {
     let isMounted = true;
@@ -69,60 +80,74 @@ function MapView({ draftId }: MapViewProps): React.ReactElement {
         });
         mapInstance.current = map;
 
-        if (!draftId) throw new Error("No draft ID provided");
+        let processedRoutes: Record<string, unknown>;
+        let originalRoute: RouteDirection[];
 
-        let mapData: {
-          routes: Record<string, unknown>;
-          originalRoute: RouteDirection[];
-        };
-
-        try {
-          // Try to get existing map data
-          const response = await utils.logistics.getMapData.fetch({
-            draftId,
-          });
-          mapData = response as any;
-        } catch {
-          // If not found, fetch draft and generate map data
-          const draftResponse = await utils.inventory.getDraftById.fetch({
-            id: draftId,
-          });
-          const draft = (draftResponse as any)?.draft;
-          if (!draft || !draft.routeData?.routeDirections) {
-            throw new Error("Draft or route data not found");
-          }
-
-          const routesData: RouteDirection[] =
-            draft.routeData.routeDirections.map((direction: any) => ({
-              id: direction.id,
-              waypoints: direction.waypoints,
-              state: direction.state,
-            }));
-
+        if (hasInline) {
+          // ── Inline preview path ──────────────────────────────────────────
+          // Call processRoutes without a draftId so nothing is persisted.
           const postResponse = await processRoutesMutation.mutateAsync({
-            routes: routesData.map((r) => ({
-              id: r.id,
-              waypoints: r.waypoints,
-              state: r.state as "land" | "sea" | "air",
-            })),
-            draftId,
+            routes: inlineRoutes!,
           });
-
-          mapData = {
-            routes: postResponse as unknown as Record<string, unknown>,
-            originalRoute: routesData,
+          processedRoutes = postResponse as unknown as Record<string, unknown>;
+          originalRoute = inlineRoutes!;
+        } else {
+          // ── Draft path (existing behavior) ───────────────────────────────
+          let mapData: {
+            routes: Record<string, unknown>;
+            originalRoute: RouteDirection[];
           };
 
-          // Persist the freshly-generated mapData onto the draft. Ownership is
-          // enforced server-side via requireUserId + scoped findOne, so we do
-          // NOT include a userId here (writing it would overwrite the field).
-          await updateDraftMutation.mutateAsync({
-            id: draftId,
-            updateData: { mapData },
-          });
+          try {
+            // Try to get existing map data
+            const response = await utils.logistics.getMapData.fetch({
+              draftId: draftId!,
+            });
+            mapData = response as any;
+          } catch {
+            // If not found, fetch draft and generate map data
+            const draftResponse = await utils.inventory.getDraftById.fetch({
+              id: draftId!,
+            });
+            const draft = (draftResponse as any)?.draft;
+            if (!draft || !draft.routeData?.routeDirections) {
+              throw new Error("Draft or route data not found");
+            }
+
+            const routesData: RouteDirection[] =
+              draft.routeData.routeDirections.map((direction: any) => ({
+                id: direction.id,
+                waypoints: direction.waypoints,
+                state: direction.state,
+              }));
+
+            const postResponse = await processRoutesMutation.mutateAsync({
+              routes: routesData.map((r) => ({
+                id: r.id,
+                waypoints: r.waypoints,
+                state: r.state as "land" | "sea" | "air",
+              })),
+              draftId: draftId!,
+            });
+
+            mapData = {
+              routes: postResponse as unknown as Record<string, unknown>,
+              originalRoute: routesData,
+            };
+
+            // Persist the freshly-generated mapData onto the draft. Ownership is
+            // enforced server-side via requireUserId + scoped findOne, so we do
+            // NOT include a userId here (writing it would overwrite the field).
+            await updateDraftMutation.mutateAsync({
+              id: draftId!,
+              updateData: { mapData },
+            });
+          }
+
+          processedRoutes = mapData.routes;
+          originalRoute = mapData.originalRoute;
         }
 
-        const { routes: processedRoutes, originalRoute } = mapData;
         const bounds = new google.maps.LatLngBounds();
 
         Object.entries(processedRoutes).forEach(([id, routeRaw]) => {
@@ -242,10 +267,10 @@ function MapView({ draftId }: MapViewProps): React.ReactElement {
     if (!MAPS) {
       setError("Map service is unavailable — Google Maps API key is not configured.");
       setLoading(false);
-    } else if (draftId) {
+    } else if (hasInline || hasDraft) {
       fetchAndRenderMap();
     } else {
-      setError("No draft ID provided. Please navigate from Route Optimization.");
+      // Neither inlineRoutes nor draftId — show friendly empty state
       setLoading(false);
     }
 
@@ -258,7 +283,16 @@ function MapView({ draftId }: MapViewProps): React.ReactElement {
         mapInstance.current = null;
       }
     };
-  }, [draftId]);
+  }, [draftId, inlineRoutes]);
+
+  // Friendly empty state when there is nothing to render
+  if (!loading && !error && !hasInline && !hasDraft) {
+    return (
+      <div className="relative h-96 rounded-lg overflow-hidden shadow-md bg-gray-100 flex items-center justify-center">
+        <p className="text-slate-500 text-sm">Plan or pick a route to see the map</p>
+      </div>
+    );
+  }
 
   return (
     <div className="relative h-96 rounded-lg overflow-hidden shadow-md">
@@ -279,8 +313,8 @@ function MapView({ draftId }: MapViewProps): React.ReactElement {
 
       {error && !loading && (
         <div className="absolute top-0 left-0 w-full h-full bg-gray-100 bg-opacity-75 rounded-lg flex items-center justify-center">
-          <p className="text-gray-600">
-            {error || "No routes available to display"}
+          <p className="text-slate-500 text-sm">
+            {error || "Plan a route to see the map"}
           </p>
         </div>
       )}

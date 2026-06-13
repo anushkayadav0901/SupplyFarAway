@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -15,6 +15,7 @@ import {
   Leaf,
 } from "lucide-react";
 import Header from "../../components/Header";
+import MapView from "../inventory/MapView";
 import DraftPicker from "../../components/DraftPicker";
 import CardSkeleton from "../../components/skeletons/CardSkeleton";
 import { trpc } from "../../lib/trpc";
@@ -122,136 +123,6 @@ function LiveTrackingRow({ route }: { route: SavedRoute }) {
         {tracking ? <Square className="w-3 h-3" /> : <Play className="w-3 h-3" />}
         {tracking ? "Live" : "Track"}
       </button>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Canvas map overlay
-// ---------------------------------------------------------------------------
-
-interface CanvasRouteMapProps {
-  routes: GeneratedRoute[];
-  selectedIndex: number | null;
-}
-
-function CanvasRouteMap({ routes, selectedIndex }: CanvasRouteMapProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    const W = canvas.width;
-    const H = canvas.height;
-
-    ctx.fillStyle = "#f8fafc";
-    ctx.fillRect(0, 0, W, H);
-
-    // grid
-    ctx.strokeStyle = "#e2e8f0";
-    ctx.lineWidth = 1;
-    for (let gx = 0; gx < W; gx += 50) {
-      ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke();
-    }
-    for (let gy = 0; gy < H; gy += 50) {
-      ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
-    }
-
-    if (routes.length === 0) {
-      ctx.fillStyle = "#94a3b8";
-      ctx.font = "13px sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("Plan a route to see the corridor", W / 2, H / 2);
-      return;
-    }
-
-    // Draw route waypoint arcs as simple node-link diagram
-    // Each leg of the selected route drawn as arcs between node positions
-    const selected = selectedIndex !== null ? routes[selectedIndex] : routes[0];
-    if (!selected) return;
-
-    const allLegs = selected.routeDirections;
-    // Collect all unique waypoints to position them across the canvas
-    const allWaypoints: string[] = [];
-    allLegs.forEach((leg) => {
-      leg.waypoints.forEach((wp) => {
-        if (!allWaypoints.includes(wp)) allWaypoints.push(wp);
-      });
-    });
-
-    const nodeCount = allWaypoints.length;
-    const padding = 40;
-    const nodePositions: Record<string, { x: number; y: number }> = {};
-    allWaypoints.forEach((wp, i) => {
-      const x = padding + (i / Math.max(nodeCount - 1, 1)) * (W - 2 * padding);
-      const y = H / 2 + (i % 2 === 0 ? -20 : 20);
-      nodePositions[wp] = { x, y };
-    });
-
-    // Draw lines
-    allLegs.forEach((leg, legIdx) => {
-      const isActiveLeg = selectedIndex === null ? legIdx === 0 : true;
-      const color = leg.state === "air" ? "#3b82f6" : leg.state === "sea" ? "#10b981" : "#64748b";
-      ctx.strokeStyle = isActiveLeg ? color : "#cbd5e1";
-      ctx.lineWidth = isActiveLeg ? 3 : 1.5;
-      if (leg.state === "sea") ctx.setLineDash([8, 4]);
-      else if (leg.state === "air") ctx.setLineDash([4, 2]);
-      else ctx.setLineDash([]);
-
-      for (let i = 0; i < leg.waypoints.length - 1; i++) {
-        const a = nodePositions[leg.waypoints[i]];
-        const b = nodePositions[leg.waypoints[i + 1]];
-        if (!a || !b) continue;
-        ctx.beginPath();
-        ctx.moveTo(a.x, a.y);
-        // simple arc
-        const mx = (a.x + b.x) / 2;
-        const my = (a.y + b.y) / 2 - 30;
-        ctx.quadraticCurveTo(mx, my, b.x, b.y);
-        ctx.stroke();
-      }
-      ctx.setLineDash([]);
-    });
-
-    // Draw nodes
-    allWaypoints.forEach((wp, i) => {
-      const pos = nodePositions[wp];
-      if (!pos) return;
-      const isEndpoint = i === 0 || i === allWaypoints.length - 1;
-      ctx.beginPath();
-      ctx.arc(pos.x, pos.y, isEndpoint ? 6 : 4, 0, Math.PI * 2);
-      ctx.fillStyle = isEndpoint ? "#2563eb" : "#94a3b8";
-      ctx.fill();
-
-      // Label
-      ctx.fillStyle = "#334155";
-      ctx.font = "bold 9px sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "top";
-      const label = wp.split(",")[0].trim().slice(0, 14);
-      ctx.fillText(label, pos.x, pos.y + 8);
-    });
-  }, [routes, selectedIndex]);
-
-  return (
-    <div className="relative aspect-video w-full border border-slate-200 rounded-xl overflow-hidden bg-slate-50">
-      <canvas ref={canvasRef} width={640} height={360} className="w-full h-full object-cover" />
-      {routes.length > 0 && (
-        <div className="absolute bottom-2 left-2 flex gap-2 text-[10px] font-semibold">
-          <span className="px-1.5 py-0.5 rounded bg-white/90 border border-slate-200 text-slate-600 flex items-center gap-1">
-            <span className="inline-block w-3 h-0.5 bg-slate-500"></span> Land
-          </span>
-          <span className="px-1.5 py-0.5 rounded bg-white/90 border border-slate-200 text-emerald-600 flex items-center gap-1">
-            <span className="inline-block w-3 h-0.5 bg-emerald-500 border-dashed"></span> Sea
-          </span>
-          <span className="px-1.5 py-0.5 rounded bg-white/90 border border-slate-200 text-blue-600 flex items-center gap-1">
-            <span className="inline-block w-3 h-0.5 bg-blue-500"></span> Air
-          </span>
-        </div>
-      )}
     </div>
   );
 }
@@ -518,7 +389,13 @@ export default function RoutePlanning() {
               <h3 className="text-base font-bold text-slate-800 mb-3 flex items-center gap-2">
                 <Navigation className="w-5 h-5 text-blue-600" /> Route Visualization
               </h3>
-              <CanvasRouteMap routes={routes} selectedIndex={selectedIndex} />
+              <MapView
+                inlineRoutes={selectedRoute ? selectedRoute.routeDirections.map((d) => ({
+                  id: d.id,
+                  waypoints: d.waypoints,
+                  state: d.state as "land" | "sea" | "air",
+                })) : undefined}
+              />
 
               {/* Selected route detail strip */}
               {selectedRoute && (
