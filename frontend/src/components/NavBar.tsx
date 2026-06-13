@@ -49,10 +49,10 @@ function NavBar() {
         <nav className="mx-auto max-w-6xl bg-white border border-slate-200 rounded-full shadow-sm flex items-center justify-between pl-5 pr-3 py-2.5">
           <button
             onClick={() => navigate("/dashboard")}
-            className="flex items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            className="flex items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
             aria-label="SupplyFarAway home"
           >
-            <span className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-[10px] tracking-tight">
+            <span className="w-8 h-8 bg-gray-900 rounded-xl flex items-center justify-center text-white font-bold text-[10px] tracking-tight">
               SF
             </span>
             <span className="font-bold text-slate-900 tracking-tight text-base hidden sm:inline">
@@ -85,10 +85,10 @@ function NavBar() {
             </a>
             <button
               onClick={() => navigate("/inventory")}
-              className={`text-sm font-semibold px-4 sm:px-5 py-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
+              className={`text-sm font-medium px-4 sm:px-5 py-2 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 ${
                 active("/inventory")
-                  ? "bg-blue-700 text-white"
-                  : "bg-blue-600 hover:bg-blue-700 text-white"
+                  ? "bg-gray-900 text-white border-gray-900"
+                  : "border-gray-300 text-gray-900 hover:bg-gray-50"
               }`}
             >
               <span className="inline-flex items-center gap-1.5">
@@ -135,7 +135,7 @@ function NavLink({
   return (
     <button
       onClick={onClick}
-      className={`text-sm font-medium px-3 py-2 rounded-full inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
+      className={`text-sm font-medium px-3 py-2 rounded-full inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 ${
         active
           ? "bg-blue-50 text-blue-700"
           : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"

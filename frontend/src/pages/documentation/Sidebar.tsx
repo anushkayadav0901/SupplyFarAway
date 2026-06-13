@@ -137,7 +137,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
       <div className="p-4 sm:p-6 border-b border-gray-200 bg-gray-50">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center">
               <BookOpen size={14} className="text-white" />
             </div>
             <h2 className="text-lg sm:text-xl font-bold text-gray-900">
@@ -148,7 +148,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
           <button
             onClick={onClose}
             aria-label="Close documentation sidebar"
-            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
           >
             <X size={16} className="text-gray-500" />
           </button>

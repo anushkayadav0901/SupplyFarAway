@@ -116,7 +116,7 @@ function LiveTrackingRow({ route }: { route: SavedRoute }) {
         title={tracking ? "Stop tracking" : "Start tracking"}
         className={`ml-3 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border ${
           tracking
-            ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+            ? "bg-gray-900 text-white border-gray-900 hover:bg-gray-800"
             : "bg-white text-slate-600 border-slate-300 hover:border-blue-400 hover:text-blue-600"
         }`}
       >
@@ -262,7 +262,7 @@ export default function RoutePlanning() {
               <button
                 type="submit"
                 disabled={generateMutation.isPending}
-                className="w-full px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold rounded-lg"
+                className="w-full px-5 py-3 bg-gray-900 hover:bg-gray-800 disabled:opacity-60 text-white text-sm font-semibold rounded-lg"
               >
                 {generateMutation.isPending ? "Generating routes..." : "Plan Route"}
               </button>

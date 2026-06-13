@@ -220,7 +220,7 @@ const ManageAccount: React.FC = () => {
       <div className="py-16 text-center">
         <p className="text-red-600 text-base mb-4">Could not load your account. Please refresh.</p>
         <button onClick={() => void refetchMe()}
-          className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg">
+          className="px-5 py-3 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-lg">
           Retry
         </button>
       </div>
@@ -304,7 +304,7 @@ const ManageAccount: React.FC = () => {
             </div>
           </div>
           <button type="submit"
-            className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg">
+            className="flex items-center gap-2 px-5 py-3 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-lg">
             <Camera className="w-4 h-4" /> Upload photo
           </button>
         </form>
@@ -316,7 +316,7 @@ const ManageAccount: React.FC = () => {
           <h2 className="text-xl font-bold text-slate-900">Full name</h2>
           {!isEditingUsername && (
             <button onClick={() => setIsEditingUsername(true)}
-              className="flex items-center gap-1.5 px-5 py-3 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50 text-sm font-semibold rounded-lg">
+              className="flex items-center gap-1.5 px-5 py-3 border border-gray-200 hover:bg-gray-50 text-gray-900 text-sm font-semibold rounded-lg">
               <Pencil className="w-4 h-4" /> Edit
             </button>
           )}
@@ -340,11 +340,11 @@ const ManageAccount: React.FC = () => {
           {isEditingUsername && (
             <div className="flex gap-3">
               <button type="submit" disabled={updateUsernameMutation.isPending}
-                className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg">
+                className="flex items-center gap-2 px-5 py-3 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-lg">
                 <Save className="w-4 h-4" /> {updateUsernameMutation.isPending ? "Saving..." : "Save"}
               </button>
               <button type="button" onClick={() => handleCancelEdit("username")}
-                className="flex items-center gap-2 px-5 py-3 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50 text-sm font-semibold rounded-lg">
+                className="flex items-center gap-2 px-5 py-3 border border-gray-200 hover:bg-gray-50 text-gray-900 text-sm font-semibold rounded-lg">
                 <X className="w-4 h-4" /> Cancel
               </button>
             </div>
@@ -358,7 +358,7 @@ const ManageAccount: React.FC = () => {
           <h2 className="text-xl font-bold text-slate-900">Business profile</h2>
           {!isEditingProfile && (
             <button onClick={() => setIsEditingProfile(true)}
-              className="flex items-center gap-1.5 px-5 py-3 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50 text-sm font-semibold rounded-lg">
+              className="flex items-center gap-1.5 px-5 py-3 border border-gray-200 hover:bg-gray-50 text-gray-900 text-sm font-semibold rounded-lg">
               <Pencil className="w-4 h-4" /> Edit
             </button>
           )}
@@ -387,11 +387,11 @@ const ManageAccount: React.FC = () => {
             </div>
             <div className="flex gap-3">
               <button type="submit" disabled={updateProfileMutation.isPending}
-                className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg">
+                className="flex items-center gap-2 px-5 py-3 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-lg">
                 <Save className="w-4 h-4" /> {updateProfileMutation.isPending ? "Saving..." : "Save"}
               </button>
               <button type="button" onClick={() => handleCancelEdit("profile")}
-                className="flex items-center gap-2 px-5 py-3 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50 text-sm font-semibold rounded-lg">
+                className="flex items-center gap-2 px-5 py-3 border border-gray-200 hover:bg-gray-50 text-gray-900 text-sm font-semibold rounded-lg">
                 <X className="w-4 h-4" /> Cancel
               </button>
             </div>
@@ -423,7 +423,7 @@ const ManageAccount: React.FC = () => {
           <h2 className="text-xl font-bold text-slate-900">Password</h2>
           {!isEditingPassword && (
             <button onClick={() => setIsEditingPassword(true)}
-              className="flex items-center gap-1.5 px-5 py-3 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50 text-sm font-semibold rounded-lg">
+              className="flex items-center gap-1.5 px-5 py-3 border border-gray-200 hover:bg-gray-50 text-gray-900 text-sm font-semibold rounded-lg">
               <Pencil className="w-4 h-4" /> Change
             </button>
           )}
@@ -444,11 +444,11 @@ const ManageAccount: React.FC = () => {
             </div>
             <div className="flex gap-3">
               <button type="submit" disabled={updatePasswordMutation.isPending}
-                className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg">
+                className="flex items-center gap-2 px-5 py-3 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-lg">
                 <Save className="w-4 h-4" /> {updatePasswordMutation.isPending ? "Saving..." : "Save"}
               </button>
               <button type="button" onClick={() => handleCancelEdit("password")}
-                className="flex items-center gap-2 px-5 py-3 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50 text-sm font-semibold rounded-lg">
+                className="flex items-center gap-2 px-5 py-3 border border-gray-200 hover:bg-gray-50 text-gray-900 text-sm font-semibold rounded-lg">
                 <X className="w-4 h-4" /> Cancel
               </button>
             </div>

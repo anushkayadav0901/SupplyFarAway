@@ -72,7 +72,7 @@ function EmptyState({ onPickDraft }: { onPickDraft: () => void }) {
       <button
         type="button"
         onClick={onPickDraft}
-        className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg"
+        className="px-5 py-3 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-lg"
       >
         Pick a draft
       </button>
@@ -489,7 +489,7 @@ export default function RiskCenter() {
                     <button
                       type="submit"
                       disabled={analyzeMut.isPending}
-                      className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg disabled:opacity-50"
+                      className="px-5 py-3 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-lg disabled:opacity-50"
                     >
                       {analyzeMut.isPending ? "Scanning…" : "Run Anomaly Scan"}
                     </button>
@@ -604,7 +604,7 @@ export default function RiskCenter() {
                 <button
                   type="submit"
                   disabled={appendMut.isPending}
-                  className="px-5 py-3 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50 text-sm font-semibold rounded-lg disabled:opacity-50"
+                  className="px-5 py-3 border border-gray-200 hover:bg-gray-50 text-gray-900 text-sm font-semibold rounded-lg disabled:opacity-50"
                 >
                   Append
                 </button>

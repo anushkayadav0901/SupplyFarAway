@@ -304,7 +304,7 @@ const News: React.FC = () => {
                   onClick={handleSearchModeToggle}
                   className={`h-[50px] px-4 rounded-lg text-sm font-medium border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 min-w-[100px] sm:min-w-[120px] ${
                     searchMode === "summarized"
-                      ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+                      ? "bg-gray-900 text-white border-gray-900 hover:bg-gray-800"
                       : "text-blue-600 border-blue-200 hover:bg-blue-50"
                   }`}
                 >
@@ -314,7 +314,7 @@ const News: React.FC = () => {
                 </button>
                 <button
                   onClick={handleSearch}
-                  className="h-[50px] px-4 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 min-w-[100px] sm:min-w-[120px] justify-center"
+                  className="h-[50px] px-4 flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 min-w-[100px] sm:min-w-[120px] justify-center"
                 >
                   <Search size={14} />
                   Search
@@ -330,7 +330,7 @@ const News: React.FC = () => {
                 onClick={() => handleDateClick(tab.key)}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs sm:text-sm font-medium border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 min-w-[100px] sm:min-w-[120px] justify-center ${
                   activeDate === tab.key
-                    ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+                    ? "bg-gray-900 text-white border-gray-900 hover:bg-gray-800"
                     : "text-blue-600 border-blue-200 hover:bg-blue-50"
                 }`}
               >
@@ -359,7 +359,7 @@ const News: React.FC = () => {
                         <p className="text-red-600 font-medium">Failed to load news articles.</p>
                         <button
                           onClick={() => void refetchNews()}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                          className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
                         >
                           Retry
                         </button>

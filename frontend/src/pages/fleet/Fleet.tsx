@@ -167,7 +167,7 @@ export default function Fleet() {
               <button
                 type="submit"
                 disabled={registerTruckMutation.isPending}
-                className="w-full px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg"
+                className="w-full px-5 py-3 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-lg"
               >
                 {registerTruckMutation.isPending ? "Registering..." : "Add to Registry"}
               </button>

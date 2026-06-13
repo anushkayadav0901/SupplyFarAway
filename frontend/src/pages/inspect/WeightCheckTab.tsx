@@ -368,7 +368,7 @@ export default function WeightCheckTab({ draftId, onResult }: WeightCheckTabProp
               <button
                 type="submit"
                 disabled={submitMutation.isPending || streaming}
-                className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold rounded-xl flex items-center gap-2"
+                className="px-8 py-2.5 bg-gray-900 hover:bg-gray-800 disabled:bg-slate-400 text-white font-semibold rounded-xl flex items-center gap-2"
               >
                 {streaming ? (
                   <>

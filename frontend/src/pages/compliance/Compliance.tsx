@@ -567,7 +567,7 @@ export default function Compliance() {
                   <button
                     type="submit"
                     disabled={checkMutation.isPending}
-                    className="px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold rounded-lg"
+                    className="px-5 py-3 bg-gray-900 hover:bg-gray-800 disabled:opacity-60 text-white text-sm font-semibold rounded-lg"
                   >
                     {checkMutation.isPending
                       ? "Checking..."
@@ -619,7 +619,7 @@ export default function Compliance() {
                   <button
                     type="button"
                     onClick={() => csvInputRef.current?.click()}
-                    className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg"
+                    className="px-5 py-3 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-lg"
                   >
                     Select CSV File
                   </button>
@@ -638,7 +638,7 @@ export default function Compliance() {
                     <button
                       type="button"
                       onClick={handleCsvReset}
-                      className="px-5 py-3 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50 text-sm font-semibold rounded-lg"
+                      className="px-5 py-3 border border-gray-200 hover:bg-gray-50 text-gray-900 text-sm font-semibold rounded-lg"
                     >
                       Remove
                     </button>
@@ -646,7 +646,7 @@ export default function Compliance() {
                       type="button"
                       onClick={handleCsvSubmit}
                       disabled={csvDraftMutation.isPending}
-                      className="px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold rounded-lg"
+                      className="px-5 py-3 bg-gray-900 hover:bg-gray-800 disabled:opacity-60 text-white text-sm font-semibold rounded-lg"
                     >
                       {csvDraftMutation.isPending ? "Importing..." : "Import Draft"}
                     </button>
@@ -674,7 +674,7 @@ export default function Compliance() {
                 <button
                   type="button"
                   onClick={handleDownloadTemplate}
-                  className="px-5 py-3 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50 text-sm font-semibold rounded-lg"
+                  className="px-5 py-3 border border-gray-200 hover:bg-gray-50 text-gray-900 text-sm font-semibold rounded-lg"
                 >
                   Download Template
                 </button>
@@ -745,7 +745,7 @@ export default function Compliance() {
                             if (imageInputRef.current)
                               imageInputRef.current.value = "";
                           }}
-                          className="px-5 py-3 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50 text-sm font-semibold rounded-lg"
+                          className="px-5 py-3 border border-gray-200 hover:bg-gray-50 text-gray-900 text-sm font-semibold rounded-lg"
                         >
                           Remove
                         </button>
@@ -753,7 +753,7 @@ export default function Compliance() {
                           type="button"
                           onClick={() => void handleAnalyzeImage()}
                           disabled={isAnalyzing}
-                          className="px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold rounded-lg"
+                          className="px-5 py-3 bg-gray-900 hover:bg-gray-800 disabled:opacity-60 text-white text-sm font-semibold rounded-lg"
                         >
                           {isAnalyzing ? "Analyzing..." : "Analyze Product"}
                         </button>
@@ -814,7 +814,7 @@ export default function Compliance() {
                         <button
                           type="button"
                           onClick={handleSendImageToDraft}
-                          className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg"
+                          className="flex items-center gap-2 px-5 py-3 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-lg"
                         >
                           <Send className="w-4 h-4" />
                           Send to Compliance Form

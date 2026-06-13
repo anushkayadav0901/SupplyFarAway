@@ -427,7 +427,7 @@ export default function BoxCountTab({ draftId, onResult, runAllRequested }: BoxC
                   <button
                     type="button"
                     onClick={start}
-                    className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    className="flex-1 px-6 py-3 bg-gray-900 hover:bg-gray-800 text-white font-semibold rounded-xl flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
                     <Camera className="w-4 h-4" /> Start Inspection
                   </button>

@@ -555,7 +555,7 @@ const InventoryManagement: React.FC = () => {
               {activeTab !== "yet-to-be-checked" && (
                 <button
                   onClick={() => setActiveTab("yet-to-be-checked")}
-                  className="px-5 py-3 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50 text-sm font-semibold rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                  className="px-5 py-3 border border-gray-200 hover:bg-gray-50 text-gray-900 text-sm font-semibold rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
                 >
                   View pending drafts
                 </button>
@@ -612,7 +612,7 @@ const InventoryManagement: React.FC = () => {
                               {!(compliance === "compliant" && routeOpt === "done") && (
                                 <button
                                   onClick={() => handleActionClick(draft)}
-                                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                                  className="px-3 py-1.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-semibold rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
                                 >
                                   {compliance === "compliant" && routeOpt === "notDone"
                                     ? "Optimize Route"
@@ -636,7 +636,7 @@ const InventoryManagement: React.FC = () => {
                                 }
                                 aria-expanded={isExpanded}
                                 aria-controls={`map-peek-${draft._id}`}
-                                className="px-3 py-1.5 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50 text-xs font-semibold rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                                className="px-3 py-1.5 border border-gray-200 hover:bg-gray-50 text-gray-900 text-xs font-semibold rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
                               >
                                 {isExpanded ? "Hide map" : "Map"}
                               </button>
@@ -682,7 +682,7 @@ const InventoryManagement: React.FC = () => {
         <button
           onClick={handleDialogOpen}
           aria-label="Create new draft"
-          className="fixed bottom-4 sm:bottom-6 left-4 sm:left-6 w-12 sm:w-16 h-12 sm:h-16 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+          className="fixed bottom-4 sm:bottom-6 left-4 sm:left-6 w-12 sm:w-16 h-12 sm:h-16 rounded-full bg-gray-900 hover:bg-gray-800 text-white shadow-sm flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
         >
           <Plus size={24} className="sm:w-7 sm:h-7" />
         </button>
@@ -759,13 +759,13 @@ const InventoryManagement: React.FC = () => {
               downloadAnchor.click();
               downloadAnchor.remove();
             }}
-            className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+            className="px-5 py-3 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
           >
             Download JSON
           </button>
           <button
             onClick={() => window.print()}
-            className="px-5 py-3 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50 text-sm font-semibold rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+            className="px-5 py-3 border border-gray-200 hover:bg-gray-50 text-gray-900 text-sm font-semibold rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
           >
             Print Manifest
           </button>
@@ -814,7 +814,7 @@ const InventoryManagement: React.FC = () => {
         <div className="px-6 pb-6 flex justify-between gap-3">
           <button
             onClick={handleDeleteCancel}
-            className="px-5 py-3 border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50 text-sm font-semibold rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+            className="px-5 py-3 border border-gray-200 hover:bg-gray-50 text-gray-900 text-sm font-semibold rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
           >
             Cancel
           </button>
@@ -954,7 +954,7 @@ const InventoryManagement: React.FC = () => {
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white text-sm font-semibold rounded-lg shadow-sm disabled:cursor-not-allowed min-w-[180px] focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                className="px-8 py-3 bg-gray-900 hover:bg-gray-800 disabled:bg-slate-400 text-white text-sm font-semibold rounded-lg shadow-sm disabled:cursor-not-allowed min-w-[180px] focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
               >
                 <span className="flex items-center justify-center gap-3">
                   {submitting ? "Creating..." : "Create Draft"}

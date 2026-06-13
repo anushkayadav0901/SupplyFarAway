@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* Plus Jakarta Sans everywhere, -3% letter spacing globally */
+* {
+  font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.03em;
+}
+
 /* Prevent CLS from scrollbar appearing/disappearing */
 html {
   scrollbar-gutter: stable;

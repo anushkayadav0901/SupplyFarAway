@@ -378,7 +378,7 @@ export default function LoadAggregation({ asTab = false }: { asTab?: boolean }) 
                 type="submit"
                 disabled={createOffer.isPending}
                 aria-label="Post load offer"
-                className="px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg flex items-center gap-2"
+                className="px-5 py-3 bg-gray-900 hover:bg-gray-800 disabled:bg-slate-400 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg flex items-center gap-2"
               >
                 {createOffer.isPending ? (
                   <>
@@ -560,8 +560,8 @@ const OfferCard = ({
                 aria-expanded={isSelected}
                 className={`px-5 py-3 text-sm font-semibold rounded-lg ${
                   isSelected
-                    ? "bg-blue-600 text-white"
-                    : "border-2 border-blue-200 hover:border-blue-300 text-blue-700 hover:bg-blue-50"
+                    ? "bg-gray-900 text-white"
+                    : "border border-gray-200 hover:bg-gray-50 text-gray-900"
                 }`}
               >
                 {isSelected ? "Hide Matches" : "Find Matches"}

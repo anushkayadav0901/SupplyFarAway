@@ -636,7 +636,7 @@ function ExportReport(): React.ReactElement {
         <div className="text-center bg-white p-6 rounded-2xl shadow-xl">
           <p className="text-red-600 mb-4 font-medium">{error}</p>
           <button
-            className="bg-blue-600 py-2 px-6 rounded-lg shadow-sm hover:bg-blue-700 text-white font-semibold focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            className="bg-gray-900 py-2 px-6 rounded-lg hover:bg-gray-800 text-white font-semibold focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
             onClick={() => window.history.back()}
           >
             Go Back
@@ -652,7 +652,7 @@ function ExportReport(): React.ReactElement {
         <div className="text-center bg-white p-6 rounded-2xl shadow-xl">
           <p className="text-red-600 mb-4 font-medium">Draft not found.</p>
           <button
-            className="bg-blue-600 py-2 px-6 rounded-lg shadow-sm hover:bg-blue-700 text-white font-semibold focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            className="bg-gray-900 py-2 px-6 rounded-lg hover:bg-gray-800 text-white font-semibold focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
             onClick={() => window.history.back()}
           >
             Go Back
@@ -679,7 +679,7 @@ function ExportReport(): React.ReactElement {
             Incomplete draft data. Form data is missing or invalid.
           </p>
           <button
-            className="bg-blue-600 py-2 px-6 rounded-lg shadow-sm hover:bg-blue-700 text-white font-semibold focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            className="bg-gray-900 py-2 px-6 rounded-lg hover:bg-gray-800 text-white font-semibold focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
             onClick={() => window.history.back()}
           >
             Go Back

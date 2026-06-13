@@ -103,7 +103,7 @@ const HistoryTab: React.FC = () => {
             <div className="py-8 text-center">
               <p className="text-red-600 mb-4 text-sm">Failed to load compliance history.</p>
               <button onClick={() => void refetchCompliance()}
-                className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg">
+                className="px-5 py-3 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-lg">
                 Retry
               </button>
             </div>
@@ -112,7 +112,7 @@ const HistoryTab: React.FC = () => {
               <ShieldCheck className="w-10 h-10 text-slate-300 mx-auto mb-4" />
               <p className="text-slate-500 mb-5">No compliance checks yet.</p>
               <button onClick={() => navigate("/compliance")}
-                className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg">
+                className="px-5 py-3 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-lg">
                 Run your first compliance check
               </button>
             </div>
@@ -205,7 +205,7 @@ const HistoryTab: React.FC = () => {
             <div className="py-8 text-center">
               <p className="text-red-600 mb-4 text-sm">Failed to load route history.</p>
               <button onClick={() => void refetchRoute()}
-                className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg">
+                className="px-5 py-3 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-lg">
                 Retry
               </button>
             </div>
@@ -214,7 +214,7 @@ const HistoryTab: React.FC = () => {
               <Route className="w-10 h-10 text-slate-300 mx-auto mb-4" />
               <p className="text-slate-500 mb-5">No saved routes yet.</p>
               <button onClick={() => navigate("/routes")}
-                className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg">
+                className="px-5 py-3 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-lg">
                 Optimize your first route
               </button>
             </div>
@@ -287,7 +287,7 @@ const HistoryTab: React.FC = () => {
             <div className="py-8 text-center">
               <p className="text-red-600 mb-4 text-sm">Failed to load product analysis history.</p>
               <button onClick={() => void refetchProductAnalysis()}
-                className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg">
+                className="px-5 py-3 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-lg">
                 Retry
               </button>
             </div>
@@ -296,7 +296,7 @@ const HistoryTab: React.FC = () => {
               <Package className="w-10 h-10 text-slate-300 mx-auto mb-4" />
               <p className="text-slate-500 mb-5">No product analyses yet.</p>
               <button onClick={() => navigate("/compliance")}
-                className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg">
+                className="px-5 py-3 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-lg">
                 Analyse your first product
               </button>
             </div>

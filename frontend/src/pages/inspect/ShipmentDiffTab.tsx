@@ -128,7 +128,7 @@ function ScanImage({
         )}
         {scanning && preview && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/50 pointer-events-none">
-            <span className="px-2 py-0.5 rounded-md bg-blue-600 text-white text-[10px] font-bold tracking-wider">
+            <span className="px-2 py-0.5 rounded-md bg-gray-900 text-white text-[10px] font-bold tracking-wider">
               ANALYZING
             </span>
           </div>
@@ -303,7 +303,7 @@ export default function ShipmentDiffTab({ draftId, onResult }: ShipmentDiffTabPr
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold rounded-xl text-sm"
+                  className="px-6 py-2 bg-gray-900 hover:bg-gray-800 disabled:bg-slate-400 text-white font-semibold rounded-xl text-sm"
                 >
                   {isLoading ? "Analyzing…" : "Run Diff Analysis"}
                 </button>

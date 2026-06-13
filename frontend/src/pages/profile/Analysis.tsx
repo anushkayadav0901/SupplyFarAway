@@ -102,7 +102,7 @@ const AnalysisTab: React.FC = () => {
         <AlertTriangle className="w-10 h-10 text-red-400 mx-auto mb-4" />
         <p className="text-red-600 mb-5 text-sm">Could not load analytics.</p>
         <button onClick={() => void refetch()}
-          className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg">
+          className="px-5 py-3 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-lg">
           Retry
         </button>
       </div>
@@ -116,7 +116,7 @@ const AnalysisTab: React.FC = () => {
         <p className="text-slate-500 mb-2 text-sm">No fully-processed shipments yet.</p>
         <p className="text-xs text-slate-400 mb-5">Complete compliance and route optimization on at least one shipment to see analytics.</p>
         <button onClick={() => navigate("/inventory")}
-          className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg">
+          className="px-5 py-3 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-lg">
           Go to Inventory
         </button>
       </div>

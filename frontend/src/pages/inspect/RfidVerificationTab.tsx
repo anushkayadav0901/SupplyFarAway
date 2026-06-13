@@ -422,7 +422,7 @@ export default function RfidVerificationTab({ draftId, onResult }: RfidVerificat
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm font-semibold rounded-xl flex items-center gap-2"
+                className="px-6 py-2 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-400 text-white text-sm font-semibold rounded-xl flex items-center gap-2"
               >
                 {streaming ? "Scanning…" : "Scan & Verify"}
               </button>
