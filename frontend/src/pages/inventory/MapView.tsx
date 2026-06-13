@@ -6,20 +6,41 @@ import type { MapData, RouteDirection } from "@server/routers/logistics";
 
 const MAPS = import.meta.env.VITE_GOOGLE_API_KEY as string;
 
+// setOptions must be called exactly once across the app lifetime. Track it
+// so repeated MapView mounts don't trip the loader's "already configured" guard.
+let mapsConfigured = false;
+async function ensureMapsLoaded(): Promise<typeof google.maps> {
+  if (!mapsConfigured) {
+    setOptions({ key: MAPS, v: "weekly", libraries: ["geometry"] });
+    mapsConfigured = true;
+  }
+  // Wrap in a 12s timeout so a network/referrer failure surfaces instead
+  // of leaving the UI stuck on "Loading map…".
+  const timeout = new Promise<never>((_, rej) =>
+    setTimeout(() => rej(new Error("Map took too long to load. Check the API key & referrer restrictions.")), 12000)
+  );
+  await Promise.race([
+    Promise.all([
+      importLibrary("maps"),
+      importLibrary("geometry"),
+      importLibrary("marker"),
+      importLibrary("core"),
+    ]),
+    timeout,
+  ]);
+  return google.maps;
+}
+
 interface MapViewProps {
   /** Existing usage — fetches route data from a persisted draft. */
   draftId?: string;
   /**
    * Inline preview usage — pass route directions directly.
-   * When provided, MapView calls trpc.logistics.processRoutes without persisting
-   * to a draft (pre-save preview). Takes precedence over draftId.
+   * When provided, MapView calls trpc.logistics.processRoutes without
+   * persisting to a draft (pre-save preview). Takes precedence over draftId.
    */
   inlineRoutes?: { id: string; waypoints: string[]; state: "land" | "sea" | "air" }[];
 }
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 
 function MapView({ draftId, inlineRoutes }: MapViewProps): React.ReactElement {
   const mapRef = useRef<HTMLDivElement | null>(null);
@@ -27,21 +48,28 @@ function MapView({ draftId, inlineRoutes }: MapViewProps): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
   const mapInstance = useRef<google.maps.Map | null>(null);
 
-  // tRPC hooks
   const utils = trpc.useUtils();
   const processRoutesMutation = trpc.logistics.processRoutes.useMutation();
   const updateDraftMutation = trpc.inventory.updateDraft.useMutation();
 
-  // Determine whether there is any data source to render
   const hasInline = inlineRoutes && inlineRoutes.length > 0;
   const hasDraft = Boolean(draftId);
 
   useEffect(() => {
     let isMounted = true;
 
-    const fetchAndRenderMap = async () => {
-      if (!isMounted) return;
+    if (!MAPS) {
+      setError("Map service is unavailable — VITE_GOOGLE_API_KEY missing.");
+      setLoading(false);
+      return;
+    }
 
+    if (!hasInline && !hasDraft) {
+      setLoading(false);
+      return;
+    }
+
+    const fetchAndRenderMap = async () => {
       if (!mapRef.current) {
         setError("Map container not found");
         setLoading(false);
@@ -52,66 +80,46 @@ function MapView({ draftId, inlineRoutes }: MapViewProps): React.ReactElement {
       setError(null);
 
       try {
-        setOptions({
-          key: MAPS,
-          v: "weekly",
-          libraries: ["geometry"],
-        });
+        await ensureMapsLoaded();
+        if (!isMounted) return;
 
-        const [{ Map: GMap, InfoWindow, Polyline }, { encoding }, { Marker }, { LatLngBounds }] =
-          await Promise.all([
-            importLibrary("maps"),
-            importLibrary("geometry"),
-            importLibrary("marker") as Promise<{ Marker: typeof google.maps.Marker }>,
-            importLibrary("core"),
-          ]);
-
-        const map = new GMap(mapRef.current!, {
+        const map = new google.maps.Map(mapRef.current, {
           center: { lat: 0, lng: 0 },
           zoom: 2,
-          mapTypeId: "roadmap",
+          mapTypeId: google.maps.MapTypeId.ROADMAP,
+          disableDefaultUI: true,
+          zoomControl: true,
         });
         mapInstance.current = map;
 
         let mapData: MapData;
 
         if (hasInline) {
-          // ── Inline preview path ──────────────────────────────────────────
-          // Call processRoutes without a draftId so nothing is persisted.
-          const postResponse = await processRoutesMutation.mutateAsync({
+          const post = await processRoutesMutation.mutateAsync({
             routes: inlineRoutes!,
           });
-          mapData = { routes: postResponse.routes, originalRoute: postResponse.originalRoute };
+          mapData = { routes: post.routes, originalRoute: post.originalRoute };
         } else {
-          // ── Draft path (existing behavior) ───────────────────────────────
           try {
             mapData = await utils.logistics.getMapData.fetch({ draftId: draftId! });
           } catch {
-            // If not found, fetch draft and generate map data
             const draftResponse = await utils.inventory.getDraftById.fetch({
               id: draftId!,
             });
             const draft = (draftResponse as { draft?: { routeData?: { routeDirections?: RouteDirection[] } } })?.draft;
             if (!draft?.routeData?.routeDirections) {
-              throw new Error("Draft or route data not found");
+              throw new Error("No route data on this draft yet.");
             }
-
             const routesData: RouteDirection[] = draft.routeData.routeDirections.map((d) => ({
               id: d.id,
               waypoints: d.waypoints,
               state: d.state,
             }));
-
-            const postResponse = await processRoutesMutation.mutateAsync({
+            const post = await processRoutesMutation.mutateAsync({
               routes: routesData,
               draftId: draftId!,
             });
-
-            mapData = { routes: postResponse.routes, originalRoute: postResponse.originalRoute };
-
-            // Persist the freshly-generated mapData onto the draft. Ownership is
-            // enforced server-side via requireUserId + scoped findOne, so we do
-            // NOT include a userId here (writing it would overwrite the field).
+            mapData = { routes: post.routes, originalRoute: post.originalRoute };
             await updateDraftMutation.mutateAsync({
               id: draftId!,
               updateData: { mapData },
@@ -119,174 +127,121 @@ function MapView({ draftId, inlineRoutes }: MapViewProps): React.ReactElement {
           }
         }
 
+        if (!isMounted) return;
+
         const { routes: processedRoutes, originalRoute } = mapData;
-        const bounds = new LatLngBounds();
+        const bounds = new google.maps.LatLngBounds();
 
         Object.entries(processedRoutes).forEach(([id, route]) => {
-          const routeDirection = originalRoute.find((dir) => dir.id === id);
-          if (!routeDirection) return;
+          const dir = originalRoute.find((d) => d.id === id);
+          if (!dir) return;
 
           if (route.state === "land" && "encodedPolyline" in route) {
-            const path = encoding.decodePath(route.encodedPolyline);
-            const polyline = new Polyline({
+            const path = google.maps.geometry.encoding.decodePath(route.encodedPolyline);
+            new google.maps.Polyline({
               path,
               geodesic: true,
-              strokeColor: "#FF0000",
+              strokeColor: "#111827",
               strokeOpacity: 1.0,
               strokeWeight: 2,
-            });
-            polyline.setMap(map);
-
-            const startLatLng = path[0];
-            const endLatLng = path[path.length - 1];
-
-            const startMarker = new Marker({
-              position: startLatLng,
               map,
-              title: routeDirection.waypoints[0],
             });
-            const endMarker = new Marker({
-              position: endLatLng,
-              map,
-              title: routeDirection.waypoints[routeDirection.waypoints.length - 1],
-            });
-
-            const startInfoWindow = new InfoWindow({
-              content: `<div>${routeDirection.waypoints[0]}</div>`,
-            });
-            const endInfoWindow = new InfoWindow({
-              content: `<div>${routeDirection.waypoints[routeDirection.waypoints.length - 1]}</div>`,
-            });
-
-            startMarker.addListener("click", () =>
-              startInfoWindow.open(map, startMarker)
-            );
-            endMarker.addListener("click", () =>
-              endInfoWindow.open(map, endMarker)
-            );
-
-            path.forEach((latLng: google.maps.LatLng) => bounds.extend(latLng));
+            placeMarkers(google, map, path[0], path[path.length - 1], dir.waypoints);
+            path.forEach((latLng) => bounds.extend(latLng));
           } else if (
             (route.state === "air" || route.state === "sea") &&
             "coordinates" in route
           ) {
-            const path = route.coordinates.map((coord) => ({
-              lat: coord.lat,
-              lng: coord.lng,
-            }));
-            const color = route.state === "air" ? "#00FF00" : "#0000FF";
-            const polyline = new Polyline({
+            const path = route.coordinates.map((c) => ({ lat: c.lat, lng: c.lng }));
+            new google.maps.Polyline({
               path,
               geodesic: true,
-              strokeColor: color,
+              strokeColor: route.state === "air" ? "#2563eb" : "#0891b2",
               strokeOpacity: 1.0,
               strokeWeight: 2,
-            });
-            polyline.setMap(map);
-
-            const startLatLng = path[0];
-            const endLatLng = path[path.length - 1];
-
-            const startMarker = new Marker({
-              position: startLatLng,
               map,
-              title: routeDirection.waypoints[0],
             });
-            const endMarker = new Marker({
-              position: endLatLng,
-              map,
-              title: routeDirection.waypoints[routeDirection.waypoints.length - 1],
-            });
-
-            const startInfoWindow = new InfoWindow({
-              content: `<div>${routeDirection.waypoints[0]}</div>`,
-            });
-            const endInfoWindow = new InfoWindow({
-              content: `<div>${routeDirection.waypoints[routeDirection.waypoints.length - 1]}</div>`,
-            });
-
-            startMarker.addListener("click", () =>
-              startInfoWindow.open(map, startMarker)
-            );
-            endMarker.addListener("click", () =>
-              endInfoWindow.open(map, endMarker)
-            );
-
-            path.forEach((latLng: { lat: number; lng: number }) => bounds.extend(latLng));
+            placeMarkers(google, map, path[0], path[path.length - 1], dir.waypoints);
+            path.forEach((latLng) => bounds.extend(latLng));
           }
         });
 
-        if (isMounted && !bounds.isEmpty()) {
-          map.fitBounds(bounds);
-        }
-      } catch (err: unknown) {
+        if (!bounds.isEmpty()) map.fitBounds(bounds);
+      } catch (err) {
         if (isMounted) {
-          setError((err as Error).message || "Failed to load map data");
+          setError((err as Error).message || "Failed to load the map.");
         }
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        if (isMounted) setLoading(false);
       }
     };
 
-    if (!MAPS) {
-      setError("Map service is unavailable — Google Maps API key is not configured.");
-      setLoading(false);
-    } else if (hasInline || hasDraft) {
-      fetchAndRenderMap();
-    } else {
-      // Neither inlineRoutes nor draftId — show friendly empty state
-      setLoading(false);
-    }
+    fetchAndRenderMap();
 
     return () => {
       isMounted = false;
-      if (mapInstance.current) {
-        // Cleanup: clear listeners if the maps API is loaded
-        if (typeof window !== "undefined" && (window as Window & { google?: { maps?: { event?: { clearInstanceListeners: (inst: object) => void } } } }).google?.maps?.event) {
-          (window as Window & { google?: { maps?: { event?: { clearInstanceListeners: (inst: object) => void } } } }).google!.maps!.event!.clearInstanceListeners(mapInstance.current!);
-        }
-        mapInstance.current = null;
-      }
+      mapInstance.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftId, inlineRoutes]);
 
-  // Friendly empty state when there is nothing to render
   if (!loading && !error && !hasInline && !hasDraft) {
     return (
-      <div className="relative h-96 rounded-lg overflow-hidden shadow-sm bg-gray-100 flex items-center justify-center">
-        <p className="text-slate-500 text-sm">Plan or pick a route to see the map</p>
+      <div className="relative h-96 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center">
+        <p className="text-gray-500 text-sm">Plan a route to see it on the map.</p>
       </div>
     );
   }
 
   return (
-    <div className="relative h-96 rounded-lg overflow-hidden shadow-sm">
-      <div
-        ref={mapRef}
-        style={{ width: "100%", height: "100%" }}
-        className="absolute top-0 left-0 w-full h-full"
-      />
+    <div className="relative h-96 rounded-lg overflow-hidden border border-gray-200">
+      <div ref={mapRef} className="absolute inset-0 w-full h-full" />
 
       {loading && (
-        <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-gray-100 bg-opacity-75 rounded-lg">
+        <div className="absolute inset-0 flex items-center justify-center bg-white/80">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-            <p className="mt-2 text-gray-600 font-medium">Loading map...</p>
+            <div className="animate-spin rounded-full h-7 w-7 border-2 border-gray-200 border-t-gray-900 mx-auto" />
+            <p className="mt-2 text-gray-600 text-sm">Loading map…</p>
           </div>
         </div>
       )}
 
       {error && !loading && (
-        <div className="absolute top-0 left-0 w-full h-full bg-gray-100 bg-opacity-75 rounded-lg flex items-center justify-center">
-          <p className="text-slate-500 text-sm">
-            {error || "Plan a route to see the map"}
-          </p>
+        <div className="absolute inset-0 bg-gray-50 flex items-center justify-center px-4">
+          <p className="text-gray-500 text-sm text-center">{error}</p>
         </div>
       )}
     </div>
   );
+}
+
+function placeMarkers(
+  _google: typeof window.google,
+  map: google.maps.Map,
+  startLatLng: google.maps.LatLng | { lat: number; lng: number },
+  endLatLng: google.maps.LatLng | { lat: number; lng: number },
+  waypoints: string[]
+) {
+  const startMarker = new google.maps.Marker({
+    position: startLatLng,
+    map,
+    title: waypoints[0],
+  });
+  const endMarker = new google.maps.Marker({
+    position: endLatLng,
+    map,
+    title: waypoints[waypoints.length - 1],
+  });
+
+  const startInfo = new google.maps.InfoWindow({
+    content: `<div style="font-family:'Plus Jakarta Sans',sans-serif">${waypoints[0]}</div>`,
+  });
+  const endInfo = new google.maps.InfoWindow({
+    content: `<div style="font-family:'Plus Jakarta Sans',sans-serif">${waypoints[waypoints.length - 1]}</div>`,
+  });
+
+  startMarker.addListener("click", () => startInfo.open(map, startMarker));
+  endMarker.addListener("click", () => endInfo.open(map, endMarker));
 }
 
 export default MapView;

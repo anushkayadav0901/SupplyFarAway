@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -271,6 +271,16 @@ export default function RoutePlanning() {
 
   const selectedRoute = selectedIndex !== null ? routes[selectedIndex] : null;
 
+  // Memoize so MapView's useEffect doesn't restart on every render
+  const mapInlineRoutes = useMemo(() => {
+    if (!selectedRoute) return undefined;
+    return selectedRoute.routeDirections.map((d) => ({
+      id: d.id,
+      waypoints: d.waypoints,
+      state: d.state as "land" | "sea" | "air",
+    }));
+  }, [selectedRoute]);
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12">
 
@@ -448,13 +458,7 @@ export default function RoutePlanning() {
             <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
               <Navigation className="w-5 h-5 text-blue-600" /> Route Visualization
             </h2>
-            <MapView
-              inlineRoutes={selectedRoute ? selectedRoute.routeDirections.map((d) => ({
-                id: d.id,
-                waypoints: d.waypoints,
-                state: d.state as "land" | "sea" | "air",
-              })) : undefined}
-            />
+            <MapView inlineRoutes={mapInlineRoutes} />
 
             {/* Selected route detail — result panel exception */}
             {selectedRoute && (
