@@ -520,4 +520,127 @@ export const newsContextRouter = router({
       const articles = await fetchNews(query);
       return analyzeMarketInsightsWithGemini(input, articles);
     }),
+
+  /**
+   * internationalRisk — news-grounded geopolitical / logistics risk scoring.
+   * Returns risk assessment per region/country based on current news signals.
+   */
+  internationalRisk: publicProcedure
+    .input(
+      z.object({
+        regions: z.array(z.string()).optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      // Broad supply-chain + geopolitics signal query
+      const query =
+        "shipping OR port OR trade OR sanctions OR strike OR tariff OR " +
+        '"border closure" OR logistics OR freight OR "trade war" OR customs';
+
+      const articles = await fetchNews(query);
+
+      // If no articles, still attempt Gemini analysis with empty articles
+      // to get fallback regional risk scores
+      const articlesText =
+        articles.length > 0
+          ? articles
+              .map(
+                (a, i) =>
+                  `[${i + 1}] (${a.source}) ${a.title}\n    ${a.description}`,
+              )
+              .join("\n\n")
+          : "(no articles — use general world knowledge of current geopolitics)";
+
+      const regionsList = input.regions?.join(", ") || "";
+      const regionHint = regionsList ? `Focus on: ${regionsList}.` : "";
+
+      const prompt = `You are a geopolitical supply-chain risk analyst. Based on current news and world events, score 8-12 key regions/countries for logistics risk on a 0-100 scale.
+
+RECENT NEWS:
+${articlesText}
+
+${regionHint}
+
+Return ONLY JSON in this exact shape — no markdown, no explanation:
+{
+  "regions": [
+    {
+      "region": "<country or region name>",
+      "riskScore": <integer 0-100>,
+      "rationale": "<one sentence: why this risk score, citing a specific news signal or geopolitical factor>",
+      "topHeadline": "<short headline from articles if applicable, or empty string>"
+    }
+  ]
+}
+
+Rules:
+- Score 8-12 regions. Include major trade hubs and any mentioned in news.
+- Risk scale: 0-34 low, 35-65 medium, 66-100 high.
+- Rationale must cite specific news or known geopolitical events.
+- Every rationale and headline ≤ 20 words, no markdown.
+- topHeadline is empty string if no articles or none apply to that region.`;
+
+      try {
+        const response = await Promise.race([
+          genai().models.generateContent({ model: FLASH_MODEL, contents: prompt }),
+          new Promise<never>((_, rej) =>
+            setTimeout(() => rej(new Error("Gemini timeout")), GEMINI_TIMEOUT_MS),
+          ),
+        ]);
+
+        const raw = ((response as { text?: string }).text ?? "").trim();
+        const jsonText = raw
+          .replace(/^```(?:json)?\s*/i, "")
+          .replace(/\s*```$/i, "");
+
+        let parsed: {
+          regions?: Array<{
+            region?: string;
+            riskScore?: number;
+            rationale?: string;
+            topHeadline?: string;
+          }>;
+        };
+        try {
+          parsed = JSON.parse(jsonText);
+        } catch {
+          // Fallback: return empty regions with timestamp
+          return {
+            regions: [],
+            updatedAt: new Date().toISOString(),
+          };
+        }
+
+        const regions = (parsed.regions ?? [])
+          .filter(
+            (r): r is {
+              region: string;
+              riskScore: number;
+              rationale: string;
+              topHeadline: string;
+            } =>
+              typeof r.region === "string" &&
+              typeof r.riskScore === "number" &&
+              typeof r.rationale === "string" &&
+              typeof r.topHeadline === "string"
+          )
+          .map((r) => ({
+            region: r.region.slice(0, 100),
+            riskScore: Math.min(100, Math.max(0, Math.round(r.riskScore))),
+            rationale: r.rationale.slice(0, 300),
+            topHeadline: r.topHeadline.slice(0, 200),
+          }));
+
+        return {
+          regions,
+          updatedAt: new Date().toISOString(),
+        };
+      } catch (err) {
+        // Graceful fallback on timeout or network error
+        return {
+          regions: [],
+          updatedAt: new Date().toISOString(),
+        };
+      }
+    }),
 });

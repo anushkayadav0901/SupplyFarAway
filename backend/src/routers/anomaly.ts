@@ -126,18 +126,31 @@ Based on this data, identify any anomalies or suspicious patterns. Consider:
 3. Route deviations (>50 km is suspicious)
 4. Any combination of factors that suggests fraud, mislabeling, theft, or contraband
 
+If high risk, suggest concrete mitigation actions:
+- Countries or lanes to avoid (e.g. "Pakistan land border")
+- Alternative routes or transport modes (e.g. "Use air freight via Dubai")
+
 Return ONLY a valid JSON object with no markdown or extra text, in exactly this format:
 {
   "flags": ["<specific anomaly 1>", "<specific anomaly 2>"],
   "severity": "low" | "medium" | "high",
   "riskScore": <integer 0-100>,
-  "summary": "<2-3 sentence professional summary of findings and recommendations>"
+  "summary": "<2-3 sentence professional summary of findings and recommendations>",
+  "recommendedAvoidances": ["<country or lane to avoid 1>", "<country or lane to avoid 2>"],
+  "recommendedAlternatives": ["<concrete mitigation 1>", "<concrete mitigation 2>"],
+  "mitigationNarrative": "<1-2 sentences: synthesized suggested action or 'No mitigation needed.' if low risk>"
 }
 
 Rules for severity:
 - "high": riskScore >= 70 or multiple serious flags
 - "medium": riskScore 40-69 or one significant flag
 - "low": riskScore < 40 or minor discrepancies only
+
+Rules for mitigations:
+- If severity is "low", set mitigationNarrative to "No mitigation needed."
+- recommendedAvoidances: empty array if not applicable
+- recommendedAlternatives: empty array if not applicable
+- Every string ≤ 25 words, no markdown.
 `;
 
       let geminiResult;
@@ -160,6 +173,9 @@ Rules for severity:
         severity: "low" | "medium" | "high";
         riskScore: number;
         summary: string;
+        recommendedAvoidances?: string[];
+        recommendedAlternatives?: string[];
+        mitigationNarrative?: string;
       };
 
       try {
@@ -195,6 +211,7 @@ Rules for severity:
       const MAX_FLAGS = 20;
       const MAX_FLAG_LEN = 240;
       const MAX_SUMMARY_LEN = 2000;
+      const MAX_MITIGATION_LEN = 300;
       const safeFlags = Array.isArray(parsed.flags)
         ? parsed.flags
             .filter((f) => typeof f === "string")
@@ -206,6 +223,26 @@ Rules for severity:
           ? parsed.summary
           : `Severity ${parsed.severity}, risk ${parsed.riskScore}`;
       const safeSummary = rawSummary.slice(0, MAX_SUMMARY_LEN);
+
+      // Mitigation fields — cap arrays and string lengths
+      const MAX_MITIGATIONS = 5;
+      const safeAvoidances = Array.isArray(parsed.recommendedAvoidances)
+        ? parsed.recommendedAvoidances
+            .filter((a) => typeof a === "string")
+            .map((a) => a.slice(0, MAX_MITIGATION_LEN))
+            .slice(0, MAX_MITIGATIONS)
+        : [];
+      const safeAlternatives = Array.isArray(parsed.recommendedAlternatives)
+        ? parsed.recommendedAlternatives
+            .filter((a) => typeof a === "string")
+            .map((a) => a.slice(0, MAX_MITIGATION_LEN))
+            .slice(0, MAX_MITIGATIONS)
+        : [];
+      const safeMitigationNarrative =
+        typeof parsed.mitigationNarrative === "string" && parsed.mitigationNarrative.trim().length > 0
+          ? parsed.mitigationNarrative
+          : "No mitigation needed.";
+      const clampedMitigationNarrative = safeMitigationNarrative.slice(0, 500);
 
       // Clamp riskScore to valid range even if AI returns out-of-bounds value.
       const riskScore = clampRiskScore(parsed.riskScore);
@@ -224,6 +261,9 @@ Rules for severity:
         severity: parsed.severity,
         riskScore,
         summary: safeSummary,
+        recommendedAvoidances: safeAvoidances,
+        recommendedAlternatives: safeAlternatives,
+        mitigationNarrative: clampedMitigationNarrative,
         createdAt: new Date(),
       });
 

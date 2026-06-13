@@ -61,6 +61,18 @@ const anomalyReportSchema = new Schema({
     type: String,
     required: true,
   },
+  recommendedAvoidances: {
+    type: [String],
+    default: [],
+  },
+  recommendedAlternatives: {
+    type: [String],
+    default: [],
+  },
+  mitigationNarrative: {
+    type: String,
+    required: false,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

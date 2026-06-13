@@ -1,20 +1,12 @@
 import React, { useState, useMemo } from "react";
 import {
-  Area,
-  AreaChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import {
   AlertTriangle,
   CheckCircle,
-  Activity,
   ScrollText,
   RefreshCcw,
   Radar,
   Database,
+  Globe,
 } from "lucide-react";
 import PageLead from "../../components/PageLead";
 import NewsContextCard from "../../components/NewsContextCard";
@@ -145,9 +137,16 @@ export default function RiskCenter() {
     { retry: false }
   );
 
+  const riskGraphQuery = trpc.newsContext.internationalRisk.useMutation({
+    retry: 1,
+  });
+
   // Inline error state — replaces toasts
   const [scanError, setScanError] = useState<string>("");
   const [appendError, setAppendError] = useState<string>("");
+
+  // International risk graph state
+  const [riskGraphRefreshKey, setRiskGraphRefreshKey] = useState(0);
 
   // ---- mutations ----
   const analyzeMut = trpc.anomaly.analyze.useMutation({
@@ -186,11 +185,6 @@ export default function RiskCenter() {
     return Math.round((1 - avg) * 100);
   }, [recentEvents]);
 
-  const chartSeries = useMemo(() => {
-    const pts = recentEvents.slice(0, 20).reverse();
-    if (pts.length === 0) return Array.from({ length: 8 }, (_, i) => ({ i, risk: 0 }));
-    return pts.map((e, i) => ({ i, risk: Math.round(e.riskScore * 100) }));
-  }, [recentEvents]);
 
   // ---- handlers ----
   function handleScan(e: React.FormEvent) {
@@ -278,44 +272,87 @@ export default function RiskCenter() {
         </div>
       )}
 
-      {/* ---- Risk trend chart (always visible) ---- */}
-      {recentEvents.length > 0 && (
-        <section>
-          <div className="flex items-center gap-2 mb-4">
-            <Activity className="w-4 h-4 text-blue-600" />
-            <h2 className="text-xl font-bold text-slate-900">Risk Pulse</h2>
-            <span className="text-sm text-slate-500">recent events</span>
+      {/* ---- International Risk Graph ---- */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Globe className="w-4 h-4 text-blue-600" />
+            <h2 className="text-xl font-bold text-slate-900">International Risk</h2>
+            <span className="text-sm text-slate-500">live news signals</span>
           </div>
-          <div className="h-40">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartSeries} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                <XAxis dataKey="i" hide />
-                <YAxis
-                  width={30}
-                  domain={[0, 100]}
-                  tick={{ fontSize: 10, fill: "#94a3b8" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <Tooltip
-                  contentStyle={{ borderRadius: 8, fontSize: 12, border: "1px solid #e2e8f0" }}
-                  formatter={(v: number) => [`${v}%`, "risk"]}
-                  labelFormatter={() => ""}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="risk"
-                  stroke="#3b82f6"
-                  strokeWidth={2}
-                  fill="#3b82f6"
-                  fillOpacity={0.06}
-                  isAnimationActive={false}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+          <button
+            type="button"
+            onClick={() => {
+              setRiskGraphRefreshKey((k) => k + 1);
+              riskGraphQuery.mutate({});
+            }}
+            disabled={riskGraphQuery.isPending}
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 disabled:opacity-50"
+          >
+            <RefreshCcw className="w-3 h-3" /> Refresh
+          </button>
+        </div>
+
+        {riskGraphQuery.isPending && (
+          <div className="mb-4">
+            <AIThinking
+              steps={[
+                "Reading global logistics news…",
+                "Scoring corridors by risk signal…",
+                "Drafting per-region rationale…",
+              ]}
+            />
           </div>
-        </section>
-      )}
+        )}
+
+        {riskGraphQuery.data?.regions && riskGraphQuery.data.regions.length > 0 ? (
+          <div className="space-y-2">
+            {riskGraphQuery.data.regions.map((region, idx) => {
+              const scoreClass =
+                region.riskScore < 35
+                  ? "bg-emerald-50 border-emerald-200"
+                  : region.riskScore < 65
+                  ? "bg-amber-50 border-amber-200"
+                  : "bg-red-50 border-red-200";
+              const pillClass =
+                region.riskScore < 35
+                  ? "bg-emerald-100 text-emerald-700"
+                  : region.riskScore < 65
+                  ? "bg-amber-100 text-amber-700"
+                  : "bg-red-100 text-red-700";
+
+              return (
+                <div key={idx} className={`border rounded-lg p-3 ${scoreClass}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-semibold text-slate-900">
+                          {region.region}
+                        </span>
+                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${pillClass}`}>
+                          {region.riskScore}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-600 leading-relaxed">
+                        {region.rationale}
+                      </p>
+                      {region.topHeadline && (
+                        <p className="text-xs text-slate-400 italic mt-1">
+                          {region.topHeadline}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : !riskGraphQuery.isPending && !riskGraphQuery.data?.regions?.length ? (
+          <div className="text-sm text-slate-500 text-center py-6">
+            Click "Refresh" to load international risk assessment.
+          </div>
+        ) : null}
+      </section>
 
       {/* ---- Scanner + Audit Trail ---- */}
       <div className="space-y-12">
@@ -518,6 +555,57 @@ export default function RiskCenter() {
                       </ul>
                     )}
                   </div>
+
+                  {/* Recommended action card — shown if mitigations exist */}
+                  {analyzeMut.data.mitigationNarrative && (
+                    <div className="border border-slate-200 rounded-xl p-5 bg-white space-y-3">
+                      <h3 className="text-sm font-semibold text-slate-900">Recommended action</h3>
+                      <p className="text-sm text-slate-700 leading-relaxed">
+                        {analyzeMut.data.mitigationNarrative}
+                      </p>
+                      {(analyzeMut.data.recommendedAvoidances?.length || 0) > 0 ||
+                      (analyzeMut.data.recommendedAlternatives?.length || 0) > 0 ? (
+                        <div className="grid grid-cols-2 gap-4 mt-4">
+                          {/* Avoid column */}
+                          {(analyzeMut.data.recommendedAvoidances?.length || 0) > 0 && (
+                            <div>
+                              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">
+                                Avoid
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                {analyzeMut.data.recommendedAvoidances?.map((avoid, i) => (
+                                  <span
+                                    key={i}
+                                    className="inline-block px-3 py-1.5 rounded-lg text-xs font-medium bg-red-100 text-red-700"
+                                  >
+                                    {avoid}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {/* Use instead column */}
+                          {(analyzeMut.data.recommendedAlternatives?.length || 0) > 0 && (
+                            <div>
+                              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">
+                                Use instead
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                {analyzeMut.data.recommendedAlternatives?.map((alt, i) => (
+                                  <span
+                                    key={i}
+                                    className="inline-block px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-100 text-blue-700"
+                                  >
+                                    {alt}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
 
                   {/* News context */}
                   <ReferenceNewsButton subject="supply chain risk anomaly" kind="route" />

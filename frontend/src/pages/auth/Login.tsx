@@ -104,27 +104,26 @@ export default function Login() {
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
+            <label className="flex items-center gap-2.5 cursor-pointer select-none mt-3 mb-4">
+              <input
+                type="checkbox"
+                checked={emailAddress === "demo@gmail.com" && password === "abc123"}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    setEmail("demo@gmail.com");
+                    setPassword("abc123");
+                  } else {
+                    setEmail("");
+                    setPassword("");
+                  }
+                }}
+                className="w-4 h-4 rounded border border-gray-300 text-gray-900 accent-gray-900 focus:ring-2 focus:ring-gray-900 focus:ring-offset-1"
+              />
+              <span className="text-sm text-gray-600">
+                Use demo credentials <span className="text-gray-400">(demo@gmail.com · abc123)</span>
+              </span>
+            </label>
           </div>
-
-          <label className="flex items-center gap-2.5 cursor-pointer select-none -my-1">
-            <input
-              type="checkbox"
-              checked={emailAddress === "demo@gmail.com" && password === "abc123"}
-              onChange={(e) => {
-                if (e.target.checked) {
-                  setEmail("demo@gmail.com");
-                  setPassword("abc123");
-                } else {
-                  setEmail("");
-                  setPassword("");
-                }
-              }}
-              className="w-4 h-4 rounded border border-gray-300 text-gray-900 accent-gray-900 focus:ring-2 focus:ring-gray-900 focus:ring-offset-1"
-            />
-            <span className="text-sm text-gray-600">
-              Use demo credentials <span className="text-gray-400">(demo@gmail.com · abc123)</span>
-            </span>
-          </label>
 
           <button
             onClick={handleLogin}

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Truck, Plus, Trash2, Users, RefreshCcw, Sparkles } from "lucide-react";
+import { Truck, Plus, Trash2, Users, RefreshCcw, Sparkles, Send } from "lucide-react";
 import PageLead from "../../components/PageLead";
 import CardSkeleton from "../../components/skeletons/CardSkeleton";
 import AIThinking from "../../components/AIThinking";
@@ -25,6 +25,8 @@ export default function Fleet() {
   const [driverPhone, setDriverPhone] = useState("");
 
   const [fleetError, setFleetError] = useState<string>("");
+  const [aiQuestion, setAiQuestion] = useState("");
+  const [aiResult, setAiResult] = useState<{ bullets: string[]; recommendation: string } | null>(null);
   const utils = trpc.useUtils();
 
   const listTrucksQuery = trpc.trucks.list.useQuery();
@@ -64,6 +66,19 @@ export default function Fleet() {
     },
   });
 
+  const askAIMutation = trpc.trucks.askAI.useMutation({
+    onSuccess: (result) => {
+      setAiResult(result);
+      setAiQuestion("");
+    },
+    onError: (err) => {
+      setAiResult({
+        bullets: ["Error: " + (err.message || "Failed to analyze fleet")],
+        recommendation: "Please try again.",
+      });
+    },
+  });
+
   const handleRegisterTruck = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!plate.trim() || !capacity.trim() || !baseCity.trim() || !driverName.trim()) {
@@ -79,6 +94,18 @@ export default function Fleet() {
       phone: driverPhone.trim() || undefined,
     });
   };
+
+  const handleAskAI = async () => {
+    if (!aiQuestion.trim()) return;
+    await askAIMutation.mutateAsync({ question: aiQuestion.trim() });
+  };
+
+  const ASK_AI_SUGGESTIONS = [
+    "Where am I losing money?",
+    "Which truck is underused?",
+    "Cost per km trend?",
+    "On-time risk this week?",
+  ];
 
   const fleet = analyticsQuery.data?.fleet;
   const perTruck = analyticsQuery.data?.perTruck ?? [];
@@ -174,10 +201,82 @@ export default function Fleet() {
         </section>
       )}
 
+      {/* Ask AI panel */}
+      {fleet && (
+        <section className="border border-slate-200 rounded-2xl bg-white p-6">
+          <h2 className="text-lg font-bold text-slate-900 mb-4">Ask AI about your fleet</h2>
+
+          {askAIMutation.isPending && (
+            <AIThinking
+              steps={["Reading fleet activity…", "Crunching trip data…", "Drafting recommendation…"]}
+              intervalMs={1200}
+              className="mb-4"
+            />
+          )}
+
+          {aiResult && !askAIMutation.isPending && (
+            <div className="space-y-4 mb-4">
+              <div className="space-y-2">
+                {aiResult.bullets.map((bullet, idx) => (
+                  <div key={idx} className="flex gap-2 text-sm text-slate-800">
+                    <span className="text-slate-400">—</span>
+                    <span>{bullet}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="border-l-4 border-blue-500 bg-slate-50 px-4 py-3 text-sm text-slate-800">
+                <p className="font-semibold text-slate-900 mb-1">Recommendation</p>
+                <p>{aiResult.recommendation}</p>
+              </div>
+            </div>
+          )}
+
+          {!askAIMutation.isPending && (
+            <>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {ASK_AI_SUGGESTIONS.map((sugg) => (
+                  <button
+                    key={sugg}
+                    onClick={() => {
+                      setAiQuestion(sugg);
+                      setAiResult(null);
+                    }}
+                    className="text-xs px-3 py-1.5 border border-slate-200 rounded-full text-slate-700 hover:bg-slate-50 font-medium"
+                  >
+                    {sugg}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Ask about costs, utilization, on-time rate…"
+                  value={aiQuestion}
+                  onChange={(e) => setAiQuestion(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && aiQuestion.trim()) handleAskAI();
+                  }}
+                  className="flex-1 px-4 py-3 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <button
+                  onClick={handleAskAI}
+                  disabled={!aiQuestion.trim() || askAIMutation.isPending}
+                  className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Send className="w-4 h-4" />
+                  Send
+                </button>
+              </div>
+            </>
+          )}
+        </section>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
 
           {/* Left: Register form */}
-          <div className="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm h-fit">
             <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2 mb-5">
               <Plus className="w-5 h-5 text-blue-600" /> Register Vehicle
             </h2>
