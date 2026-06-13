@@ -181,7 +181,7 @@ const ProductAnalysis: React.FC = () => {
       return;
     }
 
-    navigate(`/compliance-check?draftId=${analysisResult.draftId}`);
+    navigate(`/compliance?draftId=${analysisResult.draftId}`);
   };
 
   const containerVariants = {
@@ -201,7 +201,7 @@ const ProductAnalysis: React.FC = () => {
   return (
     <div className="min-h-screen bg-neutral-100 p-4 sm:p-6">
       {/* Header */}
-      <Header title="Product Analysis" page="compliance-check" />
+      <Header title="Product Analysis" page="compliance" />
 
       {/* Main Content */}
       <div className="flex flex-col items-center px-4 sm:px-6 py-12">

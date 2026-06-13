@@ -280,7 +280,7 @@ const History: React.FC = () => {
                       No compliance checks yet.
                     </p>
                     <button
-                      onClick={() => navigate("/compliance-check")}
+                      onClick={() => navigate("/compliance")}
                       className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                     >
                       Run your first compliance check
@@ -500,7 +500,7 @@ const History: React.FC = () => {
                       No saved routes yet.
                     </p>
                     <button
-                      onClick={() => navigate("/route-optimization")}
+                      onClick={() => navigate("/routes")}
                       className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
                     >
                       Optimize your first route
@@ -663,7 +663,7 @@ const History: React.FC = () => {
                       No product analyses yet.
                     </p>
                     <button
-                      onClick={() => navigate("/product-analysis")}
+                      onClick={() => navigate("/compliance")}
                       className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2"
                     >
                       Analyse your first product

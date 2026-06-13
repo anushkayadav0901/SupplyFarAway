@@ -127,7 +127,7 @@ The Profile section is your central hub for managing your Supply Chain account. 
         id: "manage-account",
         title: "Manage Account",
         description: "Update your personal information and account settings.",
-        linkId: "/manage-account/:userId",
+        linkId: "/profile/:userId",
         content: `
 ### Smart Account
 
@@ -163,7 +163,7 @@ Customize your Supply Chain account by updating personal details, passwords, and
         title: "History",
         description:
           "Access your past compliance reports, product analyses, and saved shipment records.",
-        linkId: "/history/:userId",
+        linkId: "/profile/:userId",
         content: `
 ### Record History
 
@@ -192,7 +192,7 @@ History provides a record of your past activities, including compliance reports,
         title: "Analysis",
         description:
           "Review AI-driven insights from your product and compliance analyses.",
-        linkId: "/analysis/:userId",
+        linkId: "/profile/:userId",
         content: `
 ### Analysis
 
@@ -272,10 +272,10 @@ The Analysis section provides detailed insights from AI-driven product and compl
         ],
       },
       {
-        id: "csv-upload",
+        id: "csvUpload",
         title: "CSV Upload",
         description: "Bulk validate shipments by uploading CSV files.",
-        linkId: "/csv-upload",
+        linkId: "/compliance",
         content: `
 # Understanding CSV Upload
 
@@ -301,11 +301,11 @@ The CSV Upload functionality in Supply Chain enables efficient validation of mul
         ],
       },
       {
-        id: "product-analysis",
+        id: "productAnalysis",
         title: "Product Analysis",
         description:
           "Use AI to analyze product images and generate compliance data.",
-        linkId: "/product-analysis",
+        linkId: "/compliance",
         content: `
 # Why it is used
 
@@ -364,15 +364,15 @@ The Manual Form feature in Supply Chain enables users to input shipment details 
   },
   route: {
     title: "Route Optimization",
-    id: "route-optimization",
+    id: "routes",
     icon: FaRoute,
     sections: [
       {
-        id: "route-optimization",
+        id: "routes",
         title: "Route Optimization Overview",
         description:
           "View detailed route options with cost, time, and carbon metrics.",
-        linkId: "/route-optimization",
+        linkId: "/routes",
         content: `
           ### Route Optimization Feature
           
@@ -492,14 +492,14 @@ The Detailed Carbon Analysis provides insights about carbon emission breakdown b
   },
   inventory: {
     title: "Inventory",
-    id: "inventory-management",
+    id: "inventory",
     icon: FaBox,
     sections: [
       {
-        id: "inventory-management",
+        id: "inventory",
         title: "Inventory Tabs",
         description: "Manage shipments through various status tabs.",
-        linkId: "/inventory-management",
+        linkId: "/inventory",
         content: `
 ### Tabs Overview
 
@@ -552,7 +552,7 @@ The Add Draft feature allows you to create new shipment entries for later valida
         ],
       },
       {
-        id: "export-report",
+        id: "exportReport",
         title: "Export Report",
         description: "Generate and download reports for ready shipments.",
         content: `

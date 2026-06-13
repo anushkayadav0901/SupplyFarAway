@@ -117,7 +117,7 @@ const DashboardHero: React.FC = () => {
             subLabel="live · 4s refresh"
           />
           <button
-            onClick={() => navigate("/trust-center")}
+            onClick={() => navigate("/risk")}
             className="mt-3 text-xs font-semibold text-blue-700 hover:text-blue-800 inline-flex items-center gap-1"
           >
             Open Trust Center <ChevronRight size={12} />
@@ -143,28 +143,28 @@ const DashboardHero: React.FC = () => {
               value={t?.activeShipments ?? 0}
               Icon={Package}
               accent="blue"
-              onClick={() => navigate("/inventory-management")}
+              onClick={() => navigate("/inventory")}
             />
             <HeroTile
               label="Open Loads"
               value={t?.openLoads ?? 0}
               Icon={Boxes}
               accent="emerald"
-              onClick={() => navigate("/load-aggregation")}
+              onClick={() => navigate("/fleet")}
             />
             <HeroTile
               label="Registered Trucks"
               value={t?.registeredTrucks ?? 0}
               Icon={Truck}
               accent="blue"
-              onClick={() => navigate("/truck-registry")}
+              onClick={() => navigate("/fleet")}
             />
             <HeroTile
               label="High-risk · 24h"
               value={t?.highRiskEventsLast24h ?? 0}
               Icon={ShieldAlert}
               accent={(t?.highRiskEventsLast24h ?? 0) > 0 ? "red" : "amber"}
-              onClick={() => navigate("/fraud-dashboard")}
+              onClick={() => navigate("/risk")}
             />
           </div>
         </div>

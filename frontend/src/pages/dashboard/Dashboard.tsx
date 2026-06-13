@@ -104,7 +104,7 @@ function MovexDashboard() {
   };
 
   const handleInventoryClick = (): void => {
-    navigate("/inventory-management");
+    navigate("/inventory");
   };
 
   const handleNewsClick = (): void => {

@@ -23,38 +23,21 @@ const ROUTE_MAP: Record<string, RouteMeta> = {
   dashboard: { label: "Overview" },
 
   // Compliance group
-  "compliance-check": { group: "Compliance", label: "Compliance Check" },
   compliance: { group: "Compliance", label: "Compliance" },
-  "csv-upload": { group: "Compliance", label: "CSV Upload" },
-  "product-analysis": { group: "Compliance", label: "Product Analysis" },
 
   // Operations group
-  "route-optimization": { group: "Operations", label: "Route Optimization" },
-  map: { group: "Operations", label: "Map" },
-  "carbon-footprint": { group: "Operations", label: "Carbon Footprint" },
-  "inventory-management": { group: "Operations", label: "Inventory" },
-  "export-report": { group: "Operations", label: "Export Report" },
-  "load-aggregation": { group: "Operations", label: "Load Match" },
-  "live-tracking": { group: "Operations", label: "Live Tracking" },
-  "truck-registry": { group: "Operations", label: "Truck Registry" },
+  inventory: { group: "Operations", label: "Inventory" },
+  routes: { group: "Operations", label: "Route Planning" },
+  fleet: { group: "Operations", label: "Fleet" },
 
   // Verification group
-  "box-count": { group: "Verification", label: "Box Count" },
-  "shipment-diff": { group: "Verification", label: "Shipment Diff" },
-  "rfid-verification": { group: "Verification", label: "RFID" },
-  "weight-check": { group: "Verification", label: "Weight Check" },
+  inspect: { group: "Verification", label: "Physical Inspection" },
 
   // Intelligence group
-  "anomaly-detection": { group: "Intelligence", label: "Anomaly Detection" },
-  "fraud-dashboard": { group: "Intelligence", label: "Fraud & Risk" },
-  "audit-log": { group: "Intelligence", label: "Audit Log" },
-  "trust-center": { group: "Intelligence", label: "Trust Center" },
+  risk: { group: "Intelligence", label: "Risk Center" },
 
   // Profile / account
   profile: { label: "Profile" },
-  history: { label: "History" },
-  "manage-account": { label: "Account" },
-  analysis: { label: "Analysis" },
 
   // Misc
   news: { label: "News" },

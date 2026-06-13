@@ -224,9 +224,9 @@ const InventoryManagement: React.FC = () => {
     const compliance = draft.statuses?.compliance;
     const routeOpt = draft.statuses?.routeOptimization;
     if (compliance === "notDone" || compliance === "nonCompliant") {
-      navigate(`/compliance-check?draftId=${draft._id}`);
+      navigate(`/compliance?draftId=${draft._id}`);
     } else if (compliance === "compliant" && routeOpt === "notDone") {
-      navigate(`/route-optimization?draftId=${draft._id}`);
+      navigate(`/routes?draftId=${draft._id}`);
     }
   };
 

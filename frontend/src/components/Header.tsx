@@ -61,9 +61,9 @@ const Header = ({ title, page = "dashboard" }: HeaderProps) => {
         </div>
 
         <div className="flex items-center space-x-2">
-          {page === "compliance-check" && (
+          {page === "compliance" && (
             <button
-              onClick={() => navigate("/inventory-management")}
+              onClick={() => navigate("/inventory")}
               className="border-none bg-emerald-500 hover:bg-emerald-600 px-5 py-2.5 text-white text-sm font-bold rounded-xl transition-colors duration-200 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600"
             >
               Inventory
@@ -71,7 +71,7 @@ const Header = ({ title, page = "dashboard" }: HeaderProps) => {
           )}
           {page === "export" && (
             <button
-              onClick={() => navigate("/inventory-management")}
+              onClick={() => navigate("/inventory")}
               className="border-none bg-emerald-500 hover:bg-emerald-600 px-5 py-2.5 text-white text-sm font-bold rounded-xl transition-colors duration-200 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600"
             >
               Inventory

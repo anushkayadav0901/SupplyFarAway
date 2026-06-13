@@ -239,7 +239,7 @@ const Analysis: React.FC = () => {
               route-optimized.
             </p>
             <button
-              onClick={() => navigate("/inventory-management")}
+              onClick={() => navigate("/inventory")}
               className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               Go to Inventory
@@ -284,7 +284,7 @@ const Analysis: React.FC = () => {
               {draftsWithoutCarbonAnalysis.map((draft) => (
                 <button
                   key={draft._id}
-                  onClick={() => navigate(`/export-report/${draft._id}`)}
+                  onClick={() => navigate(`/inventory`)}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   Export Report for{" "}
