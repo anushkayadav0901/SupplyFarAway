@@ -1,6 +1,4 @@
 import React from "react";
-import { motion } from "framer-motion";
-import TypewriterText from "./TypewriterText";
 
 interface FeatureCardProps {
   icon?: React.ReactNode;
@@ -10,10 +8,6 @@ interface FeatureCardProps {
   iconBg?: string;
   iconColor?: string;
   index?: number;
-  animationDelay?: number;
-  titleDelay?: number;
-  descDelay?: number;
-  enableTypewriter?: boolean;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -22,93 +16,36 @@ const FeatureCard = ({
   icon,
   title = "Feature Title",
   desc = "Feature description goes here",
-  gradient = "bg-blue-500/10",
-  iconBg = "bg-blue-500/10",
-  iconColor = "text-blue-400",
-  index = 0,
-  animationDelay = 0,
-  titleDelay = 0,
-  descDelay = 0,
-  enableTypewriter = true,
+  gradient = "bg-blue-50/50 border-blue-200/50",
+  iconBg = "bg-blue-100/70",
+  iconColor = "text-blue-600",
   className = "",
   style = {},
 }: FeatureCardProps) => {
-  const feature = { icon, title, desc, gradient, iconBg, iconColor };
-
   return (
-    <motion.div
-      className={`group relative overflow-hidden rounded-custom border border-white/[0.08] ${feature.gradient}  h-16 w-full max-w-xs sm:max-w-sm md:max-w-md ${className}`}
+    <div
+      className={`relative overflow-hidden rounded-custom border border-slate-200/60 ${gradient} h-16 w-full max-w-xs sm:max-w-sm md:max-w-md ${className}`}
       style={style}
-      initial={{ opacity: 0, x: -50, scale: 0.9 }}
-      animate={{ opacity: 1, x: 0, scale: 1 }}
-      transition={{
-        delay: animationDelay + index * 0.2,
-        duration: 0.6,
-        type: "spring",
-        stiffness: 100,
-        damping: 20,
-      }}
-      whileHover={{
-        scale: 1.02,
-        y: -2,
-        transition: { duration: 0.2 },
-      }}
     >
-      {/* Subtle glow effect */}
-      <div className="absolute inset-0 bg-white/[0.03] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-      {/* Content */}
       <div className="relative h-full flex items-center px-3 sm:px-4 gap-3 sm:gap-4">
-        {/* Icon */}
-        <motion.div
-          className={`flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 ${feature.iconBg} rounded-full flex items-center justify-center  border border-white/[0.05]`}
-          whileHover={{
-            rotate: [0, -5, 5, 0],
-            scale: 1.1,
-          }}
-          transition={{ duration: 0.3 }}
+        <div
+          className={`flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 ${iconBg} ${iconColor} rounded-full flex items-center justify-center border border-slate-200/40`}
         >
-          <span className="text-lg filter drop-shadow-sm flex items-center justify-center">{feature.icon}</span>
-        </motion.div>
+          <span className="text-lg flex items-center justify-center">{icon}</span>
+        </div>
 
         {/* Text Content */}
         <div className="flex-1 min-w-0 overflow-hidden flex flex-col justify-center">
-          <h3 className="text-white font-medium text-sm sm:text-base leading-none truncate mb-1 text-left">
-            {enableTypewriter ? (
-              <TypewriterText
-                text={feature.title}
-                delay={titleDelay + index * 300}
-                speed={60}
-              />
-            ) : (
-              feature.title
-            )}
+          <h3 className="text-slate-800 font-medium text-sm sm:text-base leading-none truncate mb-1 text-left">
+            {title}
           </h3>
-          <p className="text-white/60 text-xs sm:text-sm leading-none truncate text-left">
-            {enableTypewriter ? (
-              <TypewriterText
-                text={feature.desc}
-                delay={descDelay + index * 300}
-                speed={30}
-              />
-            ) : (
-              feature.desc
-            )}
+          <p className="text-slate-500 text-xs sm:text-sm leading-none truncate text-left">
+            {desc}
           </p>
         </div>
 
-        {/* Side glow bar */}
-        <motion.div
-          className={`absolute left-0 top-0 bottom-0 w-px ${feature.gradient} opacity-30`}
-          initial={{ scaleY: 0 }}
-          animate={{ scaleY: 1 }}
-          transition={{
-            delay: animationDelay + 0.5 + index * 0.2,
-            duration: 0.8,
-          }}
-        />
       </div>
-    </motion.div>
+    </div>
   );
 };
 

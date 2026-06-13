@@ -1,5 +1,4 @@
 import React from "react";
-import { motion } from "framer-motion";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Breadcrumb, { resolvePageTitle } from "./Breadcrumb";
 
@@ -18,10 +17,7 @@ const Header = ({ title, page = "dashboard" }: HeaderProps) => {
       : resolvePageTitle(location.pathname) || "Supply Chain";
 
   return (
-    <motion.header
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
+    <header
       className="relative max-w-7xl mx-auto bg-blue-600 text-white py-8 sm:py-12 rounded-b-3xl w-full shadow-sm"
     >
       <div className="relative px-4 sm:px-6 mb-3">
@@ -83,9 +79,9 @@ const Header = ({ title, page = "dashboard" }: HeaderProps) => {
           )}
           <div className="hidden sm:flex items-center gap-2">
             {[
-              { label: "Trust Center", path: "/trust-center" },
-              { label: "Live Tracking", path: "/live-tracking" },
-              { label: "Fraud", path: "/fraud-dashboard" },
+              { label: "Inspection", path: "/inspect" },
+              { label: "Risk Center", path: "/risk" },
+              { label: "Routes", path: "/routes" },
             ].map((link) => (
               <button
                 key={link.path}
@@ -98,7 +94,7 @@ const Header = ({ title, page = "dashboard" }: HeaderProps) => {
           </div>
         </div>
       </div>
-    </motion.header>
+    </header>
   );
 };
 

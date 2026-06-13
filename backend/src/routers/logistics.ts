@@ -133,7 +133,7 @@ STRICTLY RETURN ONLY JSON with no explanations, headings, or extra text.
 export const logisticsRouter = router({
   // -------------------------------------------------------------------------
   // POST /api/route-optimization  (public)
-  // Generate 7 AI-powered shipping routes from → to.
+  // Generate 7 shipping routes from → to.
   // -------------------------------------------------------------------------
   generateRoutes: publicProcedure
     .input(

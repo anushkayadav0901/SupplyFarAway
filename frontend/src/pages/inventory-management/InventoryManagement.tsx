@@ -124,6 +124,8 @@ const InventoryManagement: React.FC = () => {
   const [deleteDraftId, setDeleteDraftId] = useState<string | null>(null);
   const [deleteEmail, setDeleteEmail] = useState<string>("");
   const [deleteEmailError, setDeleteEmailError] = useState<string>("");
+  const [openExportDialog, setOpenExportDialog] = useState<boolean>(false);
+  const [exportDraft, setExportDraft] = useState<any | null>(null);
   const navigate = useNavigate();
 
   // Fetch all tabs in parallel and combine
@@ -417,9 +419,8 @@ const InventoryManagement: React.FC = () => {
         <Card
           sx={{
             borderRadius: 2,
-            boxShadow: "0 4px 16px rgba(0, 0, 0, 0.1)",
-            background: "rgba(255, 255, 255, 0.95)",
-            backdropFilter: "blur(10px)",
+            boxShadow: "0 1px 4px rgba(0, 0, 0, 0.08)",
+            background: "#ffffff",
             mb: 4,
             overflowX: "auto",
           }}
@@ -451,8 +452,7 @@ const InventoryManagement: React.FC = () => {
                   color: "#64748b",
                   "&.Mui-selected": {
                     color: "#0f172a",
-                    background:
-                      "linear-gradient(135deg, #e2e8f0 0%, #f1f5f9 100%)",
+                    background: "#f1f5f9",
                   },
                 },
                 "& .MuiTabs-indicator": {
@@ -747,9 +747,10 @@ const InventoryManagement: React.FC = () => {
                           draft.statuses?.routeOptimization === "done" && (
                             <Button
                               variant="contained"
-                              onClick={() =>
-                                navigate(`/export-report/${draft._id}`)
-                              }
+                              onClick={() => {
+                                setExportDraft(draft);
+                                setOpenExportDialog(true);
+                              }}
                               sx={{
                                 backgroundColor: "#059669",
                                 borderRadius: 2,
@@ -830,6 +831,91 @@ const InventoryManagement: React.FC = () => {
             <Add sx={{ fontSize: { xs: 24, sm: 28 } }} />
           </Button>
         )}
+
+        {/* Export Report Dialog */}
+        <Dialog
+          open={openExportDialog}
+          onClose={() => setOpenExportDialog(false)}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: { borderRadius: 3, p: 2 }
+          }}
+        >
+          <DialogTitle sx={{ fontWeight: 700, textAlign: "center" }}>
+            Shipment Manifest Report
+          </DialogTitle>
+          <DialogContent>
+            {exportDraft && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px", fontSize: "14px", color: "#334155" }}>
+                <div style={{ padding: "12px", backgroundColor: "#f8fafc", borderRadius: "12px", border: "1px border #e2e8f0", fontFamily: "monospace", fontSize: "12px" }}>
+                  <p><strong>Draft ID:</strong> {exportDraft._id}</p>
+                  <p><strong>Created:</strong> {new Date(exportDraft.createdAt).toLocaleString()}</p>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div>
+                    <p style={{ fontSize: "11px", color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" }}>Origin</p>
+                    <p style={{ fontWeight: 600, color: "#1e293b" }}>{exportDraft.originCountry}</p>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: "11px", color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" }}>Destination</p>
+                    <p style={{ fontWeight: 600, color: "#1e293b" }}>{exportDraft.destinationCountry}</p>
+                  </div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div>
+                    <p style={{ fontSize: "11px", color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" }}>Weight</p>
+                    <p style={{ fontWeight: 600, color: "#1e293b" }}>{exportDraft.weight} kg</p>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: "11px", color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" }}>HS Code</p>
+                    <p style={{ fontWeight: 600, color: "#1e293b" }}>{exportDraft.hsCode || "N/A"}</p>
+                  </div>
+                </div>
+                <div>
+                  <p style={{ fontSize: "11px", color: "#94a3b8", fontWeight: 600, textTransform: "uppercase" }}>Cargo Description</p>
+                  <p style={{ color: "#1e293b" }}>{exportDraft.productDescription}</p>
+                </div>
+                <div style={{ padding: "12px", borderRadius: "12px", border: "1px solid #a7f3d0", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", fontWeight: 600, backgroundColor: "#ecfdf5", color: "#065f46" }}>
+                  <span>Regulatory Review:</span>
+                  <span style={{ textTransform: "uppercase" }}>Approved &amp; Compliant</span>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+          <DialogActions sx={{ justifyContent: "center", gap: 2, pb: 2 }}>
+            <Button
+              onClick={() => {
+                if (!exportDraft) return;
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportDraft, null, 2));
+                const downloadAnchor = document.createElement("a");
+                downloadAnchor.setAttribute("href", dataStr);
+                downloadAnchor.setAttribute("download", `shipment-report-${exportDraft._id}.json`);
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+              }}
+              variant="contained"
+              sx={{ textTransform: "none", fontWeight: 600 }}
+            >
+              Download JSON
+            </Button>
+            <Button
+              onClick={() => window.print()}
+              variant="outlined"
+              sx={{ textTransform: "none", fontWeight: 600 }}
+            >
+              Print Manifest
+            </Button>
+            <Button
+              onClick={() => setOpenExportDialog(false)}
+              variant="text"
+              sx={{ textTransform: "none", fontWeight: 600, color: "#64748b" }}
+            >
+              Close
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         {/* Delete Dialog */}
         <Dialog
@@ -915,18 +1001,15 @@ const InventoryManagement: React.FC = () => {
           PaperProps={{
             sx: {
               borderRadius: 3,
-              background: "rgba(255, 255, 255, 0.95)",
-              backdropFilter: "blur(10px)",
-              boxShadow: "0 25px 50px rgba(0, 0, 0, 0.25)",
+              background: "#ffffff",
+              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.12)",
               m: { xs: 1, sm: 2 },
               width: { xs: "90%", sm: "80%", md: "70%" },
             },
           }}
-          BackdropComponent={Backdrop}
           BackdropProps={{
             sx: {
-              backgroundColor: "rgba(0, 0, 0, 0.6)",
-              backdropFilter: "blur(8px)",
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
             },
           }}
         >
@@ -952,13 +1035,14 @@ const InventoryManagement: React.FC = () => {
                 className="w-full bg-white rounded-xl p-4 sm:p-6"
               >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 w-full">
-                  <div className="relative w-full">
+                  <div className="w-full">
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Origin Country</label>
                     <select
                       name="originCountry"
                       value={newDraft.originCountry}
                       onChange={handleInputChange}
                       required
-                      className="peer w-full px-4 py-4 bg-white border-2 border-gray-300 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150 appearance-none"
+                      className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150 appearance-none"
                     >
                       <option value="" disabled>
                         Select Origin Country
@@ -971,24 +1055,23 @@ const InventoryManagement: React.FC = () => {
                         )
                       )}
                     </select>
-                    <label className="absolute left-4 -top-2.5 bg-white px-2 py-0.5 rounded text-sm font-medium text-gray-600 transition-colors duration-150">
-                      Origin Country
-                    </label>
                     <Typography color="error" variant="caption" sx={{ minHeight: "1.2em", display: "block" }}>
-                      {formErrors.originCountry || " "}
+                      {formErrors.originCountry || " "}
                     </Typography>
                   </div>
 
-                  <div className="relative w-full">
+
+                  <div className="w-full">
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Destination Country</label>
                     <select
                       name="destinationCountry"
                       value={newDraft.destinationCountry}
                       onChange={handleInputChange}
                       required
-                      className="peer w-full px-4 py-4 bg-white border-2 border-gray-300 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150 appearance-none"
+                      className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150 appearance-none"
                     >
                       <option value="" disabled>
-                        Select Destination Country
+                        Select Destination
                       </option>
                       {countryOptions.map(
                         (option: { value: string; label: string }) => (
@@ -998,37 +1081,17 @@ const InventoryManagement: React.FC = () => {
                         )
                       )}
                     </select>
-                    <label className="absolute left-4 -top-2.5 bg-white px-2 py-0.5 rounded text-sm font-medium text-gray-600 transition-colors duration-150">
-                      Destination Country
-                    </label>
                     <Typography color="error" variant="caption" sx={{ minHeight: "1.2em", display: "block" }}>
                       {formErrors.destinationCountry || " "}
                     </Typography>
                   </div>
+                </div>
 
-                  <div className="relative w-full">
-                    <input
-                      type="text"
-                      id="hsCode"
-                      name="hsCode"
-                      value={newDraft.hsCode}
-                      onChange={handleInputChange}
-                      required
-                      placeholder=" "
-                      className="peer w-full px-4 py-4 bg-white border-2 border-gray-300 rounded-xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
-                    />
-                    <label
-                      htmlFor="hsCode"
-                      className="absolute left-4 -top-2.5 bg-white px-2 py-0.5 rounded text-sm font-medium text-gray-600 transition-colors duration-150 peer-placeholder-shown:top-4 peer-placeholder-shown:left-4 peer-placeholder-shown:bg-transparent peer-placeholder-shown:text-gray-500 peer-focus:-top-2.5 peer-focus:left-4 peer-focus:bg-white peer-focus:text-blue-600"
-                    >
-                      HS Code
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 w-full mt-2">
+                  <div className="w-full">
+                    <label htmlFor="weight" className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Weight (kg)
                     </label>
-                    <Typography color="error" variant="caption" sx={{ minHeight: "1.2em", display: "block" }}>
-                      {formErrors.hsCode || " "}
-                    </Typography>
-                  </div>
-
-                  <div className="relative w-full">
                     <input
                       type="number"
                       id="weight"
@@ -1038,38 +1101,29 @@ const InventoryManagement: React.FC = () => {
                       required
                       min="0"
                       step="0.1"
-                      placeholder=" "
-                      className="peer w-full px-4 py-4 bg-white border-2 border-gray-300 rounded-xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
+                      placeholder="e.g. 500"
+                      className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
                     />
-                    <label
-                      htmlFor="weight"
-                      className="absolute left-4 -top-2.5 bg-white px-2 py-0.5 rounded text-sm font-medium text-gray-600 transition-colors duration-150 peer-placeholder-shown:top-4 peer-placeholder-shown:left-4 peer-placeholder-shown:bg-transparent peer-placeholder-shown:text-gray-500 peer-focus:-top-2.5 peer-focus:left-4 peer-focus:bg-white peer-focus:text-blue-600"
-                    >
-                      Weight (kg)
-                    </label>
                     <Typography color="error" variant="caption" sx={{ minHeight: "1.2em", display: "block" }}>
                       {formErrors.weight || " "}
                     </Typography>
                   </div>
                 </div>
 
-                <div className="relative w-full mt-4">
+                <div className="w-full mt-4">
+                  <label htmlFor="productDescription" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Product Description
+                  </label>
                   <textarea
                     id="productDescription"
                     name="productDescription"
                     value={newDraft.productDescription}
                     onChange={handleInputChange}
                     required
-                    placeholder=" "
+                    placeholder="Describe the product (e.g. Electronic components for assembly)"
                     rows={3}
-                    className="peer w-full px-4 py-4 bg-white border-2 border-gray-300 rounded-xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
+                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
                   />
-                  <label
-                    htmlFor="productDescription"
-                    className="absolute left-4 -top-2.5 bg-white px-2 py-0.5 rounded text-sm font-medium text-gray-600 transition-colors duration-150 peer-placeholder-shown:top-4 peer-placeholder-shown:left-4 peer-placeholder-shown:bg-transparent peer-placeholder-shown:text-gray-500 peer-focus:-top-2.5 peer-focus:left-4 peer-focus:bg-white peer-focus:text-blue-600"
-                  >
-                    Product Description
-                  </label>
                   <Typography color="error" variant="caption" sx={{ minHeight: "1.2em", display: "block" }}>
                     {formErrors.productDescription || " "}
                   </Typography>

@@ -80,13 +80,7 @@ const Sparkline: React.FC<{
       viewBox={`0 0 ${width} ${height}`}
       className="overflow-visible"
     >
-      <defs>
-        <linearGradient id={`spark-grad-${color.replace("#", "")}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity={0.3} />
-          <stop offset="100%" stopColor={color} stopOpacity={0} />
-        </linearGradient>
-      </defs>
-      <path d={areaPath} fill={`url(#spark-grad-${color.replace("#", "")})`} />
+      <path d={areaPath} fill={color} fillOpacity={0.08} />
       <polyline
         points={points}
         fill="none"
@@ -95,44 +89,17 @@ const Sparkline: React.FC<{
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      {/* glowing dot at end */}
       {data.length > 0 && (
-        <>
-          <circle
-            cx={width}
-            cy={
-              height -
-              ((data[data.length - 1] - min) / range) * (height - 4) -
-              2
-            }
-            r="3"
-            fill={color}
-          />
-          <circle
-            cx={width}
-            cy={
-              height -
-              ((data[data.length - 1] - min) / range) * (height - 4) -
-              2
-            }
-            r="6"
-            fill={color}
-            opacity="0.3"
-          >
-            <animate
-              attributeName="r"
-              values="4;8;4"
-              dur="2s"
-              repeatCount="indefinite"
-            />
-            <animate
-              attributeName="opacity"
-              values="0.4;0.1;0.4"
-              dur="2s"
-              repeatCount="indefinite"
-            />
-          </circle>
-        </>
+        <circle
+          cx={width}
+          cy={
+            height -
+            ((data[data.length - 1] - min) / range) * (height - 4) -
+            2
+          }
+          r="3"
+          fill={color}
+        />
       )}
     </svg>
   );
@@ -143,14 +110,10 @@ const ProgressRing: React.FC<{
   percent: number;
   size?: number;
   strokeWidth?: number;
-  gradientFrom?: string;
-  gradientTo?: string;
 }> = ({
   percent,
   size = 120,
   strokeWidth = 8,
-  gradientFrom = "#3b82f6",
-  gradientTo = "#10b981",
 }) => {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -159,29 +122,22 @@ const ProgressRing: React.FC<{
   return (
     <div ref={ref} className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
-        <defs>
-          <linearGradient id="ring-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor={gradientFrom} />
-            <stop offset="100%" stopColor={gradientTo} />
-          </linearGradient>
-        </defs>
         {/* track */}
         <circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="currentColor"
-          className="text-gray-200"
+          stroke="#e2e8f0"
           strokeWidth={strokeWidth}
         />
-        {/* progress */}
+        {/* progress — solid emerald stroke */}
         <motion.circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="url(#ring-grad)"
+          stroke="#10b981"
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -236,125 +192,42 @@ const GlobalNetworkMap: React.FC = () => {
         className="w-full h-auto"
         xmlns="http://www.w3.org/2000/svg"
       >
-        <defs>
-          <radialGradient id="node-glow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.6" />
-            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
-          </radialGradient>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="3" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-          <linearGradient id="line-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.15" />
-            <stop offset="50%" stopColor="#10b981" stopOpacity="0.4" />
-            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.15" />
-          </linearGradient>
-        </defs>
-
-        {/* connections */}
+        {/* connections — flat solid strokes */}
         {connections.map(([from, to], i) => (
-          <motion.line
+          <line
             key={`conn-${i}`}
             x1={nodes[from].x}
             y1={nodes[from].y}
             x2={nodes[to].x}
             y2={nodes[to].y}
-            stroke="url(#line-grad)"
-            strokeWidth="1.5"
-            initial={{ pathLength: 0, opacity: 0 }}
-            whileInView={{ pathLength: 1, opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{
-              duration: 1.5,
-              delay: 0.3 + i * 0.08,
-              ease: "easeOut",
-            }}
+            stroke="#cbd5e1"
+            strokeWidth="1"
           />
         ))}
-
-        {/* travelling packets along connections */}
-        {connections.slice(0, 6).map(([from, to], i) => {
-          const dx = nodes[to].x - nodes[from].x;
-          const dy = nodes[to].y - nodes[from].y;
-          return (
-            <motion.circle
-              key={`packet-${i}`}
-              r="2.5"
-              fill="#10b981"
-              filter="url(#glow)"
-              initial={{ cx: nodes[from].x, cy: nodes[from].y, opacity: 0 }}
-              animate={{
-                cx: [nodes[from].x, nodes[from].x + dx * 0.5, nodes[to].x],
-                cy: [nodes[from].y, nodes[from].y + dy * 0.5, nodes[to].y],
-                opacity: [0, 1, 0],
-              }}
-              transition={{
-                duration: 3 + i * 0.5,
-                repeat: Infinity,
-                repeatDelay: 1 + i * 0.3,
-                ease: "linear",
-              }}
-            />
-          );
-        })}
 
         {/* nodes */}
         {nodes.map((node, i) => (
           <g key={`node-${i}`}>
-            {/* outer glow */}
-            <motion.circle
-              cx={node.x}
-              cy={node.y}
-              r="16"
-              fill="url(#node-glow)"
-              initial={{ scale: 0, opacity: 0 }}
-              whileInView={{ scale: 1, opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: node.delay + 0.5, duration: 0.6 }}
-            >
-              <animate
-                attributeName="r"
-                values="14;18;14"
-                dur={`${3 + i * 0.3}s`}
-                repeatCount="indefinite"
-              />
-            </motion.circle>
             {/* core dot */}
-            <motion.circle
+            <circle
               cx={node.x}
               cy={node.y}
               r="4.5"
               fill="#3b82f6"
               stroke="white"
               strokeWidth="2"
-              filter="url(#glow)"
-              initial={{ scale: 0 }}
-              whileInView={{ scale: 1 }}
-              viewport={{ once: true }}
-              transition={{
-                type: "spring",
-                stiffness: 300,
-                damping: 20,
-                delay: node.delay + 0.5,
-              }}
             />
             {/* label */}
-            <motion.text
+            <text
               x={node.x}
-              y={node.y - 14}
+              y={node.y - 10}
               textAnchor="middle"
-              className="fill-gray-500 text-[9px] font-bold tracking-wider"
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: node.delay + 0.8 }}
+              fill="#94a3b8"
+              fontSize="8"
+              fontWeight="bold"
             >
               {node.label}
-            </motion.text>
+            </text>
           </g>
         ))}
       </svg>
@@ -416,7 +289,7 @@ const LiveStatsSection: React.FC = () => {
       sparkColor: "#10b981",
     },
     {
-      icon: <FaChartLine className="text-violet-600" size={20} />,
+      icon: <FaChartLine className="text-blue-600" size={20} />,
       label: "Cost Saved",
       value: 2.4,
       suffix: "M",
@@ -425,7 +298,7 @@ const LiveStatsSection: React.FC = () => {
       change: "+18.2%",
       changeUp: true,
       sparkData: [0.8, 1.0, 0.9, 1.2, 1.4, 1.6, 1.5, 1.8, 2.0, 2.1, 2.3, 2.4],
-      sparkColor: "#8b5cf6",
+      sparkColor: "#3b82f6",
     },
     {
       icon: <FaBolt className="text-amber-500" size={20} />,
@@ -446,12 +319,7 @@ const LiveStatsSection: React.FC = () => {
       className="relative py-20 sm:py-32 px-4 sm:px-6 z-10 overflow-hidden"
       id="live-stats"
     >
-      {/* Background decorations */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-100/40 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-emerald-100/40 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-violet-50/30 rounded-full blur-3xl" />
-      </div>
+      {/* Removed: background decorations */}
 
       <div className="relative max-w-7xl mx-auto">
         {/* Section Header */}
@@ -471,12 +339,11 @@ const LiveStatsSection: React.FC = () => {
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
             Supply Chain{" "}
             <span className="text-blue-600">
-              Command Center
+              Network
             </span>
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Monitor your entire logistics network in real-time with AI-powered
-            insights and predictive analytics
+            Monitor your logistics network with real-time data and analytics
           </p>
         </motion.div>
 
@@ -496,15 +363,8 @@ const LiveStatsSection: React.FC = () => {
                 y: -6,
                 transition: { duration: 0.2 },
               }}
-              className="group relative bg-white  border border-gray-200/60 rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden"
+              className="group relative bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
             >
-              {/* Hover glow */}
-              <div
-                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl"
-                style={{
-                  background: `radial-gradient(circle at 50% 0%, ${stat.sparkColor}12, transparent 70%)`,
-                }}
-              />
 
               <div className="relative">
                 {/* Icon + Change */}
@@ -615,10 +475,7 @@ const LiveStatsSection: React.FC = () => {
 
             {/* Security / Compliance mini card */}
             <div className="relative bg-blue-600 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
-              {/* Animated background pattern */}
-              <div className="absolute inset-0 opacity-10">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_2px_2px,rgba(255,255,255,0.3)_1px,transparent_0)] bg-[length:20px_20px]" />
-              </div>
+
               <div className="relative flex items-center gap-4">
                 <div className="w-12 h-12 bg-white  rounded-xl flex items-center justify-center border border-white/10">
                   <FaShieldAlt className="text-white text-lg" />

@@ -1,347 +1,16 @@
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-  useMemo,
-} from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import GoogleLogin from "./GoogleLogin";
-import Globe from "react-globe.gl";
 import Toast from "./../../components/Toast";
-import TypewriterText from "./TypewriterText";
 import FeatureCard from "./FeatureCard";
 import { FaCheckCircle, FaTruck, FaBox } from "react-icons/fa";
 import { trpc } from "../../lib/trpc";
-
-interface Hub {
-  lat: number;
-  lng: number;
-  city: string;
-  size: number;
-  color: string;
-}
-
-interface Route {
-  startLat: number;
-  startLng: number;
-  endLat: number;
-  endLng: number;
-}
-
-interface LogisticsData {
-  hubs: Hub[];
-  routes: Route[];
-}
 
 interface ToastState {
   type: string;
   message: string;
 }
-
-interface FloatingLabelProps {
-  label: string;
-  value: string;
-  focused: boolean;
-  children: React.ReactNode;
-}
-
-// Memoized LogisticsGlobe component
-const LogisticsGlobe = React.memo(() => {
-  const globeEl = useRef<any>(null);
-  const [globeReady, setGlobeReady] = useState(false);
-
-  // Memoize logistics data to prevent recreation
-  const logisticsData = useMemo<LogisticsData>(
-    () => ({
-      hubs: [
-        // North America
-        {
-          lat: 40.7128,
-          lng: -74.006,
-          city: "New York",
-          size: 1.2,
-          color: "#60a5fa",
-        },
-        {
-          lat: 19.4326,
-          lng: -99.1332,
-          city: "Mexico City",
-          size: 1.1,
-          color: "#fbbf24",
-        },
-        // South America
-        {
-          lat: -23.5505,
-          lng: -46.6333,
-          city: "Sao Paulo",
-          size: 1.1,
-          color: "#f97316",
-        },
-        // Europe
-        {
-          lat: 51.5074,
-          lng: -0.1278,
-          city: "London",
-          size: 1.2,
-          color: "#34d399",
-        },
-        {
-          lat: 55.7558,
-          lng: 37.6173,
-          city: "Moscow",
-          size: 1.0,
-          color: "#818cf8",
-        },
-        // Africa
-        {
-          lat: -33.9249,
-          lng: 18.4241,
-          city: "Cape Town",
-          size: 1.0,
-          color: "#22d3ee",
-        },
-        // Middle East
-        {
-          lat: 25.2048,
-          lng: 55.2708,
-          city: "Dubai",
-          size: 1.1,
-          color: "#fb7185",
-        },
-        // South Asia
-        {
-          lat: 19.076,
-          lng: 72.8777,
-          city: "Mumbai",
-          size: 1.1,
-          color: "#4ade80",
-        },
-        // East Asia
-        {
-          lat: 35.6895,
-          lng: 139.6917,
-          city: "Tokyo",
-          size: 1.3,
-          color: "#fbbf24",
-        },
-        // Southeast Asia
-        {
-          lat: 1.3521,
-          lng: 103.8198,
-          city: "Singapore",
-          size: 1.2,
-          color: "#a78bfa",
-        },
-        // Oceania
-        {
-          lat: -33.8688,
-          lng: 151.2093,
-          city: "Sydney",
-          size: 1.1,
-          color: "#10b981",
-        },
-        // Central Asia
-        {
-          lat: 43.222,
-          lng: 76.8512,
-          city: "Almaty",
-          size: 1.0,
-          color: "#eab308",
-        },
-        // North Africa
-        {
-          lat: 30.0444,
-          lng: 31.2357,
-          city: "Cairo",
-          size: 1.0,
-          color: "#ef4444",
-        },
-      ],
-
-      routes: [
-        // Inter-continental and major connections
-        // North America <-> Europe <-> Asia
-        {
-          startLat: 40.7128,
-          startLng: -74.006,
-          endLat: 51.5074,
-          endLng: -0.1278,
-        }, // New York - London
-        {
-          startLat: 51.5074,
-          startLng: -0.1278,
-          endLat: 55.7558,
-          endLng: 37.6173,
-        }, // London - Moscow
-        {
-          startLat: 55.7558,
-          startLng: 37.6173,
-          endLat: 43.222,
-          endLng: 76.8512,
-        }, // Moscow - Almaty
-        {
-          startLat: 43.222,
-          startLng: 76.8512,
-          endLat: 35.6895,
-          endLng: 139.6917,
-        }, // Almaty - Tokyo
-        {
-          startLat: 35.6895,
-          startLng: 139.6917,
-          endLat: 1.3521,
-          endLng: 103.8198,
-        }, // Tokyo - Singapore
-        {
-          startLat: 1.3521,
-          startLng: 103.8198,
-          endLat: -33.8688,
-          endLng: 151.2093,
-        }, // Singapore - Sydney
-        {
-          startLat: -33.8688,
-          startLng: 151.2093,
-          endLat: 19.076,
-          endLng: 72.8777,
-        }, // Sydney - Mumbai
-        {
-          startLat: 19.076,
-          startLng: 72.8777,
-          endLat: 25.2048,
-          endLng: 55.2708,
-        }, // Mumbai - Dubai
-        {
-          startLat: 25.2048,
-          startLng: 55.2708,
-          endLat: 30.0444,
-          endLng: 31.2357,
-        }, // Dubai - Cairo
-        {
-          startLat: 30.0444,
-          startLng: 31.2357,
-          endLat: -33.9249,
-          endLng: 18.4241,
-        }, // Cairo - Cape Town
-        {
-          startLat: -33.9249,
-          startLng: 18.4241,
-          endLat: -23.5505,
-          endLng: -46.6333,
-        }, // Cape Town - Sao Paulo
-        {
-          startLat: -23.5505,
-          startLng: -46.6333,
-          endLat: 19.4326,
-          endLng: -99.1332,
-        }, // Sao Paulo - Mexico City
-        {
-          startLat: 19.4326,
-          startLng: -99.1332,
-          endLat: 40.7128,
-          endLng: -74.006,
-        }, // Mexico City - New York
-
-        // Additional cross-connections for network robustness
-        {
-          startLat: 40.7128,
-          startLng: -74.006,
-          endLat: 19.4326,
-          endLng: -99.1332,
-        }, // New York - Mexico City
-        {
-          startLat: 51.5074,
-          startLng: -0.1278,
-          endLat: 30.0444,
-          endLng: 31.2357,
-        }, // London - Cairo
-        {
-          startLat: 1.3521,
-          startLng: 103.8198,
-          endLat: 25.2048,
-          endLng: 55.2708,
-        }, // Singapore - Dubai
-        {
-          startLat: 19.076,
-          startLng: 72.8777,
-          endLat: 43.222,
-          endLng: 76.8512,
-        }, // Mumbai - Almaty
-        {
-          startLat: -33.9249,
-          startLng: 18.4241,
-          endLat: 51.5074,
-          endLng: -0.1278,
-        }, // Cape Town - London
-      ],
-    }),
-    []
-  );
-
-  useEffect(() => {
-    if (globeEl.current && !globeReady) {
-      const controls = globeEl.current.controls();
-      controls.autoRotate = false;
-      controls.enableZoom = false;
-
-      // Set initial camera position — centered on the Americas
-      globeEl.current.pointOfView({ lat: 20, lng: -80, altitude: 1.8 }, 0);
-
-      // Lock vertical rotation
-      const currentPolar = controls.getPolarAngle();
-      controls.minPolarAngle = currentPolar;
-      controls.maxPolarAngle = currentPolar;
-
-      setGlobeReady(true);
-    }
-  }, [globeReady]);
-
-  return (
-    <div className="w-full h-full relative">
-      <Globe
-        ref={globeEl}
-        globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
-        bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
-        backgroundColor="rgba(0,0,0,0)"
-        pointsData={logisticsData.hubs}
-        pointLat="lat"
-        pointLng="lng"
-        pointAltitude={(d: any) => (d as Hub).size * 0.03}
-        pointRadius={(d: any) => (d as Hub).size * 1.2}
-        pointColor={(d: any) => (d as Hub).color}
-        pointsMerge={true}
-        arcsData={logisticsData.routes}
-        arcStartLat="startLat"
-        arcStartLng="startLng"
-        arcEndLat="endLat"
-        arcEndLng="endLng"
-        arcColor={() => ["#60a5fa", "#34d399", "#fbbf24"]}
-        arcAltitude={0.3}
-        arcStroke={0.8}
-        arcDashLength={0.4}
-        arcDashGap={0.2}
-        arcDashInitialGap={() => Math.random()}
-        arcDashAnimateTime={() => Math.random() * 2000 + 1000}
-        arcsTransitionDuration={0}
-        ringsData={logisticsData.hubs}
-        ringLat="lat"
-        ringLng="lng"
-        ringMaxRadius={(d: any) => (d as Hub).size * 3}
-        ringPropagationSpeed={2}
-        ringRepeatPeriod={800}
-        ringColor={(d: any) => (d as Hub).color}
-        labelsData={logisticsData.hubs}
-        labelLat="lat"
-        labelLng="lng"
-        labelText="city"
-        labelSize={2}
-        labelDotRadius={0.5}
-        labelColor={() => "#ffffff"}
-        labelResolution={2}
-      />
-    </div>
-  );
-});
 
 const CreateAccount = () => {
   const [firstName, setFirstName] = useState<string>("");
@@ -385,33 +54,32 @@ const CreateAccount = () => {
 
   const loading = createAccountMutation.isPending;
 
-  // Memoize features array
-  const features = useMemo(
-    () => [
-      {
-        icon: <FaCheckCircle className="text-emerald-400" size={18} />,
-        title: "Compliance Monitoring",
-        desc: "Automated checks for global trade rules",
-        gradient: "bg-emerald-500/10",
-        iconBg: "bg-emerald-500/10",
-      },
-      {
-        icon: <FaTruck className="text-blue-400" size={18} />,
-        title: "Smart Route Optimization",
-        desc: "Best routes by cost, time, and emissions",
-        gradient: "bg-blue-500/10",
-        iconBg: "bg-blue-500/10",
-      },
-      {
-        icon: <FaBox className="text-yellow-400" size={18} />,
-        title: "Inventory Management",
-        desc: "Track all shipments & records in one place",
-        gradient: "bg-yellow-500/10",
-        iconBg: "bg-yellow-500/10",
-      },
-    ],
-    []
-  );
+  const features = [
+    {
+      icon: <FaCheckCircle className="text-emerald-600" size={18} />,
+      title: "Compliance Monitoring",
+      desc: "Automated checks for global trade rules",
+      gradient: "bg-emerald-50/50 border-emerald-200/50",
+      iconBg: "bg-emerald-100/70",
+      iconColor: "text-emerald-600",
+    },
+    {
+      icon: <FaTruck className="text-blue-600" size={18} />,
+      title: "Smart Route Optimization",
+      desc: "Best routes by cost, time, and emissions",
+      gradient: "bg-blue-50/50 border-blue-200/50",
+      iconBg: "bg-blue-100/70",
+      iconColor: "text-blue-600",
+    },
+    {
+      icon: <FaBox className="text-amber-600" size={18} />,
+      title: "Inventory Management",
+      desc: "Track all shipments & records in one place",
+      gradient: "bg-amber-50/50 border-amber-200/50",
+      iconBg: "bg-amber-100/70",
+      iconColor: "text-amber-600",
+    },
+  ];
 
   // Handle Google redirect
   useEffect(() => {
@@ -423,7 +91,6 @@ const CreateAccount = () => {
         message: "Account Created with Google!",
       });
       const nextPath = searchParams.get("next") || "/dashboard";
-      // Strip the token from the URL so a refresh doesn't re-trigger.
       try {
         const url = new URL(window.location.href);
         url.searchParams.delete("token");
@@ -441,9 +108,7 @@ const CreateAccount = () => {
   const isValidEmail = (email: string): boolean =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-  // Memoize handleCreateAccount
   const handleCreateAccount = useCallback(() => {
-    // Guard against double-submit via Enter key while a mutation is pending.
     if (createAccountMutation.isPending) return;
     if (!firstName.trim() || !lastName.trim() || !emailAddress || !password) {
       setToastProps({ type: "warn", message: "Please fill in all fields" });
@@ -453,7 +118,6 @@ const CreateAccount = () => {
       setToastProps({ type: "warn", message: "Please enter a valid email address" });
       return;
     }
-    // Backend enforces a minimum of 8 — match here to avoid round-trip failure.
     if (password.length < 8) {
       setToastProps({ type: "warn", message: "Password must be at least 8 characters" });
       return;
@@ -467,138 +131,61 @@ const CreateAccount = () => {
     });
   }, [firstName, lastName, emailAddress, password, createAccountMutation]);
 
-  const FloatingLabel = ({ label, value, focused, children }: FloatingLabelProps) => (
-    <div className="relative">
-      <motion.label
-        animate={{
-          y: focused || value ? -24 : 0,
-          scale: focused || value ? 0.85 : 1,
-          color: focused ? "#c7a711" : "#ffffff80",
-        }}
-        transition={{ duration: 0.2, ease: "easeOut" }}
-        className="absolute left-4 top-4 text-white/50 pointer-events-none origin-left z-10 font-medium"
-      >
-        {label}
-      </motion.label>
-      {children}
-    </div>
-  );
-
   return (
     <div className="min-h-screen flex items-center justify-center">
-      {/* Left Side - Enhanced Globe Visualization */}
+      {/* Left Side - Light Mode Structured Layout */}
       <motion.div
         initial={{ opacity: 0, x: -100 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.8 }}
-        className="hidden lg:flex lg:w-2/3 lg:h-[calc(100vh-40px)] lg:m-5 bg-slate-900 relative overflow-hidden rounded-3xl border border-white/20"
+        className="hidden lg:flex lg:w-2/3 lg:h-[calc(100vh-40px)] lg:m-5 bg-slate-50 relative overflow-hidden rounded-3xl border border-slate-200"
       >
-        <div className="absolute inset-0 opacity-20">
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage: `radial-gradient(circle at 25% 25%, rgba(96,165,250,0.3) 1px, transparent 1px)`,
-              backgroundSize: "40px 40px",
-            }}
-          ></div>
-        </div>
-
-        {/* Floating geometric shapes */}
-        <div className="absolute inset-0">
-          {[...Array(2)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute rounded-full border border-white/12"
-              style={{
-                width: `${150 + i * 100}px`,
-                height: `${150 + i * 100}px`,
-                right: `${-75 + i * 20}px`,
-                top: `${-75 + i * 30}px`,
-              }}
-              animate={{
-                rotate: [0, 360],
-                scale: [1, 1.05, 1],
-              }}
-              transition={{
-                duration: 25 + i * 5,
-                repeat: Infinity,
-                ease: "linear",
-              }}
-            />
-          ))}
-        </div>
-
-        {/* Globe Container */}
-        <div className="absolute inset-0 overflow-hidden">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1.2, delay: 0.5 }}
-            className="absolute inset-0"
-          >
-            <LogisticsGlobe />
-          </motion.div>
-
-          {/* Bottom tagline */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 1.5 }}
-            className="absolute bottom-8 left-1/4 text-center z-20"
-          >
-            <p className="text-white/80 text-sm">
-              Experience logistics visualization powered by AI
-            </p>
-          </motion.div>
+        {/* Subtle grid background */}
+        <div className="absolute inset-0 opacity-[0.06] pointer-events-none">
+          <svg width="100%" height="100%">
+            <defs>
+              <pattern id="grid-ca" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="black" strokeWidth="1" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid-ca)" />
+          </svg>
         </div>
 
         {/* Content Container */}
-        <div className="absolute right-0 top-20 w-1/2 h-full flex flex-col justify-between p-8">
-          <motion.div
-            initial={{ opacity: 0, y: -30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.3 }}
-            className="z-20"
-          >
-             <h1 className="text-5xl font-bold text-white mb-2 tracking-tight drop-shadow-lg">
-              <span className="text-blue-300">
+        <div className="absolute inset-0 flex flex-col justify-between p-12">
+          <div>
+            <h1 className="text-5xl font-bold text-slate-900 mb-2 tracking-tight">
+              <span className="text-blue-600">
                 Supply Chain
               </span>
             </h1>
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8 }}
-              className="text-lg text-white/90 font-medium"
-            >
-              <TypewriterText
-                text={"Connect the World, Deliver the Future"}
-                delay={1000}
-                speed={40}
+            <p className="text-lg text-slate-600 font-medium">
+              Connect the world. Deliver with confidence.
+            </p>
+          </div>
+
+          {/* Feature Cards */}
+          <div className="flex flex-col gap-4 w-full max-w-lg">
+            {features.map((feature, index) => (
+              <FeatureCard
+                key={index}
+                {...feature}
+                index={index}
               />
-            </motion.p>
-            {/* Feature Cards */}
-            <div className="flex flex-col gap-4 mt-16 w-full max-w-lg">
-              {features.map((feature, index) => (
-                <FeatureCard
-                  key={index}
-                  {...feature}
-                  index={index}
-                  animationDelay={0.2}
-                  titleDelay={500 + index * 200}
-                  descDelay={1000 + index * 200}
-                />
-              ))}
-            </div>
-          </motion.div>
+            ))}
+          </div>
+
+          <div>
+            <p className="text-slate-400 text-xs tracking-wider uppercase font-semibold">
+              Verifiable Logistics Platform
+            </p>
+          </div>
         </div>
       </motion.div>
 
       {/* Right Side - Create Account Form */}
-      <motion.div
-        initial={{ opacity: 0, y: 50 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
+      <div
         className="w-full lg:w-1/3 flex items-center justify-center p-6"
       >
           <div className="w-full max-w-md bg-neutral-50 rounded-custom shadow-custom-medium p-8">
@@ -791,12 +378,10 @@ const CreateAccount = () => {
               </div>
 
               {/* Create Account Button */}
-              <motion.button
-                whileHover={{ scale: loading ? 1 : 1.03 }}
-                whileTap={{ scale: loading ? 1 : 0.98 }}
+              <button
                 onClick={handleCreateAccount}
                 disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-semibold transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-0 shadow-lg hover:shadow-xl"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-semibold transition-colors duration-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-0 shadow-sm"
               >
                 {loading ? (
                   <>
@@ -825,7 +410,7 @@ const CreateAccount = () => {
                 ) : (
                   "Create Account"
                 )}
-              </motion.button>
+              </button>
 
               {/* Divider */}
               <div className="relative flex items-center justify-center my-6">
@@ -851,7 +436,7 @@ const CreateAccount = () => {
               </div>
             </motion.div>
           </div>
-      </motion.div>
+      </div>
       <Toast type={toastProps.type} message={toastProps.message} />
     </div>
   );

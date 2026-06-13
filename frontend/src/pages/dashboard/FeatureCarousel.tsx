@@ -93,41 +93,36 @@ const FeatureCarousel: React.FC<FeatureCarouselProps> = ({ features }) => {
 
   const visibleCards = getVisibleCards();
 
-  // Animation variants for smooth transitions
   const cardVariants: Record<CardPosition, TargetAndTransition> = {
     left: {
       x: -160,
       scale: 0.85,
       opacity: 0.6,
-      filter: "blur(2px)",
       zIndex: 10,
     },
     center: {
       x: 0,
       scale: 1,
       opacity: 1,
-      filter: "blur(0px)",
       zIndex: 30,
     },
     right: {
       x: 160,
       scale: 0.85,
       opacity: 0.6,
-      filter: "blur(2px)",
       zIndex: 10,
     },
     mobile: {
       x: 0,
       scale: 1,
       opacity: 1,
-      filter: "blur(0px)",
       zIndex: 30,
     },
   };
 
   const transition = {
-    duration: 0.7,
-    ease: [0.25, 0.46, 0.45, 0.94],
+    duration: 0.5,
+    ease: "easeOut",
   };
 
   return (

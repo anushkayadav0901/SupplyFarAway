@@ -16,121 +16,80 @@ const AboutSection: React.FC = () => {
       <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 h-px bg-blue-400/60"></div>
 
       {/* Subtle Pattern Overlay */}
-      <div className="absolute inset-0 opacity-20">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(59,130,246,0.15)_1px,transparent_0)] bg-[length:24px_24px]"></div>
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
+        <svg width="100%" height="100%">
+          <defs>
+            <pattern id="about-grid" width="24" height="24" patternUnits="userSpaceOnUse">
+              <path d="M 24 0 L 0 0 0 24" fill="none" stroke="black" strokeWidth="1" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#about-grid)" />
+        </svg>
       </div>
 
       <div className="relative max-w-7xl mx-auto">
         {/* Main Content Grid */}
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-          {/* Left Column - Enhanced Visual Element */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1, delay: 0.2 }}
-            viewport={{ once: true }}
-            className="relative hidden lg:block"
-          >
-            {/* Enhanced Geometric Design */}
-            <div className="relative w-full h-[500px]">
-              {/* Background Circle */}
-              <div className="absolute inset-0 bg-blue-50 rounded-full border border-blue-100"></div>
-
-              {/* Floating Elements with Glass Effect */}
-              <motion.div
-                animate={{
-                  y: [0, -12, 0],
-                  rotate: [0, 8, 0],
-                }}
-                transition={{
-                  duration: 4,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-                className="absolute top-16 left-16 w-18 h-18 bg-white shadow-sm border border-gray-100 rounded-2xl shadow-xl flex items-center justify-center border border-blue-100/50"
-              >
-                <FaRoute className="text-blue-600 text-2xl" />
-              </motion.div>
-
-              <motion.div
-                animate={{
-                  y: [0, 12, 0],
-                  rotate: [0, -8, 0],
-                }}
-                transition={{
-                  duration: 3.5,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: 1,
-                }}
-                className="absolute top-20 right-20 w-16 h-16 bg-white shadow-sm border border-gray-100 rounded-xl shadow-lg flex items-center justify-center border border-emerald-100/50"
-              >
-                <FaCheckCircle className="text-emerald-600 text-xl" />
-              </motion.div>
-
-              <motion.div
-                animate={{
-                  y: [0, -10, 0],
-                  rotate: [0, 6, 0],
-                }}
-                transition={{
-                  duration: 5,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: 2,
-                }}
-                className="absolute bottom-24 left-24 w-16 h-16 bg-white shadow-sm border border-gray-100 rounded-2xl shadow-lg flex items-center justify-center border border-yellow-100/50"
-              >
-                <FaLightbulb className="text-yellow-500 text-xl" />
-              </motion.div>
-
-              <motion.div
-                animate={{
-                  y: [0, 8, 0],
-                  rotate: [0, -4, 0],
-                }}
-                transition={{
-                  duration: 4.5,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: 0.5,
-                }}
-                className="absolute bottom-32 right-16 w-14 h-14 bg-white shadow-sm border border-gray-100 rounded-xl shadow-md flex items-center justify-center border border-blue-100/50"
-              >
-                <FaBox className="text-blue-500 text-lg" />
-              </motion.div>
-
-              {/* Enhanced Central Element with Glass Effect */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  className="w-40 h-40 bg-white rounded-2xl shadow-md border border-gray-200 flex items-center justify-center"
-                >
-                  <div className="text-center">
-                    <div className="w-24 h-24 mx-auto flex items-center justify-center">
-                      <svg
-                        viewBox="0 0 24 24"
-                        className="w-16 h-16 text-blue-600"
-                        fill="currentColor"
-                      >
-                        <path d="M12 2L2 7v10c0 5.55 3.84 9.74 9 11 5.16-1.26 9-5.45 9-11V7l-10-5z" />
-                        <path
-                          d="M8 12l2 2 4-4"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          fill="none"
-                        />
-                      </svg>
+          {/* Left Column - Clean Structured Layout */}
+          <div className="hidden lg:block relative w-full h-[500px]">
+            <div className="absolute inset-0 bg-slate-50 border border-slate-200 rounded-3xl p-8 flex flex-col justify-center gap-6">
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  {
+                    icon: <FaCheckCircle className="text-emerald-600 text-xl" />,
+                    title: "Compliance",
+                    desc: "Automated verification against trade rules",
+                    bg: "bg-emerald-50/50 border border-emerald-200/50",
+                  },
+                  {
+                    icon: <FaRoute className="text-blue-600 text-xl" />,
+                    title: "Route Optimization",
+                    desc: "Efficient cost & carbon calculations",
+                    bg: "bg-blue-50/50 border border-blue-200/50",
+                  },
+                  {
+                    icon: <FaBox className="text-amber-600 text-xl" />,
+                    title: "Inventory",
+                    desc: "Real-time verification and manifest sync",
+                    bg: "bg-amber-50/50 border border-amber-200/50",
+                  },
+                  {
+                    icon: <FaLeaf className="text-emerald-600 text-xl" />,
+                    title: "Sustainability",
+                    desc: "Eco-friendly corridor analytics",
+                    bg: "bg-emerald-50/50 border border-emerald-200/50",
+                  },
+                ].map((item, idx) => (
+                  <div
+                    key={idx}
+                    className={`p-5 rounded-2xl ${item.bg} flex flex-col gap-3 transition-colors duration-200`}
+                  >
+                    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-slate-200/60 shadow-sm">
+                      {item.icon}
                     </div>
-                    <div className="text-xs text-slate-500 font-semibold tracking-wider">
-                      SUPPLYCHAIN
+                    <div>
+                      <h4 className="font-bold text-slate-950 text-sm">{item.title}</h4>
+                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">{item.desc}</p>
                     </div>
                   </div>
-                </motion.div>
+                ))}
+              </div>
+              <div className="border-t border-slate-200/80 pt-6 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center">
+                    <svg viewBox="0 0 24 24" className="w-4 h-4 text-white" fill="currentColor">
+                      <path d="M12 2L2 7v10c0 5.55 3.84 9.74 9 11 5.16-1.26 9-5.45 9-11V7l-10-5z" />
+                      <path d="M8 12l2 2 4-4" stroke="currentColor" strokeWidth="2" fill="none" />
+                    </svg>
+                  </div>
+                  <span className="text-xs font-bold text-slate-900 tracking-wider uppercase">
+                    SupplyChain Platform
+                  </span>
+                </div>
               </div>
             </div>
-          </motion.div>
-          {/* END CENTRAL COLUMN */}
+          </div>
+          {/* END LEFT COLUMN */}
 
           {/* Right Column - Content */}
           <div className="space-y-10 flex flex-col justify-center h-full">
@@ -168,8 +127,7 @@ const AboutSection: React.FC = () => {
               className="space-y-6"
             >
               <p className="text-xl text-gray-700 leading-relaxed font-medium">
-                A cutting-edge logistics platform designed to streamline
-                operations, reduce costs, and promote sustainability.
+                A logistics platform for route optimization, compliance checks, and shipment verification.
               </p>
             </motion.div>
 
@@ -252,7 +210,7 @@ const AboutSection: React.FC = () => {
                       Sustainability
                     </h4>
                     <p className="text-sm text-gray-600 leading-relaxed">
-                      Eco-friendly supply chain solutions for a greener future
+                      Corridor analytics for carbon-efficient routing
                     </p>
                   </div>
                 </motion.div>
@@ -266,11 +224,7 @@ const AboutSection: React.FC = () => {
       <div className="absolute bottom-0 left-0 w-full h-px bg-gray-200/30"></div>
       <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-32 h-px bg-emerald-400/60"></div>
 
-      {/* Corner Decorative Elements */}
-      <div className="absolute top-4 left-4 w-8 h-8 border-l-2 border-t-2 border-blue-200 rounded-tl-lg"></div>
-      <div className="absolute top-4 right-4 w-8 h-8 border-r-2 border-t-2 border-emerald-200 rounded-tr-lg"></div>
-      <div className="absolute bottom-4 left-4 w-8 h-8 border-l-2 border-b-2 border-emerald-200 rounded-bl-lg"></div>
-      <div className="absolute bottom-4 right-4 w-8 h-8 border-r-2 border-b-2 border-blue-200 rounded-br-lg"></div>
+      {/* Removed: corner decorative elements — unnecessary ornamentation */}
     </section>
   );
 };

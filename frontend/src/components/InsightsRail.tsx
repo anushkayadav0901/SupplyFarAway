@@ -43,14 +43,14 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
 
 const PILL_TONE: Record<string, string> = {
   box_count: "bg-blue-50 text-blue-700 border-blue-200",
-  rfid_scan: "bg-purple-50 text-purple-700 border-purple-200",
+  rfid_scan: "bg-slate-50 text-slate-700 border-slate-200",
   weight_check: "bg-amber-50 text-amber-700 border-amber-200",
   anomaly_report: "bg-red-50 text-red-700 border-red-200",
   manual_inspection: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  customs_verification: "bg-indigo-50 text-indigo-700 border-indigo-200",
-  shipment_diff: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200",
-  load_match: "bg-sky-50 text-sky-700 border-sky-200",
-  tracking_ping: "bg-cyan-50 text-cyan-700 border-cyan-200",
+  customs_verification: "bg-blue-50 text-blue-700 border-blue-200",
+  shipment_diff: "bg-slate-50 text-slate-700 border-slate-200",
+  load_match: "bg-blue-50 text-blue-700 border-blue-200",
+  tracking_ping: "bg-blue-50 text-blue-700 border-blue-200",
 };
 
 function pillClass(eventType: string): string {

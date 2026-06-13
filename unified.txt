@@ -1,0 +1,171 @@
+# unified.txt
+
+## Current state
+
+25 protected routes across 19 page directories. Feature bloat.
+
+## Target state
+
+8 unified pages + 3 supporting pages = 11 total.
+
+A product should feel smaller than it is.
+
+---
+
+## Merge Plan
+
+### 1. Verification → "Physical Inspection" (/inspect)
+
+Merge: Box Count, Shipment Diff, RFID/NFC, Weight Check
+
+4 separate pages doing the same thing: verifying a shipment against its manifest. They all operate on the same draft.
+
+**Unified flow:**
+- Pick a draft → see all verification subsystems at once
+- Tabs: Camera Count | Weight | RFID | Damage Diff
+- One "Run All Checks" button or per-subsystem run
+- Results feed into Trust Score in real-time
+
+**Deleted routes:** /box-count, /shipment-diff, /rfid-verification, /weight-check
+
+---
+
+### 2. Intelligence → "Risk Center" (/risk)
+
+Merge: Anomaly Detection, Fraud Dashboard, Audit Log, Trust Center
+
+Fraud Dashboard and Trust Center are the same concept (per-shipment risk aggregated from subsystems). Anomaly Detection is the engine that feeds them. Audit Log is the detail view.
+
+**Unified flow:**
+- Shipment-level risk overview (replaces Fraud Dashboard + Trust Center)
+- Anomaly scan inline (replaces Anomaly Detection page)
+- Expandable audit trail per shipment (replaces Audit Log page)
+- Trust Gauge + risk chart + event feed on one screen
+
+**Deleted routes:** /anomaly-detection, /fraud-dashboard, /audit-log, /trust-center
+
+---
+
+### 3. Route Operations → "Route Planning" (/routes)
+
+Merge: Route Optimization, Route Map, Carbon Footprint, Live Tracking
+
+Route Optimization produces routes. Map visualizes them. Carbon Footprint is a route attribute. Live Tracking is the execution side of the same concept.
+
+**Unified flow:**
+- Plan a route (origin → destination, package details)
+- See results: cost, time, carbon, map overlay
+- Toggle live tracking on active shipments
+- Carbon data inline on each route card
+
+**Deleted routes:** /route-optimization, /map, /map/:draftId, /carbon-footprint, /carbon-footprint/:draftId, /live-tracking
+
+---
+
+### 4. Fleet → "Fleet" (/fleet)
+
+Merge: Load Aggregation, Truck Registry
+
+Both are fleet-side: available trucks and available loads. They match on corridors.
+
+**Unified flow:**
+- Tab 1: Truck Registry (fleet directory)
+- Tab 2: Load Match (corridor-based matching)
+- Mutual filtering: filter trucks by route, see matching loads
+
+**Deleted routes:** /load-aggregation, /truck-registry
+
+---
+
+### 5. Compliance → "Compliance" (/compliance)
+
+Merge: Compliance Check (6-tab form), Compliance (landing), CSV Upload, Product Analysis
+
+All compliance. The 6-tab form should be simplified to 0-3 fields with AI inference. CSV Upload and Product Analysis are input methods, not separate pages.
+
+**Unified flow:**
+- Pick a draft → AI infers most fields → verify 3 key fields → submit
+- CSV upload as an alternative input method (inline, not separate page)
+- Product Analysis as a section (upload image → get HS code + recommendations)
+
+**Deleted routes:** /compliance-check, /compliance, /csv-upload, /product-analysis
+
+---
+
+### 6. Inventory → "Inventory" (/inventory)
+
+Merge: Inventory Management, Export Report
+
+Export Report is a modal action, not a page.
+
+**Unified flow:**
+- Draft list with filters and tabs
+- Export as a button → modal → download
+- Create draft as a dialog (already is)
+
+**Deleted routes:** /export-report/:draftId
+
+---
+
+### 7. Profile → "Profile" (/profile)
+
+Merge: Profile, History, Manage Account, Analysis
+
+4 pages for one user. Tabs or sections.
+
+**Unified flow:**
+- Tab 1: Account details & settings (merges Manage Account)
+- Tab 2: Activity history (merges History)
+- Tab 3: Analysis (merges Analysis)
+
+**Deleted routes:** /history/:userId, /manage-account/:userId, /analysis/:userId
+
+---
+
+### 8. Dashboard (/dashboard)
+Keep as-is. Single entry point. Show 3 key metrics, not 4+.
+
+---
+
+### 9. News (/news)
+Keep as-is.
+
+---
+
+### 10. Documentation (/docs)
+Keep as-is.
+
+---
+
+### 11. Landing (/ and /createAccount)
+Keep as-is but remove decorative globe and typewriter animations.
+
+---
+
+## Summary
+
+| Group | Before | After |
+|---|---|---|
+| Verification | 4 pages | 1 page |
+| Intelligence | 4 pages | 1 page |
+| Route Operations | 6 routes | 1 page |
+| Fleet | 2 pages | 1 page |
+| Compliance | 4 pages | 1 page |
+| Inventory | 2 pages | 1 page |
+| Profile | 4 pages | 1 page |
+| Dashboard | 1 page | 1 page |
+| News | 1 page | 1 page |
+| Docs | 1 page | 1 page |
+| Landing | 2 routes | 2 routes |
+| **Total** | **25 protected routes** | **11 pages** |
+
+---
+
+## Next steps
+
+1. Create merged page components (no routing changes needed during dev)
+2. Delete old page files only after merged page is complete
+3. Update FeatureGroupGrid navigation to point to new URLs
+4. Update App.tsx routes
+5. Delete unused backend tRPC procedures if any page-specific ones exist
+6. Prune unused components, constants, and imports

@@ -21,73 +21,70 @@ export const navigationStructure = {
         id: "about",
         title: "About Supply Chain",
         description:
-          "Discover Supply Chain, an AI-powered logistics intelligence platform revolutionizing global supply chain management with advanced compliance, routing, and inventory solutions.",
+          "A logistics platform for compliance verification, route optimization, and inventory management.",
         linkId: "/dashboard",
         content: `
-          # Welcome to Supply Chain
+          # Supply Chain
 
-          ### Revolutionizing Global Logistics with Intelligent AI-Powered Solutions
+          ### Compliance verification, route optimization, and shipment tracking.
 
-          Supply Chain is the next-generation logistics intelligence platform that transforms how businesses navigate complex global and domestic shipment challenges. Powered by cutting-edge MERN stack architecture and enhanced with advanced AI technologies including Gemini Pro and Google Cloud Vision, we deliver unprecedented efficiency and intelligence to your entire supply chain ecosystem.
+          Supply Chain is a logistics platform for compliance checks, route optimization, and inventory management. Built with Express, React, and MongoDB, it provides tools for verifying shipments, optimizing routes, and tracking inventory.
           
-          ## Our Mission
+          ## Core Features
           
-          Empowering businesses worldwide with intelligent, scalable logistics solutions that seamlessly ensure regulatory compliance, optimize shipping routes, and promote environmental sustainability through breakthrough AI-driven insights and analytics.
+          ### Compliance Engine
+          Automated validation system that verifies shipments against international trade regulations.
           
-          ## Intelligent Core Features
+          ### Route Optimization
+          Algorithm that calculates optimal shipping routes by analyzing cost, time, and environmental impact.
           
-          ### Smart Compliance Engine
-          Advanced AI validation system that automatically verifies shipments against complex international trade regulations, ensuring 100% compliance accuracy across global markets.
+          ### Inventory Management  
+          Shipment tracking with visibility across your logistics pipeline.
           
-          ### Dynamic Route Optimization
-          Intelligent algorithm that calculates optimal shipping routes by analyzing cost-effectiveness, time efficiency, and environmental impact in real-time.
+          ### Profile Management
+          User account system that maintains historical data, compliance records, and route preferences.
           
-          ### Intelligent Inventory Management  
-          Comprehensive shipment tracking system with seamless workflow integration, providing complete visibility across your entire logistics pipeline.
+          ### News Feed
+          Curated logistics news feed about global events and industry developments affecting your operations.
           
-          ### Advanced Profile Management
-          Sophisticated user account system that maintains detailed historical data, compliance records, and route preferences for personalized logistics experiences.
+          ### Resources Hub
+          Library of shipping document templates, compliance guides, and industry-standard forms.
           
-          ### Real-Time News Intelligence
-          Curated logistics news feed that keeps you informed about critical global events, trade developments, and industry insights affecting your operations.
+          ## Features
           
-          ### Professional Resources Hub
-          Comprehensive library of essential shipping document templates, compliance guides, and industry-standard forms for streamlined operations.
+          ### Compliance Engine
+          Validates shipments against international trade regulations.
           
-          ## Why Choose Supply Chain?
+          ### Route Optimization
+          Calculates shipping routes by analyzing cost, time, and environmental impact.
           
-          ### 99.99% Uptime Guarantee
-          Enterprise-grade cloud infrastructure ensures your logistics operations never stop, with redundant systems and 24/7 monitoring.
+          ### Inventory Management  
+          Shipment tracking with visibility across your logistics pipeline.
           
-          ### Lightning-Fast Insights
-          Instantaneous compliance verification and route optimization powered by advanced AI algorithms and real-time data processing.
+          ### Profile Management
+          User account system with historical data, compliance records, and route preferences.
           
-          ### Global Compliance Mastery
-          Comprehensive support for international trade regulations across 200+ countries with automatic updates for changing compliance requirements.
+          ### News Feed
+          Curated logistics news feed about global events and industry developments.
           
-          ### Sustainability Leadership
-          Carbon-intelligent routing algorithms that significantly reduce environmental impact while maintaining operational efficiency and cost-effectiveness.
-          
-          ### Enterprise Security
-          Bank-level security protocols with end-to-end encryption, ensuring your sensitive logistics data remains protected at all times.
+          ### Resources Hub
+          Library of shipping document templates, compliance guides, and industry forms.
           
           ## Quick Start Guide
           
-          ### Step 1: Instant Registration
-          Sign up effortlessly using Google authentication or create a custom account with our streamlined registration process.
+          ### Step 1: Registration
+          Sign up via Google authentication or create a manual account.
           
-          ### Step 2: Profile Optimization
-          Complete your comprehensive profile setup to unlock the full potential of our intelligent features and personalized recommendations.
+          ### Step 2: Profile Setup
+          Complete your profile to access features and preferences.
           
-          ### Step 3: Explore & Optimize
-          Dive into our powerful dashboard and start leveraging features like AI compliance checking and intelligent route optimization immediately.
-          
-          ### Experience the future of logistics intelligence with Supply Chain – where artificial intelligence meets supply chain excellence.
+          ### Step 3: Explore
+          Use the dashboard to access compliance checking, route optimization, and other tools.
           `,
         examples: [
-          "Validate 1,000+ shipments in minutes with AI compliance checks.",
-          "Reduce shipping costs by up to 30% with optimized routes.",
-          "Track inventory status of shipment from anywhere.",
+          "Validate shipments with compliance checks.",
+          "Reduce shipping costs with optimized routes.",
+          "Track inventory status from anywhere.",
         ],
       },
     ],
@@ -235,13 +232,13 @@ The Analysis section provides detailed insights from AI-driven product and compl
         content: `
           ### How Does It Work?
           
-          Experience next-generation compliance management with Supply Chain's AI-powered Compliance Check system. Leveraging advanced Gemini Pro AI technology, our platform automatically validates shipments against complex international trade regulations while offering flexible input methods and comprehensive automation capabilities.
+          Compliance management with Supply Chain's Compliance Check system. The platform validates shipments against international trade regulations through manual form input, CSV upload, or product image analysis.
           
-          ## Core Intelligence Features
+          ## Features
           
-          - **Advanced AI Validation**: Sophisticated algorithms analyze your shipment data against global regulatory frameworks, ensuring 99.9% compliance accuracy with real-time validation
-          - **Flexible Input Methods**: Seamlessly process data through multiple channels including intuitive manual forms, bulk CSV uploads, and cutting-edge product image recognition technology  
-          - **Intelligent Reporting**: Generate comprehensive compliance reports featuring detailed status indicators, risk assessment scores, regulatory recommendations, and actionable insights
+          - **Compliance Validation**: Analyzes shipment data against regulatory frameworks
+          - **Input Methods**: Process data through manual forms, CSV uploads, or product image recognition
+          - **Reporting**: Generate compliance reports with status indicators and recommendations
           
           ## Essential Data Requirements
           

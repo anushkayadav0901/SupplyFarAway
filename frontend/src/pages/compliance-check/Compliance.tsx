@@ -1,244 +1,324 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+import { toast } from "react-toastify";
+import axios from "axios";
+import { ShieldCheck, Upload, FileText, Camera, AlertTriangle, RefreshCcw } from "lucide-react";
 import Header from "../../components/Header";
+import DraftPicker from "../../components/DraftPicker";
+import { trpc } from "../../lib/trpc";
 
-interface Feature {
-  title: string;
-  description: string;
-  useCases: string[];
-  action: {
-    label: string;
-    path: string;
+type ComplianceMethod = "form" | "csv" | "image";
+
+export default function Compliance() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [draftId, setDraftId] = useState<string>(searchParams.get("draftId") ?? "");
+  const [activeTab, setActiveTab] = useState<ComplianceMethod>("form");
+
+  // Form Fields (simplified)
+  const [originCountry, setOriginCountry] = useState("US");
+  const [destinationCountry, setDestinationCountry] = useState("CA");
+  const [hsCode, setHsCode] = useState("");
+  const [isPerishable, setIsPerishable] = useState(false);
+
+  // File states
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [productImage, setProductImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState("");
+  const [analyzingImage, setAnalyzingImage] = useState(false);
+
+  // URL Query Sync
+  useEffect(() => {
+    const params: Record<string, string> = {};
+    if (draftId) params.draftId = draftId;
+    setSearchParams(params);
+  }, [draftId, setSearchParams]);
+
+  const utils = trpc.useUtils();
+
+  // Queries
+  const draftQuery = trpc.inventory.getDraftById.useQuery(
+    { id: draftId },
+    {
+      enabled: Boolean(draftId),
+      retry: false,
+    }
+  );
+
+  // Pre-fill form when draft changes
+  useEffect(() => {
+    if (draftQuery.data) {
+      setOriginCountry(draftQuery.data.originCountry || "US");
+      setDestinationCountry(draftQuery.data.destinationCountry || "CA");
+      setHsCode(draftQuery.data.hsCode || "");
+      setIsPerishable(draftQuery.data.isPerishable || false);
+    }
+  }, [draftQuery.data]);
+
+  // Mutations
+  const checkMutation = trpc.compliance.check.useMutation({
+    onSuccess: (data) => {
+      if (data.status === "approved") {
+        toast.success("Compliance approved!");
+      } else {
+        toast.warning(`Compliance restricted: ${data.flaggedReason || "Flagged in review"}`);
+      }
+      if (draftId) {
+        utils.inventory.getDraftById.invalidate({ id: draftId }).catch(() => null);
+      }
+    },
+    onError: (err) => {
+      toast.error(err.message || "Compliance check failed.");
+    },
+  });
+
+  const uploadCsvMutation = trpc.compliance.createDraftFromCsv.useMutation({
+    onSuccess: (data: any) => {
+      toast.success("CSV draft created.");
+      if (data.draft?._id) {
+        setDraftId(String(data.draft._id));
+        setActiveTab("form");
+      }
+    },
+    onError: (err) => {
+      toast.error(err.message || "CSV upload failed.");
+    },
+  });
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!draftId) {
+      toast.error("Please select or upload a shipment draft.");
+      return;
+    }
+    await checkMutation.mutateAsync({
+      draftId,
+      originCountry,
+      destinationCountry,
+      hsCode: hsCode.trim() || undefined,
+    });
   };
-  icon: React.ReactNode;
-}
 
-const ComplianceOverview: React.FC = () => {
-  const navigate = useNavigate();
+  const handleCsvSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!csvFile) return;
+    try {
+      const text = await csvFile.text();
+      await uploadCsvMutation.mutateAsync({ csvContent: text });
+    } catch (err) {
+      toast.error("Failed to read CSV file.");
+    }
+  };
 
-  const features: Feature[] = [
-    {
-      title: "CSV Upload",
-      description:
-        "Upload a CSV file with shipment details using a provided sample CSV template with specific headers. The system automatically populates the compliance form with the uploaded data, allowing users to quickly complete compliance checks. Users can reuse the same format with updated values for multiple uploads, streamlining the process for faster form completion.",
-      useCases: [
-        "Rapidly fill compliance forms for multiple shipments using a standardized CSV template.",
-        "Reduce manual data entry errors with automated form population.",
-        "Efficiently handle recurring compliance checks with consistent CSV formatting.",
-      ],
-      action: {
-        label: "Upload CSV",
-        path: "/csv-upload",
-      },
-      icon: (
-        <svg
-          className="w-8 h-8"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-          />
-        </svg>
-      ),
-    },
-    {
-      title: "Product Analysis",
-      description:
-        "Leverage AI to analyze products, from simple to complex, and generate precise HS codes, detailed descriptions, and classifications for perishable or hazardous status. This feature creates a new record with the analyzed data, enabling users to seamlessly proceed with compliance checks using the generated information.",
-      useCases: [
-        "Obtain accurate HS codes and classifications for any product type.",
-        "Automatically generate compliance-ready product records for streamlined processing.",
-        "Ensure regulatory adherence by identifying perishable or hazardous materials.",
-      ],
-      action: {
-        label: "Go to Product Analysis",
-        path: "/product-analysis",
-      },
-      icon: (
-        <svg
-          className="w-8 h-8"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"
-          />
-        </svg>
-      ),
-    },
-    {
-      title: "Manual Compliance Check",
-      description:
-        "Complete a compliance check by manually filling out a structured form with multiple inputs, including mandatory and optional fields. Each input is accompanied by an info button providing guidance on the required information, ensuring accurate and informed data entry for thorough compliance verification.",
-      useCases: [
-        "Perform detailed compliance checks for individual shipments with guided input fields.",
-        "Access clear instructions via info buttons to accurately complete the form.",
-        "Handle both mandatory and optional fields for flexible compliance requirements.",
-      ],
-      action: {
-        label: "Start Compliance Check",
-        path: "/compliance-check",
-      },
-      icon: (
-        <svg
-          className="w-8 h-8"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
-          />
-        </svg>
-      ),
-    },
-  ];
+  const handleImageAnalysis = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setProductImage(file);
+    setImagePreview(URL.createObjectURL(file));
+    setAnalyzingImage(true);
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      const res = await axios.post("/api/analyze-product", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const data = res.data;
+      if (data.hsCode) {
+        setHsCode(data.hsCode);
+        setIsPerishable(Boolean(data.isPerishable));
+        toast.success(`AI Inferred HS Code: ${data.hsCode}`);
+      }
+    } catch (err) {
+      toast.error("AI Analysis failed. Please manually fill the form.");
+    } finally {
+      setAnalyzingImage(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-neutral-100 p-4 sm:p-6">
-      {/* Header - Unchanged */}
-      <Header title="Compliance Check" page="compliance-check" />
-
-      {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
-        {/* Introduction Section */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-6">
-            <svg
-              className="w-8 h-8 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </div>
-          <h2 className="text-4xl font-bold text-gray-800 mb-4">
-            Choose Your Compliance Method
-          </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Select the most suitable approach for your compliance needs. Each
-            method is designed to streamline your workflow and ensure regulatory
-            adherence.
-          </p>
-        </div>
-
-        {/* Action Buttons Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-          {features.map((feature, index) => (
-            <div
-              key={index}
-              className="group relative bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-150"
-            >
-              <div className="bg-gray-50 p-6 text-center">
-                <div className="w-16 h-16 mx-auto bg-blue-600 rounded-2xl flex items-center justify-center text-white mb-4">
-                  {feature.icon}
-                </div>
-                <h3 className="text-lg font-bold text-gray-800 mb-3">
-                  {feature.title}
-                </h3>
-                <button
-                  onClick={() => navigate(feature.action.path)}
-                  className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                >
-                  {feature.action.label}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Detailed Feature Information - Horizontal Cards */}
-        <div className="space-y-6">
-          <div className="text-center mb-8">
-            <h3 className="text-3xl font-bold text-gray-800 mb-4">
-              Detailed Feature Information
-            </h3>
-            <p className="text-lg text-gray-600">
-              Learn more about each compliance method and their use cases
+    <div className="min-h-screen bg-slate-50">
+      <Header title="Regulatory Compliance" />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-6">
+        
+        {/* context card */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-white p-5 rounded-2xl border border-slate-200 shadow-sm gap-4">
+          <div>
+            <h2 className="text-lg font-bold text-slate-800">Compliance Context</h2>
+            <p className="text-sm text-slate-500 mt-0.5">
+              Choose an active draft shipment to verify compliance or submit details.
             </p>
           </div>
-
-          {features.map((feature, index) => (
-            <div
-              key={index}
-              className="group bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-150"
-            >
-              <div className="flex flex-col lg:flex-row">
-                {/* Left Side - Icon and Title */}
-                <div className="bg-gray-50 p-8 lg:w-1/3 flex flex-col justify-center">
-                  <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white mb-4">
-                    {feature.icon}
-                  </div>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-3">
-                    {feature.title}
-                  </h3>
-                  <p className="text-gray-700 leading-relaxed">
-                    {feature.description}
-                  </p>
-                </div>
-
-                {/* Right Side - Use Cases */}
-                <div className="p-8 lg:w-2/3 flex flex-col justify-center">
-                  <div className="flex items-center space-x-3 mb-6">
-                    <div className="w-8 h-8 bg-gray-700 rounded-lg flex items-center justify-center">
-                      <svg
-                        className="w-4 h-4 text-white"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5l7 7-7 7"
-                        />
-                      </svg>
-                    </div>
-                    <h4 className="text-xl font-semibold text-gray-800">
-                      Key Use Cases
-                    </h4>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {feature.useCases.map((useCase, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-start space-x-3 p-4 bg-gray-50 rounded-xl group/item hover:bg-gray-100 transition-colors duration-200"
-                      >
-                        <div className="w-2 h-2 bg-blue-600 rounded-full mt-3 flex-shrink-0"></div>
-                        <p className="text-gray-700 text-sm leading-relaxed group-hover/item:text-gray-900 transition-colors duration-200">
-                          {useCase}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-slate-600">Active Draft:</span>
+            <DraftPicker value={draftId} onSelect={setDraftId} />
+          </div>
         </div>
-      </div>
+
+        {/* tab selector */}
+        <div className="flex border-b border-slate-200 gap-1 overflow-x-auto pb-px">
+          <button
+            onClick={() => setActiveTab("form")}
+            className={`flex items-center gap-2 px-5 py-3 border-b-2 font-semibold text-sm transition-all rounded-t-xl ${
+              activeTab === "form"
+                ? "border-blue-600 text-blue-600 bg-blue-50/50"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100/50"
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4" /> Compliance Form
+          </button>
+          <button
+            onClick={() => setActiveTab("csv")}
+            className={`flex items-center gap-2 px-5 py-3 border-b-2 font-semibold text-sm transition-all rounded-t-xl ${
+              activeTab === "csv"
+                ? "border-blue-600 text-blue-600 bg-blue-50/50"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100/50"
+            }`}
+          >
+            <FileText className="w-4 h-4" /> CSV Intake
+          </button>
+          <button
+            onClick={() => setActiveTab("image")}
+            className={`flex items-center gap-2 px-5 py-3 border-b-2 font-semibold text-sm transition-all rounded-t-xl ${
+              activeTab === "image"
+                ? "border-blue-600 text-blue-600 bg-blue-50/50"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100/50"
+            }`}
+          >
+            <Camera className="w-4 h-4" /> Image Inference
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-8">
+            
+            {activeTab === "form" && (
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <h3 className="text-base font-bold text-slate-800">Verify Shipment Details</h3>
+                <form onSubmit={handleFormSubmit} className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Origin Country</label>
+                      <input
+                        type="text"
+                        value={originCountry}
+                        onChange={(e) => setOriginCountry(e.target.value)}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Destination Country</label>
+                      <input
+                        type="text"
+                        value={destinationCountry}
+                        onChange={(e) => setDestinationCountry(e.target.value)}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">HS Code</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 8517.12"
+                      value={hsCode}
+                      onChange={(e) => setHsCode(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-2">
+                    <input
+                      type="checkbox"
+                      id="isPerishable"
+                      checked={isPerishable}
+                      onChange={(e) => setIsPerishable(e.target.checked)}
+                      className="rounded text-blue-600 focus:ring-blue-500"
+                    />
+                    <label htmlFor="isPerishable" className="text-xs font-semibold text-slate-600">Perishable Cargo</label>
+                  </div>
+
+                  <div className="flex justify-end pt-2">
+                    <button
+                      type="submit"
+                      disabled={checkMutation.isPending}
+                      className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl transition-all shadow-sm"
+                    >
+                      {checkMutation.isPending ? "Submitting Check..." : "Run Compliance Check"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {activeTab === "csv" && (
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <h3 className="text-base font-bold text-slate-800">CSV Bulk Upload</h3>
+                <form onSubmit={handleCsvSubmit} className="space-y-4">
+                  <div className="border-2 border-dashed border-slate-200 rounded-xl p-6 flex flex-col items-center justify-center text-slate-400 gap-2 bg-slate-50">
+                    <Upload className="w-8 h-8" />
+                    <input
+                      type="file"
+                      accept=".csv"
+                      onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
+                      className="text-xs text-slate-500"
+                    />
+                  </div>
+                  {csvFile && (
+                    <div className="flex justify-end">
+                      <button
+                        type="submit"
+                        disabled={uploadCsvMutation.isPending}
+                        className="px-6 py-2 bg-slate-800 hover:bg-slate-900 text-white font-semibold text-sm rounded-xl transition-all"
+                      >
+                        {uploadCsvMutation.isPending ? "Processing..." : "Submit CSV"}
+                      </button>
+                    </div>
+                  )}
+                </form>
+              </div>
+            )}
+
+            {activeTab === "image" && (
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <h3 className="text-base font-bold text-slate-800 font-sans">Product Image Analysis</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="border-2 border-dashed border-slate-200 rounded-xl p-6 flex flex-col items-center justify-center text-slate-400 gap-2 bg-slate-50 min-h-48 cursor-pointer relative">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageAnalysis}
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                    />
+                    <Camera className="w-8 h-8" />
+                    <span className="text-xs text-center">Click or Drag Product Image</span>
+                  </div>
+                  <div className="flex items-center justify-center border border-slate-200 rounded-xl p-4 bg-slate-50/50">
+                    {imagePreview ? (
+                      <img src={imagePreview} alt="Preview" className="max-h-40 object-contain" />
+                    ) : (
+                      <span className="text-xs text-slate-400">No Image Uploaded</span>
+                    )}
+                  </div>
+                </div>
+                {analyzingImage && (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-700 animate-pulse">
+                    AI is scanning product characteristics &amp; retrieving HS code...
+                  </div>
+                )}
+              </div>
+            )}
+
+          </div>
+
+          <aside className="lg:col-span-4">
+            <InsightsRail draftId={draftId || undefined} title="Regulatory Logs" />
+          </aside>
+        </div>
+      </main>
     </div>
   );
-};
-
-export default ComplianceOverview;
+}

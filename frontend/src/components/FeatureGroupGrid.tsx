@@ -25,7 +25,7 @@ interface FeatureLink {
 interface FeatureGroup {
   id: string;
   label: string;
-  accent: "blue" | "emerald" | "violet";
+  accent: "blue" | "emerald";
   description: string;
   items: FeatureLink[];
 }
@@ -33,97 +33,61 @@ interface FeatureGroup {
 const GROUPS: FeatureGroup[] = [
   {
     id: "verification",
-    label: "Verification",
+    label: "Security & Verification",
     accent: "blue",
-    description: "Sensor-grounded checks that prove what's on the truck.",
+    description: "Physical inspection checks and aggregated risk metrics.",
     items: [
       {
-        path: "/box-count",
-        title: "Box Count",
-        desc: "Vision-led count against the declared manifest.",
+        path: "/inspect",
+        title: "Physical Inspection",
+        desc: "Unified camera count, scale weight, and RFID verification.",
         Icon: Camera,
       },
       {
-        path: "/shipment-diff",
-        title: "Shipment Diff",
-        desc: "Loading vs delivery imagery with tamper score.",
-        Icon: Diff,
-      },
-      {
-        path: "/rfid-verification",
-        title: "RFID / NFC",
-        desc: "Tag reconciliation across manifest and scan.",
-        Icon: Tag,
-      },
-      {
-        path: "/weight-check",
-        title: "Weight Check",
-        desc: "Load-cell readings against declared weight.",
-        Icon: Weight,
-      },
-    ],
-  },
-  {
-    id: "intelligence",
-    label: "Intelligence",
-    accent: "violet",
-    description: "Risk signals, fraud heuristics, and a tamper-evident trail.",
-    items: [
-      {
-        path: "/anomaly-detection",
-        title: "Anomaly Detection",
-        desc: "Multivariate scan over weight, count, route.",
-        Icon: Radar,
-      },
-      {
-        path: "/fraud-dashboard",
-        title: "Fraud & Risk",
-        desc: "Aggregated risk across every event source.",
+        path: "/risk",
+        title: "Risk & Trust Center",
+        desc: "Aggregated shipment risk scores, anomaly scans, and audit logs.",
         Icon: ShieldAlert,
-      },
-      {
-        path: "/audit-log",
-        title: "Audit Log",
-        desc: "Append-only verification chain per shipment.",
-        Icon: ScrollText,
-      },
-      {
-        path: "/trust-center",
-        title: "Trust Center",
-        desc: "Unified per-shipment subsystem health view.",
-        Icon: ShieldCheck,
       },
     ],
   },
   {
     id: "operations",
-    label: "Operations",
+    label: "Logistics Operations",
     accent: "emerald",
-    description: "Ground operations: pooling, registry, and live position.",
+    description: "Fleet tracking, routing, and corridor optimization.",
     items: [
       {
-        path: "/load-aggregation",
-        title: "Load Match",
-        desc: "Corridor matcher for small-truck loads.",
-        Icon: Boxes,
+        path: "/routes",
+        title: "Route Planning",
+        desc: "Optimize paths for cost/carbon and track active pings.",
+        Icon: Navigation,
       },
       {
-        path: "/truck-registry",
-        title: "Truck Registry",
-        desc: "Capacity and base-city directory of fleet.",
+        path: "/fleet",
+        title: "Fleet & Corridors",
+        desc: "Registry of trucks and load matching corridors.",
         Icon: Truck,
       },
+    ],
+  },
+  {
+    id: "records",
+    label: "Compliance & Intake",
+    accent: "blue",
+    description: "Regulatory forms, bulk uploads, and manifest registries.",
+    items: [
       {
-        path: "/live-tracking",
-        title: "Live Tracking",
-        desc: "Geo pings with ETA against destination.",
-        Icon: Navigation,
+        path: "/compliance",
+        title: "Compliance check",
+        desc: "AI HS-Code extraction, CSV intake, and form screening.",
+        Icon: ShieldCheck,
       },
       {
-        path: "/route-optimization",
-        title: "Route Optimization",
-        desc: "AI-led corridor planning with cost lens.",
-        Icon: Navigation,
+        path: "/inventory",
+        title: "Shipment Inventory",
+        desc: "Active manifests list and export actions.",
+        Icon: Boxes,
       },
     ],
   },
@@ -140,17 +104,12 @@ const accentClasses: Record<
     hoverBorder: "hover:border-blue-400",
   },
   emerald: {
-    chip: "bg-emerald-100 text-emerald-700 ring-emerald-500/20",
-    iconBg: "bg-emerald-50",
-    iconText: "text-emerald-600",
-    hoverBorder: "hover:border-emerald-400",
+    chip: "bg-blue-100 text-blue-700 ring-blue-500/20",
+    iconBg: "bg-blue-50",
+    iconText: "text-blue-600",
+    hoverBorder: "hover:border-blue-400",
   },
-  violet: {
-    chip: "bg-violet-100 text-violet-700 ring-violet-500/20",
-    iconBg: "bg-violet-50",
-    iconText: "text-violet-600",
-    hoverBorder: "hover:border-violet-400",
-  },
+
 };
 
 const FeatureGroupGrid: React.FC = () => {

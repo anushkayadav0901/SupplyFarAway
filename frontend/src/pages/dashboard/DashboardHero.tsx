@@ -12,7 +12,7 @@ interface TileProps {
   value: number;
   delta?: string;
   Icon: React.ComponentType<{ size?: number; className?: string }>;
-  accent: "blue" | "emerald" | "violet" | "amber" | "red";
+  accent: "blue" | "emerald" | "amber" | "red";
   onClick?: () => void;
 }
 
@@ -26,11 +26,6 @@ const accentMap: Record<TileProps["accent"], { icon: string; bg: string; ring: s
     icon: "text-emerald-600",
     bg: "bg-emerald-50",
     ring: "ring-emerald-100 hover:ring-emerald-200",
-  },
-  violet: {
-    icon: "text-violet-600",
-    bg: "bg-violet-50",
-    ring: "ring-violet-100 hover:ring-violet-200",
   },
   amber: {
     icon: "text-amber-600",
@@ -113,7 +108,7 @@ const DashboardHero: React.FC = () => {
       transition={{ duration: 0.25, ease: "easeOut" }}
       className="relative bg-white  rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 overflow-hidden"
     >
-      <div className="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-blue-100 opacity-60 blur-3xl pointer-events-none" />
+      {/* Removed: decorative blur element */}
       <div className="relative grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-8 items-center">
         <div className="flex flex-col items-center">
           <TrustGauge
@@ -161,7 +156,7 @@ const DashboardHero: React.FC = () => {
               label="Registered Trucks"
               value={t?.registeredTrucks ?? 0}
               Icon={Truck}
-              accent="violet"
+              accent="blue"
               onClick={() => navigate("/truck-registry")}
             />
             <HeroTile
