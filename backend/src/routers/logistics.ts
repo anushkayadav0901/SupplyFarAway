@@ -20,6 +20,7 @@ import { DraftModel } from "../models/Draft.js";
 import { SaveRouteModel } from "../models/SaveRoute.js";
 import { protectedProcedure, publicProcedure, router } from "../trpc.js";
 import { geocodeAddress, getDirections } from "../utils/geocode.js";
+import { DemoRouteCacheModel, buildCacheKey } from "../models/DemoRouteCache.js";
 
 // ---------------------------------------------------------------------------
 // Inline Zod schemas
@@ -179,29 +180,22 @@ function coerceLegState(leg: Record<string, unknown>): "land" | "sea" | "air" {
 }
 
 // ---------------------------------------------------------------------------
-// Router
+// generateRoutes core — extracted so the seed script can hit it directly.
 // ---------------------------------------------------------------------------
 
-export const logisticsRouter = router({
-  // -------------------------------------------------------------------------
-  // POST /api/route-optimization  (public)
-  // Generate 7 shipping routes from → to.
-  // -------------------------------------------------------------------------
-  generateRoutes: publicProcedure
-    .input(
-      z.object({
-        from: z.string().min(1).max(200),
-        to: z.string().min(1).max(200),
-        package: PackageSchema,
-        description: z.string().min(1).max(500),
-        draftId: z.string().optional(),
-      })
-    )
-    .mutation(async ({ input }) => {
-      const { from, to, description, draftId } = input;
-      const pkg = input.package;
+export interface GenerateRoutesInput {
+  from: string;
+  to: string;
+  description: string;
+  package: { quantity: number; weight: number; height: number; length: number; width: number };
+  draftId?: string;
+}
 
-      const prompt = `Generate 7 shipping routes from ${from} to ${to}. Package: ${pkg.quantity} units, ${pkg.weight}kg, ${pkg.length}x${pkg.width}x${pkg.height}cm, "${description}".
+export async function runGenerateRoutes(input: GenerateRoutesInput) {
+  const { from, to, description, draftId } = input;
+  const pkg = input.package;
+
+  const prompt = `Generate 7 shipping routes from ${from} to ${to}. Package: ${pkg.quantity} units, ${pkg.weight}kg, ${pkg.length}x${pkg.width}x${pkg.height}cm, "${description}".
 
 Rules:
 - 2 air routes, 2 sea routes, 3 multimodal
@@ -354,7 +348,46 @@ JSON format (array of 7 routes):
         };
       });
 
-      return finalRoutes;
+  return finalRoutes;
+}
+
+// ---------------------------------------------------------------------------
+// Router
+// ---------------------------------------------------------------------------
+
+export const logisticsRouter = router({
+  // -------------------------------------------------------------------------
+  // POST /api/route-optimization  (public)
+  // Generate 7 shipping routes from → to. Checks the seeded demo cache first
+  // (hits return in <100ms), then falls through to a live Gemini call.
+  // -------------------------------------------------------------------------
+  generateRoutes: publicProcedure
+    .input(
+      z.object({
+        from: z.string().min(1).max(200),
+        to: z.string().min(1).max(200),
+        package: PackageSchema,
+        description: z.string().min(1).max(500),
+        draftId: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      try {
+        const key = buildCacheKey(input.from, input.to, input.package.weight);
+        const cached = await DemoRouteCacheModel.findOne({ cacheKey: key }).lean();
+        if (cached?.routes && Array.isArray(cached.routes)) {
+          const routes = cached.routes as Array<Record<string, unknown>>;
+          // If a draftId was provided, stamp it on each route on the way out
+          // so chooseRoute behaves identically to a live call.
+          return input.draftId
+            ? routes.map((r) => ({ ...r, draftId: input.draftId }))
+            : routes;
+        }
+      } catch (cacheErr) {
+        // Cache miss / Mongo blip: log + fall through to a live call.
+        console.warn("[ROUTE-OPT] demo cache lookup failed:", (cacheErr as Error)?.message);
+      }
+      return runGenerateRoutes(input);
     }),
 
   // -------------------------------------------------------------------------
