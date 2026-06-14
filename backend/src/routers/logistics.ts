@@ -605,8 +605,12 @@ JSON format (array of 7 routes):
 
   // -------------------------------------------------------------------------
   // POST /api/carbon-footprint  (protected)
-  // Calculate per-leg emissions via Carbon Interface, then generate AI
-  // suggestions with Gemini.
+  //
+  // Per-leg emissions are computed locally from industry-standard well-to-wheel
+  // emission factors (DEFRA / GLEC, kg CO2e per tonne-km). Gemini is then used
+  // only to enrich the response with qualitative `suggestions` + `earthImpact`.
+  // Both Gemini failure and bad JSON fall back to pre-written content so the
+  // procedure never throws an external-service error at the caller.
   // -------------------------------------------------------------------------
   calculateCarbonFootprint: protectedProcedure
     .input(
@@ -653,16 +657,15 @@ JSON format (array of 7 routes):
         });
       }
 
-      const CARBON_INTERFACE_API_KEY = process.env.CARBON_INTERFACE_API_KEY;
-      if (!CARBON_INTERFACE_API_KEY) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "Carbon Interface API key is not configured. Please set CARBON_INTERFACE_API_KEY in your environment variables.",
-        });
-      }
+      // Step 1: Per-leg emissions via DEFRA / GLEC freight intensity factors.
+      // Units: kg CO2e per tonne-km. Unknown modes fall back to road haulage
+      // so we don't throw on a malformed leg.
+      const EMISSION_FACTOR_KG_PER_TONNE_KM: Record<string, number> = {
+        air: 0.85,
+        land: 0.105,
+        sea: 0.015,
+      };
 
-      // Step 1: Calculate emissions for each leg via Carbon Interface API
       let totalEmissions = 0;
       const routeAnalysis: Array<{
         leg: string;
@@ -679,66 +682,11 @@ JSON format (array of 7 routes):
         const mode = segment.state.toLowerCase();
         const segmentDistance = distanceByLeg[i];
 
-        let transportMethod: string;
-        switch (mode) {
-          case "land":
-            transportMethod = "truck";
-            break;
-          case "sea":
-            transportMethod = "ship";
-            break;
-          case "air":
-            transportMethod = "plane";
-            break;
-          default:
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: `Unsupported transport mode: ${mode}`,
-            });
-        }
+        const factor =
+          EMISSION_FACTOR_KG_PER_TONNE_KM[mode] ??
+          EMISSION_FACTOR_KG_PER_TONNE_KM.land;
+        const emissions = factor * (weight / 1000) * segmentDistance;
 
-        let apiResponse;
-        try {
-          apiResponse = await axios.post(
-            "https://www.carboninterface.com/api/v1/estimates",
-            {
-              type: "shipping",
-              weight_value: weight,
-              weight_unit: "kg",
-              distance_value: segmentDistance,
-              distance_unit: "km",
-              transport_method: transportMethod,
-            },
-            {
-              headers: {
-                Authorization: `Bearer ${CARBON_INTERFACE_API_KEY}`,
-                "Content-Type": "application/json",
-              },
-            }
-          );
-        } catch (carbonErr) {
-          throw new TRPCError({
-            code: "BAD_GATEWAY",
-            message: `Carbon Interface API request failed: ${(carbonErr as Error)?.message ?? "unknown"}`,
-          });
-        }
-
-        if (![200, 201].includes(apiResponse.status) || !apiResponse.data?.data) {
-          throw new TRPCError({
-            code: "BAD_GATEWAY",
-            message: `Carbon Interface API failed: Status ${apiResponse.status}`,
-          });
-        }
-
-        // Defensive: the Carbon Interface schema occasionally returns the
-        // attribute as a string, null, or omits it. Coerce to a finite
-        // number so a single bad leg doesn't NaN-poison the running total.
-        const rawEmissions = apiResponse.data?.data?.attributes?.carbon_kg;
-        const parsed =
-          typeof rawEmissions === "number"
-            ? rawEmissions
-            : parseFloat(String(rawEmissions ?? "0"));
-        const emissions = Number.isFinite(parsed) ? parsed : 0;
         totalEmissions += emissions;
         perLegEmissions.push(emissions);
 
@@ -752,74 +700,66 @@ JSON format (array of 7 routes):
         });
       }
 
-      // Step 2: Gemini AI suggestions & environmental impact
-
+      // Step 2: Gemini-generated qualitative narrative. The numbers are
+      // already final — Gemini only writes the suggestions and impact line.
       const legLines = perLegEmissions
-        .map((e, i) => `        - Leg ${i + 1} emissions: ${e} kg CO2e`)
+        .map((e, i) => `        - Leg ${i + 1} (${routeAnalysis[i].mode}): ${e.toFixed(2)} kg CO2e`)
         .join("\n");
 
       const prompt = `
-      You are a carbon footprint analysis AI for Movex, focused on providing actionable insights to reduce environmental impact. Use the following data to generate suggestions for reducing emissions and a description of the environmental impact as of June 08, 2025.
+You are a freight sustainability analyst. The per-leg emissions below were computed from DEFRA / GLEC freight intensity factors — they are the ground truth, do not recompute them.
 
-      **Inputs**:
-      - **Origin**: ${origin}
-      - **Destination**: ${destination}
-      - **Total Distance**: ${distance} km
-      - **Total Emissions**: ${totalEmissions} kg CO2e
-      - **Weight**: ${weight} kg
-      - **Route Analysis**: ${JSON.stringify(routeAnalysis)}
-      - **Per-Leg Emissions (kg CO2e)**: ${JSON.stringify(perLegEmissions)}
-
-      **Instructions**:
-      - Analyze the **Route Analysis** and **Per-Leg Emissions** to identify high-emission segments.
-      - For each leg in the Route Analysis, note the emissions from Per-Leg Emissions:
+Inputs:
+- Origin: ${origin}
+- Destination: ${destination}
+- Total distance: ${distance.toFixed(0)} km
+- Cargo weight: ${weight} kg
+- Total emissions: ${totalEmissions.toFixed(2)} kg CO2e
+- Per-leg emissions:
 ${legLines}
-      - Consider the total emissions (${totalEmissions} kg CO2e), weight (${weight} kg), and per-leg emissions to provide practical suggestions.
-      - For suggestions, focus on:
-        1. Reducing emissions by targeting high-emission segments.
-        2. Practical actions like optimizing shipment weight, consolidating shipments, or adjusting routes.
-      - For earthImpact, estimate the environmental impact using a relatable metric.
 
-      **Response Format**:
-      {
-        "suggestions": [
-          "Targeted suggestion based on per-leg emissions",
-          "Practical suggestion"
+Return strictly this JSON shape, no prose:
+{
+  "suggestions": ["…","…"],
+  "earthImpact": "one-line relatable comparison, e.g. equivalent to driving X km in an average petrol car"
+}
+
+Rules:
+- 2 to 3 short, specific suggestions. Reference the highest-emission leg's mode by name where it helps.
+- earthImpact: a single relatable comparison (car-km, tree-years, household-days). Use the totalEmissions number.
+`;
+
+      // Lift-the-mat fallback so a Gemini outage / bad JSON never bubbles up.
+      const highestLeg = perLegEmissions.reduce(
+        (acc, e, i) => (e > acc.e ? { e, i } : acc),
+        { e: -Infinity, i: 0 }
+      );
+      const highestMode = routeAnalysis[highestLeg.i]?.mode ?? "air";
+      const fallback: { suggestions: string[]; earthImpact: string } = {
+        suggestions: [
+          `Leg ${highestLeg.i + 1} (${highestMode}) drives the bulk of emissions — consider rerouting it via sea or rail where the schedule allows.`,
+          "Consolidate shipments at the highest-emission hub to lift the tonne-km load factor.",
+          "Switch the longest land leg to a Euro-6 or electric carrier where available.",
         ],
-        "earthImpact": "A short description of the environmental impact"
-      }
+        earthImpact: `Roughly equivalent to driving ${(totalEmissions / 0.17).toFixed(0)} km in an average petrol car.`,
+      };
 
-      Ensure the response is concise, actionable, and directly uses the provided per-leg emissions data.
-    `;
-
-      let rawResponse: string;
+      let aiData: { suggestions: string[]; earthImpact: string } = fallback;
       try {
         const aiResult = await genai().models.generateContent({ model: FLASH_MODEL, contents: prompt });
-        rawResponse = aiResult.text ?? "";
-      } catch (geminiErr) {
-        throw new TRPCError({
-          code: "BAD_GATEWAY",
-          message: `Gemini carbon suggestions failed: ${(geminiErr as Error)?.message ?? "unknown"}`,
-        });
-      }
-
-      const jsonMatch = rawResponse.match(/{[\s\S]*}/);
-      if (!jsonMatch) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No valid JSON found in AI response" });
-      }
-
-      let aiData: { suggestions: string[]; earthImpact: string };
-      try {
-        aiData = JSON.parse(jsonMatch[0]);
-      } catch {
-        const cleanedResponse = rawResponse
-          .replace(/([{,]\s*)(\w+)(:)/g, '$1"$2"$3')
-          .replace(/'/g, '"');
-        try {
-          aiData = JSON.parse(cleanedResponse);
-        } catch {
-          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to parse AI response as valid JSON" });
+        const rawResponse = aiResult.text ?? "";
+        const jsonMatch = rawResponse.match(/{[\s\S]*}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]) as Partial<typeof fallback>;
+          if (Array.isArray(parsed.suggestions) && parsed.suggestions.length > 0 && typeof parsed.earthImpact === "string") {
+            aiData = {
+              suggestions: parsed.suggestions.slice(0, 3),
+              earthImpact: parsed.earthImpact,
+            };
+          }
         }
+      } catch (geminiErr) {
+        console.warn("[carbon] Gemini narrative failed, using fallback:", (geminiErr as Error)?.message);
       }
 
       // Step 3: Build response
