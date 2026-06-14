@@ -26,11 +26,25 @@ import {
 dotenv.config();
 
 const CORRIDORS: Array<{ from: string; to: string }> = [
+  // International headline corridors
   { from: "Mumbai, India", to: "Rotterdam, Netherlands" },
   { from: "Shanghai, China", to: "Los Angeles, USA" },
   { from: "Delhi, India", to: "Frankfurt, Germany" },
   { from: "Singapore", to: "Hamburg, Germany" },
   { from: "Dubai, UAE", to: "New York, USA" },
+
+  // India domestic — Golden Quadrilateral + busiest freight arteries
+  { from: "Delhi, India", to: "Mumbai, India" },
+  { from: "Mumbai, India", to: "Delhi, India" },
+  { from: "Mumbai, India", to: "Bengaluru, India" },
+  { from: "Mumbai, India", to: "Chennai, India" },
+  { from: "Delhi, India", to: "Kolkata, India" },
+  { from: "Chennai, India", to: "Bengaluru, India" },
+  { from: "Delhi, India", to: "Bengaluru, India" },
+  { from: "Mumbai, India", to: "Ahmedabad, India" },
+  { from: "Mumbai, India", to: "Pune, India" },
+  { from: "Hyderabad, India", to: "Mumbai, India" },
+  { from: "Kolkata, India", to: "Chennai, India" },
 ];
 
 const WEIGHT_BUCKETS = [100, 500, 1000];
