@@ -3,12 +3,10 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Copy, Send } from "lucide-react";
 import { FaTrash, FaImage } from "react-icons/fa";
+import { apiBaseUrl } from "../../lib/trpc";
 
-// Fall back to local dev when VITE_BACKEND_URL is unset so the upload never
-// targets "undefined/api/analyze-product".
 const BACKEND_URL =
-  (import.meta.env.VITE_BACKEND_URL as string | undefined) ||
-  "http://localhost:5000";
+  (import.meta.env.VITE_BACKEND_URL as string | undefined) || apiBaseUrl;
 
 interface AnalysisData {
   "HS Code": string;

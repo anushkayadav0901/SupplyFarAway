@@ -160,7 +160,6 @@ function Footer({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
           Plan, verify, and screen every shipment.
         </p>
         <div className="flex items-center gap-4 text-xs text-gray-600">
-          <button onClick={() => navigate("/news")} className="hover:text-gray-900">News</button>
           <a
             href="https://github.com/anushkayadav0901/SupplyFarAway"
             target="_blank"

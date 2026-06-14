@@ -1,0 +1,16 @@
+{
+  "name": "supplyfaraway",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Monorepo runner — installs and runs the backend + frontend together.",
+  "scripts": {
+    "postinstall": "npm install --prefix backend && npm install --prefix frontend",
+    "dev": "concurrently -k -n backend,frontend -c blue,magenta \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
+    "build": "npm --prefix backend run build && npm --prefix frontend run build",
+    "start": "concurrently -k -n backend,frontend -c blue,magenta \"npm --prefix backend run start\" \"npm --prefix frontend run preview\"",
+    "seed:demo": "npm --prefix backend run seed:demo"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

@@ -40,7 +40,6 @@ const ROUTE_MAP: Record<string, RouteMeta> = {
   profile: { label: "Profile" },
 
   // Misc
-  news: { label: "News" },
   docs: { label: "Documentation" },
 };
 

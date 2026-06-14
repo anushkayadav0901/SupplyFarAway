@@ -330,3 +330,16 @@ Visible intelligence.
 
 Simple surface.
 Deep systems.
+
+---
+
+## Commits
+
+Short messages only: 1 subject line + 1 Co-Authored-By line. No body.
+
+| Author | Trailer |
+|--------|---------|
+| Claude | `Co-Authored-By: Claude Opus 4.8 (1 Million Context) <noreply@anthropic.com>` |
+| GPT    | `Co-Authored-By: GPT 5.5 xHigh <noreply@openai.com>` |
+| Cursor / Copilot / IDE bots | `Co-Authored-By: <tool-name> <noreply@<tool>.com>` |
+| Manual (no AI) | Omit trailer.
