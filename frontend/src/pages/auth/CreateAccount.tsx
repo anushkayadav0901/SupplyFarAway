@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Eye, EyeOff, ArrowUpRight } from "lucide-react";
 import { trpc } from "../../lib/trpc";
+import { Globe } from "../../components/Globe";
 
 export default function CreateAccount() {
   const [firstName, setFirstName] = useState("");
@@ -66,7 +67,22 @@ export default function CreateAccount() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center px-4 py-10">
+    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
+      {/* Left: globe — desktop only */}
+      <aside className="hidden lg:flex relative items-center justify-center bg-gray-50 overflow-hidden border-r border-gray-100">
+        <Globe />
+        <div className="absolute bottom-10 left-10 right-10 pointer-events-none">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">
+            SupplyFarAway
+          </p>
+          <h2 className="mt-2 text-2xl font-medium text-gray-900 leading-snug max-w-xs">
+            Plan, verify, and screen every shipment — across every corridor.
+          </h2>
+        </div>
+      </aside>
+
+      {/* Right: auth form */}
+      <div className="flex flex-col items-center px-4 py-10">
       <Link to="/" className="flex items-center gap-2 mb-12">
         <span className="w-8 h-8 bg-gray-900 rounded-xl flex items-center justify-center text-white font-bold text-[10px]">
           SF
@@ -177,6 +193,7 @@ export default function CreateAccount() {
             </Link>
           </p>
         </div>
+      </div>
       </div>
     </div>
   );
