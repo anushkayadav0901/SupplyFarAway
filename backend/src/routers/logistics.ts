@@ -153,6 +153,31 @@ STRICTLY RETURN ONLY JSON with no explanations, headings, or extra text.
   }
 }
 
+/**
+ * Coerce a leg's transport mode to the canonical "land" | "sea" | "air".
+ *
+ * Gemini drifts: sometimes emits `mode` instead of `state`, sometimes
+ * mis-cases the value, sometimes nulls it. Without this guard the response
+ * fails Zod and the frontend renders raw JSON in the map panel — which is
+ * exactly the bug that ate the live demo.
+ */
+function coerceLegState(leg: Record<string, unknown>): "land" | "sea" | "air" {
+  const candidates: unknown[] = [leg.state, leg.mode, (leg as { transport?: unknown }).transport];
+  for (const c of candidates) {
+    if (typeof c !== "string") continue;
+    const v = c.trim().toLowerCase();
+    if (v === "land" || v === "road" || v === "rail" || v === "truck") return "land";
+    if (v === "sea" || v === "ocean" || v === "ship" || v === "maritime") return "sea";
+    if (v === "air" || v === "flight" || v === "plane" || v === "aviation") return "air";
+  }
+  const hub = typeof leg.hub === "string" ? leg.hub.toLowerCase() : "";
+  const narrative = typeof leg.narrative === "string" ? leg.narrative.toLowerCase() : "";
+  const haystack = `${hub} ${narrative}`;
+  if (/\b(airport|aviation|flight|cargo plane)\b/.test(haystack)) return "air";
+  if (/\b(port|seaport|maritime|vessel|shipping lane)\b/.test(haystack)) return "sea";
+  return "land";
+}
+
 // ---------------------------------------------------------------------------
 // Router
 // ---------------------------------------------------------------------------
@@ -185,7 +210,8 @@ Rules:
 - Airports: "Airport Name, City, Country"
 - Each route MUST include 3-5 named real intermediate stops (cities, ports, or airports), not just origin and destination
 - Each route's routeDirections is an array of legs, one leg per pair of consecutive stops
-- Each leg must include: from, to, mode (sea/air/land), hub (optional — the port or airport name), narrative (1-sentence reason this stop exists: hub, fuel, customs, transhipment, geography), durationHours, costUsd, distanceKm
+- Each leg must include: id, from, to, waypoints (array with from then to), state (one of "sea" | "air" | "land"), hub (optional — the port or airport name), narrative (1-sentence reason this stop exists: hub, fuel, customs, transhipment, geography), durationHours, costUsd, distanceKm
+- The field is literally called "state" (NOT "mode") and its value MUST be one of the strings "sea", "air", "land" — never null, never empty
 
 Calculate:
 - Distance: Land(road), Air(great-circle), Sea(maritime)
@@ -303,7 +329,7 @@ JSON format (array of 7 routes):
             from: leg.from ?? waypoints[0] ?? "",
             to: leg.to ?? waypoints[waypoints.length - 1] ?? "",
             waypoints,
-            state: leg.state,
+            state: coerceLegState(leg as unknown as Record<string, unknown>),
             hub: leg.hub,
             narrative: leg.narrative,
             durationHours: leg.durationHours != null ? Math.round(leg.durationHours * 100) / 100 : undefined,
@@ -361,11 +387,17 @@ JSON format (array of 7 routes):
   processRoutes: protectedProcedure
     .input(
       z.object({
+        // Accept any string for `state` and coerce server-side. Keeps us
+        // backwards-compatible with old clients while tolerating Gemini drift
+        // upstream (mode vs state, mixed casings, etc.).
         routes: z.array(
           z.object({
             id: z.string(),
             waypoints: z.array(z.string()),
-            state: z.enum(["land", "sea", "air"]),
+            state: z.string().optional(),
+            mode: z.string().optional(),
+            hub: z.string().optional(),
+            narrative: z.string().optional(),
           })
         ),
         draftId: z.string().optional(),
@@ -373,7 +405,12 @@ JSON format (array of 7 routes):
     )
     .mutation(async ({ input, ctx }) => {
       const userId = requireUserId(ctx);
-      const { routes: routesData, draftId } = input;
+      const { draftId } = input;
+      const routesData: RouteDirection[] = input.routes.map((r) => ({
+        id: r.id,
+        waypoints: r.waypoints,
+        state: coerceLegState(r as unknown as Record<string, unknown>),
+      }));
 
       const prompt = `
       You are a geocoding validation AI tasked with correcting and standardizing waypoints in shipping routes to ensure they are geocodable by Google Maps API and formatted for display. For each waypoint in the provided routes, return a specific, geocodable place name in the format expected by Google Maps (e.g., cities as "City, Country", ports and airports with their official names and locations like "Jawaharlal Nehru Port, Mumbai, Maharashtra, India"). Handle the following cases:

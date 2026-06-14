@@ -46,7 +46,22 @@ function MapView({ draftId, inlineRoutes }: MapViewProps): React.ReactElement {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryToken, setRetryToken] = useState(0);
   const mapInstance = useRef<google.maps.Map | null>(null);
+
+  // Strip noisy tRPC / Zod payloads so the user sees something readable.
+  // The classic offender is a raw `[{"code":"invalid_value", ... }]` body
+  // from a procedure rejecting our input — never user-facing.
+  const friendlyError = (raw: unknown): string => {
+    const msg = (raw as Error)?.message ?? String(raw ?? "");
+    if (/^\s*[\[{]/.test(msg) || /invalid_value|invalid_type|"code"/.test(msg)) {
+      return "We couldn't draw this route. The route data was malformed — please retry.";
+    }
+    if (/timeout|timed out|abort/i.test(msg)) {
+      return "The map service took too long to respond. Please retry.";
+    }
+    return msg || "Could not draw the route.";
+  };
 
   const utils = trpc.useUtils();
   const processRoutesMutation = trpc.logistics.processRoutes.useMutation();
@@ -169,7 +184,7 @@ function MapView({ draftId, inlineRoutes }: MapViewProps): React.ReactElement {
         if (!bounds.isEmpty()) map.fitBounds(bounds);
       } catch (err) {
         if (isMounted) {
-          setError((err as Error).message || "Failed to load the map.");
+          setError(friendlyError(err));
         }
       } finally {
         if (isMounted) setLoading(false);
@@ -183,7 +198,7 @@ function MapView({ draftId, inlineRoutes }: MapViewProps): React.ReactElement {
       mapInstance.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draftId, inlineRoutes]);
+  }, [draftId, inlineRoutes, retryToken]);
 
   if (!loading && !error && !hasInline && !hasDraft) {
     return (
@@ -207,8 +222,18 @@ function MapView({ draftId, inlineRoutes }: MapViewProps): React.ReactElement {
       )}
 
       {error && !loading && (
-        <div className="absolute inset-0 bg-gray-50 flex items-center justify-center px-4">
-          <p className="text-gray-500 text-sm text-center">{error}</p>
+        <div className="absolute inset-0 bg-gray-50 flex flex-col items-center justify-center px-6 gap-3">
+          <p className="text-gray-700 text-sm text-center max-w-sm">{error}</p>
+          <button
+            type="button"
+            onClick={() => {
+              setError(null);
+              setRetryToken((t) => t + 1);
+            }}
+            className="px-3 py-1.5 text-xs font-medium rounded-md bg-gray-900 text-white hover:bg-gray-800"
+          >
+            Retry
+          </button>
         </div>
       )}
     </div>
