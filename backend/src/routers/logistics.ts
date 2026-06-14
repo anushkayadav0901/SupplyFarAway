@@ -220,7 +220,11 @@ JSON format (array of 7 routes):
   "tag": "popular"
 }]`;
 
-      const timeoutMs = 60000;
+      // 7-route prompt with 3–5 stops per route routinely lands at 55–75s
+      // round-trip from a VM hop to us-central1, so 60s was clipping the tail.
+      // 120s gives headroom; 502s here are almost always tail latency, not
+      // upstream errors.
+      const timeoutMs = 120000;
       let rawResponse: string;
       try {
         const aiResult = await Promise.race([
@@ -231,8 +235,12 @@ JSON format (array of 7 routes):
         ]);
         rawResponse = aiResult.text ?? "";
       } catch (aiErr) {
-        console.error("[ROUTE-OPT] AI error:", (aiErr as Error)?.message);
-        throw new TRPCError({ code: "BAD_GATEWAY", message: "AI service error" });
+        const msg = (aiErr as Error)?.message ?? "unknown";
+        console.error("[ROUTE-OPT] AI error:", msg);
+        throw new TRPCError({
+          code: "BAD_GATEWAY",
+          message: `AI service error: ${msg}`,
+        });
       }
 
       const jsonStart = rawResponse.indexOf("[");
