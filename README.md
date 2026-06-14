@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://img.shields.io/badge/%F0%9F%9A%80-SupplyFarAway-0f172a?style=for-the-badge&labelColor=0f172a" alt="SupplyFarAway" height="60"/>
+<img width="247" height="201" alt="Screenshot 2026-06-14 125928" src="https://github.com/user-attachments/assets/2b6a00a3-58f8-4ce0-b90f-38efdac0c4de" />
 
 # SupplyFarAway
 
